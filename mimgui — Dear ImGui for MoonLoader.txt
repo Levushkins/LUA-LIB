@@ -1,0 +1,212 @@
+Гайд: mimgui — Dear ImGui для MoonLoader
+
+mimgui — это новая графическая библиотека, созданная в результате устаревания предыдущей библиотеки Moon ImGui (использовавшей Dear ImGui v.1.52). В основе mimgui лежит свежий релиз Dear ImGui v.1.72. Новая библиотека включает в себя все основные возможности фреймворка, а её API максимально приближен к оригинальному.
+
+Содержание:
+1. Основная информация.
+2. Примеры использования.
+3. Главные различия между ImGui C++ API, MoonImGui Lua API и mimgui Lua API.
+4. Отличительные особенности mimgui Lua.
+
+Ресурсы:
+GitHub ImGui: github.com/ocornut/imgui (Dear ImGui: Bloat-free Graphical User interface for C++)
+GitHub mimgui: github.com/THE-FYP/mimgui (Dear ImGui for MoonLoader)
+
+Установка:
+Переместить папку mimgui из архива в папку: «Корневая папка с игрой/moonloader/lib».
+
+Основная информация
+
+В mimgui используется версия ImGui 1.72 (на момент написания статьи последняя версия оригинала — 1.79). Изначально публикация этого гайда планировалась после выхода новой версии MoonLoader с менеджером зависимостей (МЗ), однако его релиз был отложен. В качестве основы mimgui использует LuaJit ImGui, который, в свою очередь, базируется на cimgui. Разработка mimgui велась с декабря 2018 года, но широкую популярность библиотека получила в июле-августе 2019 года, в период выхода первой бета-версии MoonLoader 0.27.
+
+Примеры использования
+
+Начнем с примитивного скрипта.
+
+Lua:
+local imgui = require 'mimgui' -- Подключаем саму библиотеку
+
+local newFrame = imgui.OnFrame( 
+    --[[Сама функция создания фрейма, их может быть сколько угодно.
+    В mimgui рекомендуется создавать отдельный фрейм для каждого окна, 
+    однако это не является обязательным.]]
+    function() return true end, -- Определяет, выполняется/отображается ли текущий фрейм.
+    function(player)            -- Область рисования элементов.
+        -- В функцию в качестве первой переменной передается список функций 
+        -- для взаимодействия с локальным игроком.
+        imgui.Begin("Main Window")  -- Создаём новое окно с заголовком 'Main Window'
+        imgui.Text("Hello")         -- Добавляем текст 'Hello'
+        imgui.End()                 -- Объявляем конец данного окна
+    end
+)
+
+function main()
+    wait(-1)
+end
+
+Добавим размер, позицию по умолчанию и клавишу активации для показа окна.
+
+Lua:
+local imgui = require 'mimgui'
+local vkeys = require 'vkeys'       -- Библиотека индексов клавиш
+local wm = require 'windows.message'    -- Список событий для окна игры
+local new = imgui.new               -- Псевдоним для создания буферов
+
+local renderWindow = new.bool(false)
+local sizeX, sizeY = getScreenResolution()
+
+local newFrame = imgui.OnFrame(
+    function() return renderWindow[0] end,
+    function(player)
+        -- Положение окна по центру с оффсетом 0.5 (рендер от середины)
+        imgui.SetNextWindowPos(imgui.ImVec2(sizeX / 2, sizeY / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+        -- Укажем размер
+        imgui.SetNextWindowSize(imgui.ImVec2(200, 150), imgui.Cond.FirstUseEver)
+        
+        imgui.Begin("Main Window", renderWindow)
+        imgui.Text("Hello")
+        imgui.Text(string.format("Current render mode: %s", renderWindow[0]))
+        imgui.End()
+    end
+)
+
+function main()
+    -- Обработка горячих клавиш через onWindowMessage (оптимальный способ)
+    addEventHandler('onWindowMessage', function(msg, wparam, lparam)
+        if msg == wm.WM_KEYDOWN or msg == wm.WM_SYSKEYDOWN then
+            if wparam == vkeys.VK_X then
+                renderWindow[0] = not renderWindow[0] -- Переключаем состояние
+            end
+        end
+    end)
+    wait(-1)
+end
+
+Важное замечание: mimgui умеет сохранять данные окон по их индексам (заголовкам). Заголовки должны быть уникальными. Если нужны одинаковые названия, добавьте ##уникальное_значение после текста (оно будет скрыто). Это касается всех элементов: InputText, Button и т.д.
+
+Отключение автоматического запоминания настроек:
+
+Lua:
+local imgui = require 'mimgui'
+-- ... (подключение библиотек как в примере выше)
+
+imgui.OnInitialize(function()   
+    --[[Вызывается один раз за период жизни скрипта, 
+    когда ImGui окно показывается впервые. 
+    Здесь следует менять значения по умолчанию или подгружать картинки.]]
+    -- Выключаем сохранение настроек в ini-файл
+    imgui.GetIO().IniFilename = nil
+end)
+
+local newFrame = imgui.OnFrame(
+    function() return renderWindow[0] end,
+    function(player)
+        imgui.SetNextWindowPos(imgui.ImVec2(sizeX / 2, sizeY / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+        imgui.SetNextWindowSize(imgui.ImVec2(200, 150), imgui.Cond.FirstUseEver)
+        imgui.Begin("Main Window", renderWindow)
+        imgui.Text("Hello")
+        imgui.End()
+    end
+)
+
+Работа с русским языком (кодировка)
+
+Для корректного отображения кириллицы в MoonLoader используются библиотеки lua-iconv и encoding.
+
+Lua:
+local imgui = require 'mimgui'
+local ffi = require 'ffi'
+local vkeys = require 'vkeys'
+local encoding = require 'encoding' 
+encoding.default = 'CP1251' -- Должна совпадать с кодировкой вашего скрипта
+local u8 = encoding.UTF8
+local wm = require 'windows.message'
+local new, str, sizeof = imgui.new, ffi.string, ffi.sizeof
+
+local renderWindow, freezePlayer, removeCursor = new.bool(), new.bool(), new.bool()
+local inputField = new.char[256]()
+local sizeX, sizeY = getScreenResolution()
+
+imgui.OnInitialize(function()
+    imgui.GetIO().IniFilename = nil
+end)
+
+local newFrame = imgui.OnFrame(
+    function() return renderWindow[0] end,
+    function(player)
+        imgui.SetNextWindowPos(imgui.ImVec2(sizeX / 2, sizeY / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+        imgui.SetNextWindowSize(imgui.ImVec2(220, 200), imgui.Cond.FirstUseEver)
+        imgui.Begin("Main Window", renderWindow)
+        
+        if imgui.InputText(u8"Привет", inputField, sizeof(inputField)) then
+            print(u8:decode(str(inputField))) -- Декодируем обратно в CP1251 для консоли
+        end
+        
+        if imgui.Button(u8"Очистить поле") then
+            imgui.StrCopy(inputField, '')
+        end
+        
+        if imgui.Checkbox(u8'Заморозить игрока', freezePlayer) then
+            player.LockPlayer = freezePlayer[0]
+        end
+        
+        if imgui.Checkbox(u8'Скрыть курсор', removeCursor) then
+            player.HideCursor = removeCursor[0]
+        end
+        
+        if player.HideCursor then
+            imgui.Text(u8'Курсор скрыт')
+        end
+        
+        imgui.End()
+    end
+)
+
+Главные различия между ImGui C++ API и mimgui Lua API
+
+1. Пространство имен:
+   - В C++: ImGui::Text("text"); ImVec2(0.1f, 2.3f);
+   - В mimgui: imgui.Text("text"); imgui.ImVec2(0.1, 2.3);
+
+2. Перечисления (enums):
+   - В C++: ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize
+   - В mimgui: imgui.WindowFlags.NoTitleBar + imgui.WindowFlags.NoResize (префиксы и "_" в конце удалены).
+
+3. Базовые типы (через ffi):
+   - В C++: static bool win = false; ImGui::Begin("window", &win);
+   - В mimgui: local win = imgui.new.bool(false); imgui.Begin("window", win); (доступ к значению через win[0]).
+
+4. Динамические массивы:
+   - В C++: const char* items[] = {"1", "2", "3"}; ImGui::ListBox("list", &lb_cur, items, 3);
+   - В mimgui:
+     local itemsList = {"1", "2", "3"}
+     local items = imgui.new['const char*'][#itemsList](itemsList)
+     imgui.ListBoxStr_arr("list", current, items, #itemsList)
+
+Главные различия между MoonImGui и mimgui
+
+mimgui использует встроенную в LuaJIT библиотеку ffi, а не самописные функции. Типы ImBool, ImBuffer, ImInt и т.д. заменены на ffi-аналоги:
+
+- Bool: imgui.new.bool(true/false)
+- Int: imgui.new.int(5)
+- Char (Buffer): imgui.new.char[128]("hello")
+- Float: imgui.new.float(5.12)
+- Callback: ffi.cast('int (*)(ImGuiInputTextCallbackData* data)', func)
+
+Получение значений: в MoonImGui использовался ключ .v (buffer.v), в mimgui используется нулевой индекс (int[0], bool[0]). Для типа char значение получается через ffi.string(buffer).
+
+---
+
+Обсуждение темы (избранные комментарии):
+
+Akionka: Почему нельзя было выпустить под старым названием? Два названия для одного и того же создают путаницу.
+#Northn: mimgui использует ffi, а MoonImGui — самописные функции. Подходы кардинально отличаются, поэтому названия разные. К тому же, mimgui основан на LuaJIT ImGui.
+
+Azenizzka: Да заебали вы уже со своими графическими интерфейсами, почему по старинке нельзя диалоги? xD
+Hatiko: Маленькие скрипты лучше на диалогах, «ретро» стиль. Делать imgui-интерфейс для двух кнопок — мазохизм. Но переписывать огромные скрипты с imgui на mimgui тоже не всегда оправдано.
+
+Tema05: Почему в mimgui размер буфера char[5] позволяет ввести только 3 символа?
+#Northn: В C(++) массивы начинаются с нуля, а последний элемент зарезервирован под конец строки (\0). Кроме того, mimgui стабильнее и оптимизированнее, к переходу рекомендуется.
+
+kizn: Почему в OnFrame передается именно player?
+#Northn: Это объект, предоставляющий доступ к функционалу управления игроком (заморозка, курсор и прочее) в контексте кадра ImGui.

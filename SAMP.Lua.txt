@@ -1,0 +1,127 @@
+SAMP.Lua | BLASTHACK - Explosive Gamehacking
+
+Автор темы: FYP
+Дата начала: 3 Дек 2016
+Разработка ПО: Lua
+
+Изначально эта библиотека задумывалась как простой API исключительно для обработки сетевых пакетов, но в процессе разработки было решено, что лучше сделать её полноценной библиотекой для работы с SAMP. В будущем это позволит избавиться от необходимости использования SAMPFUNCS. На данный момент реализован только модуль, значительно упрощающий работу с пакетами, поэтому сейчас речь пойдет именно о нём.
+
+SAMP.Events
+Этот модуль добавляет событийную обработку входящих и исходящих RakNet-пакетов. Он имеет удобный API, полностью кастомизируем и предоставляет те же возможности, что и обычные хуки: чтение, перезапись и игнорирование.
+
+Использование
+Простой пример обработки исходящего сообщения в чат:
+Lua:
+local sampev = require 'lib.samp.events'
+function sampev.onSendChat(msg)
+    print('You said: ' .. msg)
+end
+
+Да, всё настолько просто. Нужно лишь загрузить библиотеку и добавить функцию с соответствующими аргументами.
+Перезапись данных в пакете осуществляется так же легко: нужно лишь вернуть из функции все значения в том же порядке, занеся их в таблицу.
+
+Пример:
+Lua:
+function sampev.onSendChat(msg)
+    return {'I said: ' .. msg}
+end
+Данный код будет дописывать текст "I said:" в начало каждого отправляемого сообщения.
+
+Если вернуть из функции значение false, то пакет будет проигнорирован клиентом. Например, этот код запретит серверу изменять позицию игрока:
+Lua:
+function sampev.onSetPlayerPos(position)
+    print(string.format('Server tried to change your position to %0.2f %0.2f %0.2f', position.x, position.y, position.z))
+    return false
+end
+
+Структуры всех пакетов находятся в файле events.lua.
+Обратите внимание: перезапись исходящих пакетов синхронизации слегка отличается от всех остальных. Они не требуют возврата аргументов, вместо этого данные перезаписываются как в обычной таблице Lua. Это сделано для повышения производительности.
+
+Пример перезаписи позиции в исходящих данных синхронизации игрока:
+Lua:
+function sampev.onSendPlayerSync(data)
+    print('Original position:', data.position.x, data.position.y, data.position.z)
+    data.position.x = 1337
+    data.position.y = 1488
+    data.position.z = 228
+end
+Это применимо только в событиях: onSendPlayerSync, onSendVehicleSync, onSendPassengerSync, onSendAimSync, onSendUnoccupiedSync, onSendTrailerSync, onSendBulletSync, onSendSpectatorSync.
+Структуры всех пакетов синхронизации находятся в файле synchronization.lua.
+
+Примеры скриптов:
+— AntiCarJack: перехват и игнорирование входящего RPC и пакета синхронизации.
+— Bubble Sniffer: перехват и обработка входящего RPC.
+— DerpCam: перезапись данных исходящего пакета синхронизации.
+— Chat Bliss: перезапись, игнорирование и обработка исходящего RPC.
+
+Для опытных разработчиков: Кастомизация
+API структурирован так, что позволяет вносить в него любые изменения, не прибегая к редактированию исходных файлов модулей.
+
+Добавление своего обработчика для серверного пакета проигрывания звука:
+Lua:
+local sampev = require 'lib.samp.events'
+local raknet = require 'lib.samp.raknet'
+sampev.INTERFACE.INCOMING_RPCS[raknet.RPC.PLAYSOUND] = {'onPlaySound', {soundId = 'int32'}, {x = 'float'}, {y = 'float'}, {z = 'float'}}
+
+Теперь в тот же файл можно добавить функцию для обработки события:
+Lua:
+function sampev.onPlaySound(sound, x, y, z)
+    print(string.format('Sound %d at coords %0.2f, %0.2f, %0.2f', sound, x, y, z))
+    return false -- отключаем звук, запрещая дальнейшую обработку пакета
+end
+
+Разбор кода регистрации события:
+sampev.INTERFACE. — поле INTERFACE содержит все экспортируемые элементы модуля.
+INCOMING_RPCS — обращение к списку входящих RPC.
+[raknet.RPC.PLAYSOUND] — обращение к элементу по индексу (идентификатор RPC).
+= {'onPlaySound', ...} — присваивание таблицы с названием события и структурой пакета.
+
+Доступны четыре таблицы: INCOMING_RPCS, OUTCOMING_RPCS, INCOMING_PACKETS, OUTCOMING_PACKETS.
+
+Добавление нового типа данных:
+Lua:
+events.INTERFACE.BitStreamIO.fvector3 = {
+    read = function(bs)
+        local vec = {}
+        vec.x = raknetBitStreamReadFloat(bs)
+        vec.y = raknetBitStreamReadFloat(bs)
+        vec.z = raknetBitStreamReadFloat(bs)
+        return vec
+    end,
+    write = function(bs, value)
+        raknetBitStreamWriteFloat(bs, value.x)
+        raknetBitStreamWriteFloat(bs, value.y)
+        raknetBitStreamWriteFloat(bs, value.z)
+    end
+}
+
+Если пакет имеет сложную структуру, можно передать функции чтения и записи вместо описания структуры, как это сделано для RPC InitGame.
+
+Скачать и Установить
+Последнюю версию можно найти на GitHub.
+Установка: скачайте samp.zip из последнего релиза и целиком скопируйте папку 'samp' (не её содержимое!) в каталог 'moonloader/lib/'.
+
+---
+Обсуждение:
+
+hnnssy: Я выполнял всю работу, а он ещё и насмехается (в ответ на благодарность от FYP).
+EXPORT: Как всегда топ-дизайнер! Ставлю плюсик!
+
+Dark_Knight: Насколько я понял, ты просто сделал инклуд с объявленными структурами типов и добавил функции API в Lua? Но в raknet.lua ты используешь require 'lib.sampfuncs'. Как это избавит от необходимости использования SAMPFUNCS, если ты его подключаешь?
+
+FYP: Библиотека зависит от SF сейчас, но постепенно будут появляться возможности, избавляющие от этой зависимости. Полная независимость появится только в будущем. В исходниках в самом начале стоят ассерты:
+assert(isSampfuncsLoaded(), 'samp.events requires SAMPFUNCS')
+Сначала разберись, потом выёбывайся.
+
+Dark_Knight: Я просто задал вопрос, а не выёбывался. Фразу про "избавить от необходимости" я расценил так, что ты уже отказался от СФ. Форум предназначен для дискуссий.
+
+Garrus: Проблема: если в обработчике onServerMessage отловить сообщение и в нём же отправить sampSendChat, то исходное сообщение не отобразится в чате.
+Пример:
+function sampev.onServerMessage(color, text)
+    if string.find(text, "кек") then
+        sampSendChat("привет")
+    end
+end
+Сообщение с "кек" пропадает.
+
+FYP: Это происходит потому, что sampSendChat отправляет RPC средствами SAMP, и RakNet-хук ловит этот пакет. Конфликт возникает из-за вызова одного хука внутри другого. Это проблема SAMPFUNCS, а не MoonLoader или SAMP.Lua. Поищу способ исправить, но, скорее всего, придётся обновлять SAMPFUNCS.

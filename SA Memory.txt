@@ -1,0 +1,211 @@
+SA Memory | BLASTHACK - Explosive Gamehacking
+
+Автор темы: LUCHARE
+Дата начала: 23 Фев 2018
+Теги: sa memory, Разработка ПО, Lua
+
+SCM-опкодов обычно достаточно для создания какого-либо мода, но иногда бывает, что нужной функции попросту нет, и приходится искать адреса или рассчитывать оффсеты филдов структур. Вот именно в таких моментах очень кстати будет этот модуль, так как он «заменяет» адреса и оффсеты на константы и структуры.
+
+Примеры использования:
+
+1. Вывод информации о пуле с транспортом
+Lua:
+local samem = require 'SAMemory'
+local key   = require 'vkeys'
+samem.require 'CPool' -- дефайн используемых структур
+samem.require 'CVehicle'
+
+-- теперь не надо приводить типы переменных в таблице библиотеки
+-- local vehicle_pool = samem.cast('CPool **', samem.vehicle_pool)
+
+function main()
+    while true do
+        if wasKeyPressed(key.VK_1) then
+            local pool = samem.vehicle_pool[0]
+            if pool ~= samem.nullptr then -- проверка пула на доступность, нулевой индекс нужен для вызова эвента метатаблицы, который разыменует указатель
+                print('vehicle pool:')
+                print(('[slots] total: %d, free: %d, used: %d'):format(pool:size(), pool:free_slots(), pool:used_slots()))
+                for slot, veh in pool('CVehicle') do -- в итератор передаем тип данных объекта пула (для правильной индексации)
+                    print(('[slot #%d] pointer: 0x%08X, scm handle: %d'):format(slot, tonumber(samem.cast('unsigned int', veh)), pool:get_handle('CVehicle', veh)))
+                end
+            else
+                print('Pool is unavailable.')
+            end
+        end
+        wait(0)
+    end
+end
+
+2. Рендер позиции всех педов в стриме
+Lua:
+local samem = require 'SAMemory'
+local key   = require 'vkeys'
+local vec2d = samem.require 'vector2d'
+samem.require 'CPool'
+samem.require 'CPed'
+
+local text = {
+    draw = false;
+    font = renderCreateFont('IMPACT', 11, 8, 0);
+    pos  = vec2d.new(300, 400);
+}
+
+function main()
+    while true do
+        local pool = samem.ped_pool[0]
+        if pool ~= samem.nullptr then
+            if wasKeyPressed(key.VK_2) then
+                text.draw = not text.draw
+            end
+            if text.draw then
+                local temp_y = text.pos.y
+                for slot, ped in pool('CPed') do
+                    local pos = ped.pMatrix.pos
+                    renderFontDrawText(text.font, ('#%d. posn: %f, %f, %f'):format(slot, pos.x, pos.y, pos.z), text.pos.x, temp_y, -1, true)
+                    temp_y = temp_y + 13 -- размер шрифта + 2
+                end
+            end
+        end
+        wait(0)
+    end
+end
+
+3. Разворот транспорта на 180 градусов
+Lua:
+local samem = require 'SAMemory'
+local key   = require 'vkeys'
+samem.require 'CVehicle'
+samem.require 'CTrain'
+
+function main()
+    while true do
+        if wasKeyPressed(key.VK_BACK) then -- Backspace
+            local veh = samem.player_vehicle[0]
+            if veh ~= samem.nullptr then
+                if veh.nVehicleClass == 6 then -- с поездом немного иначе
+                    local train = samem.cast('CTrain *', veh)
+                    train.fTrainSpeed = -train.fTrainSpeed -- просто инвертируем скорость, его, конечно, можно развернуть, но в сампе это не синхронизируется
+                    return
+                end
+                local matrix = veh.pMatrix
+                -- разворот на 180 градусов
+                matrix.up = -matrix.up -- у 2d и 3d векторов перегружен оператор унарного минуса
+                matrix.right = -matrix.right
+                -- инверт вектора скорости
+                veh.vMoveSpeed = -veh.vMoveSpeed
+            end
+        end
+        wait(0)
+    end
+end
+
+Разработчики: FYP, LUCHARE.
+За структуры спасибо DK22Pac и его plugin-sdk.
+
+Вложения: SAMemory.rar (68.8 KB).
+
+Обсуждение разработки:
+
+FYP (Администратор): Го с FFI.
+
+LUCHARE (Автор темы): Го, я отдам разработку тебе — будет с FFI.
+
+FYP (Администратор): С радостью бы занялся, если бы не было дохуя других дел.
+
+LUCHARE (Автор темы): Уже занялся этим делом и восстановил примерно 50% имеющегося функционала. Теперь понял, почему ты так настаивал на реализации с FFI — производительность значительно поднялась, да и возможностей стало больше.
+
+imring (Всефорумный модератор): Круто, вот сделал типичный пульсатор хп/брони.
+Lua:
+sa_mem = require 'SAMemory'
+function main()
+    while not isSampAvailable() do wait(0) end
+    while true do wait(0)
+        if sa_mem.Addr.LocalPlayer ~= 0x0 then
+            local sa_ped = sa_mem.new('CPed', sa_mem.Addr.LocalPlayer)
+            if isKeyDown(0x12) then -- ALT
+                sa_ped.Health = math.random(1, 100)
+                sa_ped.Armor = math.random(1, 100)
+            end
+        end
+    end
+end
+
+Dark_Knight: Я бы это не пульсатором назвал, а рандомизатор хп.
+
+История обновлений:
+
+LUCHARE: Модуль обновлен до релизной версии (1.0.2).
+Изменения:
+— Убран дефайн всех структур при подключении модуля. Теперь все используемые структуры нужно определять с помощью специальной функции (см. примеры).
+— Добавлены новые структуры.
+— Исправлены мелкие недочёты.
+Новые структуры: CCamera, CCam, CQueuedMode, CCamPathSplines, CWeaponInfo, CPlayerInfo, CPlayerPed.
+
+LUCHARE: Версия 1.0.3.
+Изменения:
+— Обновлены некоторые структуры, исправлены баги.
+— Добавлена константа с версией модуля.
+— Мелкие изменения (см. примеры).
+— Добавлена структура CWeaponEffects и две переменные из игры (code_pause, user_pause).
+
+LUCHARE: Версия 1.0.4.
+Изменения:
+— Структуры RwV3d, RwV2d, RwMatrix заменены на vector3d, vector2d и matrix, у которых есть свои методы и перегруженные операторы.
+— У структуры CPool появились свои методы.
+— Добавлена структура quaternion.
+— Реализовано наследование.
+— Мелкие изменения (см. примеры).
+
+Немного о пуле:
+Lua:
+1. pool:size() - возвращает количество слотов
+2. pool:object_size(ct) - возвращает размер объекта, первым параметром нужно указать тип данных объекта
+3. pool:is_valid_idx(idx) - проверяет индекс на существование
+4. pool:is_empty(idx) - проверяет существование объекта по индексу
+5. pool:free_slots() - возвращает количесво пустых слотов
+6. pool:used_slots() - возвращает количество используемых слотов
+7. pool:index(ct, obj) - возвращает индекс объекта по указателю на него
+8. pool:is_valid_object(obj) - проверяет объект на существование
+9. pool:set_free(idx, free) - устанавливает существование объекта (с индексом idx) переменной free
+10. pool:get_handle(ct, obj) - возвращает scm хэндл объекта по указателю на него
+11. pool:get_handle_pool_slot(handle) - возвращает индекс объекта по scm хэндлу
+12. pool:is_valid_handle(handle) - проверяет существование объекта по scm хэндлу
+13. pool:get_ptr(ct, handle) - возвращает указатель на объект по scm хэндлу
+14. pool:remove(ct, obj) - удаляет объект по указателю не него
+15. pool:get_object(ct, idx) - возвращает указатель на объект по индексу
+16. pool:objects(ct) [__call] - возвращает итератор по валидным объектам пула
+
+LUCHARE: Версия 1.0.4 (2).
+Изменения: См. в примерах.
+
+Баг-репорты и вопросы:
+
+brainis: Bug report... Ошибка в файле lib\SAMemory\game\CColBox.lua
+Lua:
+CColBox.lua
+11: -local samem  = require 'SAMemory.shared'
+11: +local shared  = require 'SAMemory.shared'
+
+LUCHARE: fixed.
+
+langerdovers: Я, возможно, чего-то не понимаю, но примеры не работают.
+
+kmsfax:
+Lua:
+local samem = require 'SAMemory'
+samem.require 'CWeaponEffects'
+local cross = samem.crosshairs[0]
+if cross ~= samem.nullptr then
+    cross.bActive = true
+    cross.fSize = 2
+    cross.uiColor = 1828657947
+    cross.nTimeWhenToDeactivate = 30000
+end
+Почему не получается изменить параметры?
+
+Похожие темы:
+— [ARZ] Mono Tools v3.5 | Legal Edition (Kaban Bunya, 29 Май 2021)
+— Simple Lua Multiplayer - разработка (RazorRw, 23 Авг 2020)
+— [0.3.7]Fly Hack (©Ded_Fedot, 27 Дек 2015)
+— Всё о Lua скриптинге для MoonLoader (AnWu, 1 Июн 2018)
+— Український самп -> R1/R2/R3/R4/DL (MeG@LaDo[N] ^_^, 24 Авг 2022)

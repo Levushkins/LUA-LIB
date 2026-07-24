@@ -1,0 +1,60 @@
+Использование иконок FontAwesome 4 в Moon ImGui
+
+Данный модуль содержит UTF-8 коды шрифта FontAwesome 4. Исходные коды иконок были адаптированы из репозитория juliettef/IconFontCppHeaders. 
+
+Для корректной работы необходимо подготовить файлы:
+1. Шрифт fontawesome-webfont.ttf (версия 4.7.0) скачивается с официального сайта fontawesome.com.
+2. Файл faIcons.lua необходимо поместить в директорию: moonloader/lib
+3. Файл шрифта fontawesome-webfont.ttf поместить в директорию: moonloader/resource/fonts
+
+Пример реализации в Lua:
+
+local imgui = require 'imgui'
+local vkeys = require 'vkeys'
+local fa = require 'faIcons'
+
+local show_main_window = imgui.ImBool(false)
+local fa_font = nil
+local fa_glyph_ranges = imgui.ImGlyphRanges({ fa.min_range, fa.max_range })
+
+function imgui.BeforeDrawFrame()
+    if fa_font == nil then
+        local font_config = imgui.ImFontConfig() 
+        -- Примечание: в случае ошибки используйте imgui.ImFontConfig.new()
+        font_config.MergeMode = true
+
+        fa_font = imgui.GetIO().Fonts:AddFontFromFileTTF(
+            'moonloader/resource/fonts/fontawesome-webfont.ttf', 
+            14.0, 
+            font_config, 
+            fa_glyph_ranges
+        )
+    end
+end
+
+function imgui.OnDrawFrame()
+    if show_main_window.v then
+        local sw, sh = getScreenResolution()
+        imgui.SetNextWindowPos(imgui.ImVec2(sw / 2, sh / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+        imgui.SetNextWindowSize(imgui.ImVec2(200, 200), imgui.Cond.FirstUseEver)
+        
+        imgui.Begin('FontAwesome Test', show_main_window, imgui.WindowFlags.NoCollapse)
+        
+        if imgui.Button(fa.ICON_APPLE .. ' AppStore') then
+            -- Логика при нажатии кнопки
+        end
+
+        imgui.End()
+    end
+end
+
+function main()
+    while true do
+        wait(0)
+        if wasKeyPressed(vkeys.VK_X) then
+            show_main_window.v = not show_main_window.v
+        end
+
+        imgui.Process = show_main_window.v
+    end
+end

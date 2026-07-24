@@ -1,0 +1,175 @@
+FAQ по разработке Lua-скриптов для MoonLoader (SAMP)
+
+1. Отправка команды или сообщения в чат по нажатию клавиши
+Для отправки сообщения при нажатии клавиши следует использовать функцию isKeyJustPressed в бесконечном цикле функции main. Это предотвратит многократную отправку (флуд) при зажатии кнопки.
+
+local vkeys = require 'vkeys'
+
+function main()
+    if not isSampfuncsLoaded() or not isSampLoaded() then return end
+    while not isSampAvailable() do wait(0) end
+    
+    while true do
+        wait(0)
+        if isKeyJustPressed(vkeys.VK_Z) then
+            sampSendChat("/mm") -- Отправка команды серверу
+        end
+    end
+end
+
+2. Получение информации о другом игроке (например, позиции)
+Для получения координат другого игрока сначала необходимо получить его PED (HANDLE) по ID, а затем считать координаты этого педа.
+
+sampRegisterChatCommand("getpos", function(param)
+    local id = tonumber(param)
+    if id == nil then
+        sampAddChatMessage("Используйте: /getpos [id]", -1)
+        return
+    end
+    
+    if not sampIsPlayerConnected(id) then
+        sampAddChatMessage("Игрок не найден", -1)
+        return
+    end
+    
+    local result, ped = sampGetCharHandleBySampPlayerId(id)
+    if result then
+        local x, y, z = getCharCoordinates(ped)
+        sampAddChatMessage(string.format("Позиция игрока %d: %.2f, %.2f, %.2f", id, x, y, z), -1)
+    else
+        sampAddChatMessage("Игрок не в зоне стрима", -1)
+    end
+end)
+
+3. Получение уровня розыска в SAMP
+Стандартные функции синглплеера могут работать некорректно в сетевом режиме. Рекомендуется считывать значение напрямую из памяти игры.
+
+local memory = require 'memory'
+
+sampRegisterChatCommand('getlvl', function()
+    local wantedLevel = memory.getuint8(0x58DB60)
+    sampAddChatMessage("Ваш уровень розыска: " .. wantedLevel, -1)
+end)
+
+4. Перехват сообщений из чата
+Для обработки входящих сообщений от сервера используется библиотека SAMP.lua (samp.events).
+
+local events = require("samp.events")
+
+function events.onServerMessage(color, msg)
+    -- msg содержит текст сообщения
+    if msg:find("Администратор") then
+        print("Найдено сообщение от администрации: " .. msg)
+    end
+end
+
+5. Отключение стандартного диалога помощи SAMP (клавиша F1)
+Чтобы F1 не открывала стандартное окно помощи, нужно пропатчить память процесса.
+
+local memory = require("memory")
+
+function main()
+    while not isSampAvailable() do wait(0) end
+    memory.setuint8(sampGetBase() + 0x67450, 0xC3, true) -- Запись инструкции RET
+end
+
+6. Выполнение функции по таймеру (например, каждые 5 минут)
+Для реализации периодических действий используется сравнение текущего времени os.time() с переменной-таймером.
+
+local timer = -1
+
+function main()
+    while true do
+        wait(0)
+        local nowTime = os.time()
+        if nowTime >= timer then
+            executeTask()
+            timer = nowTime + 300 -- 300 секунд = 5 минут
+        end
+    end
+end
+
+function executeTask()
+    print("Прошло 5 минут, выполняю действие.")
+end
+
+7. Определение момента сворачивания игры
+Событие WM_KILLFOCUS в функции onWindowMessage позволяет отследить потерю фокуса окном игры.
+
+local wm = require 'lib.windows.message'
+
+function onWindowMessage(msg, wparam, lparam)
+    if msg == wm.WM_KILLFOCUS then
+        print("Игра свернута или потерян фокус")
+    end
+end
+
+8. Закрытие ImGui окна нажатием клавиши ESC
+Для корректной работы необходимо перехватить нажатие ESC и предотвратить открытие системного меню игры.
+
+local wm = require 'lib.windows.message'
+local vkeys = require 'vkeys'
+
+function onWindowMessage(msg, wparam, lparam)
+    -- Предположим, imgui_window_state - это ImBool переменная окна
+    if wparam == vkeys.VK_ESCAPE and imgui_window_state[0] then
+        if msg == wm.WM_KEYDOWN then
+            consumeWindowMessage(true, false) -- Игнорируем ESC для игры
+        end
+        if msg == wm.WM_KEYUP then
+            imgui_window_state[0] = false -- Закрываем окно
+        end
+    end
+end
+
+9. Реализация вкладок в ImGui (mimgui)
+Современный способ создания вкладок через встроенный механизм TabBar.
+
+local imgui = require 'mimgui'
+
+-- Внутри OnFrame:
+if imgui.BeginTabBar('MyTabs') then
+    if imgui.BeginTabItem('Основное') then
+        imgui.Text('Контент первой вкладки')
+        imgui.EndTabItem()
+    end
+    if imgui.BeginTabItem('Настройки') then
+        imgui.Text('Контент второй вкладки')
+        imgui.EndTabItem()
+    end
+    imgui.EndTabBar()
+end
+
+10. Эмуляция нажатия клавиш через синхронизацию (на примере ALT)
+Если нужно отправить нажатие клавиши серверу без фактического нажатия игроком.
+
+local sampev = require("samp.events")
+local sendKey = nil
+
+-- Пример проверки дистанции и активации
+function main()
+    while true do
+        wait(0)
+        local dist = getDistanceBetweenCoords3d(1040, 1600, 8, getCharCoordinates(PLAYER_PED))
+        if dist < 1.5 then
+            sendKey = 1024 -- ID клавиши ALT для синхронизации
+            sampForceOnfootSync()
+        end
+    end
+end
+
+function sampev.onSendPlayerSync(data)
+    if sendKey then
+        data.keysData = sendKey
+        sendKey = nil
+    end
+end
+
+11. Ошибки подключения MoonImGui (MoonImGui not found)
+Если скрипт выдает ошибку "module 'MoonImGui' not found", убедитесь, что:
+- Файл MoonImGui.dll (или MoonImGui.so для мобильных версий) находится в папке moonloader/lib/.
+- Все зависимости и дополнительные файлы (imgui.lua) установлены строго по путям, указанным разработчиком. Корень игры для библиотек не подходит.
+
+12. Особенности регистрации событий
+- Использование прямого объявления функции (function onReceivePacket) подходит для небольших скриптов.
+- Использование addEventHandler('onReceivePacket', ...) предпочтительно для сложных проектов или библиотек, чтобы избежать перезаписи глобальных функций другими скриптами в том же окружении.

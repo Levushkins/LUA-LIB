@@ -1,0 +1,378 @@
+Представляю вам RakLua.
+
+RakLua — это новая библиотека, которая служит заменой событиям и функциям SAMPFUNCS для взаимодействия с RakNet'ом и BitStream — классом, позволяющим SAMP'у отправлять и получать данные от сервера. Библиотека использует sol3 для биндинга C++ (самой библиотеки) и самого Lua. Библиотека включает почти все возможности взаимодействия с RakNet'ом и его событиями, а ключевым моментом является одновременная поддержка SAMP 0.3.7-R1, SAMP 0.3.7-R2, SAMP 0.3.7-R3-1, SAMP 0.3.7-R4-2 и SAMP 0.3.7-R5-1, а также отсутствие зависимости от SAMPFUNCS и CLEO (потому что SAMPFUNCS не используется).
+
+Содержание:
+1. Список имеющихся функций и событий.
+2. Примеры эмуляции исходящих RPC/пакетов.
+3. Отлавливание и обработка входящих/исходящих RPC и пакетов.
+
+GitHub: Northn/RakLua
+Версия RakLua: 2.15; состояние: Stable
+
+Установка: файлы RakLuaDll.dll и RakLua.lua из архива RakLua2.14.zip, приложенного к теме, необходимо перетащить в папку: *Корневая папка с игрой*/moonloader/lib
+
+Использованные материалы: mod_s0beit_sa; sol3; RakHook.
+Отдельное спасибо: @FYP; @RTD.
+
+---
+
+Список имеющихся функций и событий
+
+Важная заметка: вам может быть неудобно переписывать исходный код в формат RakLua; если это так, то прочтите данный пост до конца (см. раздел о совместимости).
+
+Ниже приведено сравнение использования функций в RakLua и SAMPFUNCS.
+
+1. Создание BitStream; удаление BitStream
+Применение в RakLua:
+Lua:
+local bs = RakLuaBitStream.new()
+-- Обратите внимание, что это новый класс, а не тот самый BitStream
+-- Получить сам BitStream можно через bs:getBitStream()
+-- Удаление недоступно, сборщик мусора сам удалит
+
+Применение в SAMPFUNCS:
+Lua:
+local bs = raknetNewBitStream()
+raknetDeleteBitStream(bs)
+
+2. Получение оффсета для чтения/записи данных
+Применение в RakLua:
+Lua:
+local offset = bs:getReadOffset()
+local offset = bs:getWriteOffset()
+
+Применение в SAMPFUNCS:
+Lua:
+raknetBitStreamGetReadOffset(bs)
+raknetBitStreamGetWriteOffset(bs)
+
+3. Установка оффсета для чтения/записи данных
+Применение в RakLua:
+Lua:
+bs:setReadOffset(offset)
+bs:setWriteOffset(offset)
+
+Применение в SAMPFUNCS:
+Lua:
+raknetBitStreamSetReadOffset(bs, offset)
+raknetBitStreamSetWriteOffset(bs, offset)
+
+4. Сброс указателя для чтения/записи данных
+Применение в RakLua:
+Lua:
+bs:resetReadPointer()
+bs:resetWritePointer()
+
+Применение в SAMPFUNCS:
+Lua:
+raknetBitStreamResetReadPointer(bs)
+raknetBitStreamResetWritePointer(bs)
+
+5. Игнор битов/байтов для чтения данных
+Применение в RakLua:
+Lua:
+bs:ignoreBits(amount)
+bs:ignoreBytes(amount)
+-- Альтернатива (вспоминается проще)
+bs:skipBits(amount)
+bs:skipBytes(amount)
+
+Применение в SAMPFUNCS:
+Lua:
+raknetBitStreamIgnoreBits(bs, amount)
+-- Игнор байтов не имеется
+
+6. Получение количества использованных битов/байтов и количества непрочитанных битов/байтов
+Применение в RakLua:
+Lua:
+local value = bs:getNumberOfBitsUsed()
+local value = bs:getNumberOfBytesUsed()
+local value = bs:getNumberOfUnreadBits()
+local value = bs:getNumberOfUnreadBytes()
+
+Применение в SAMPFUNCS:
+Lua:
+local value = raknetBitStreamGetNumberOfBitsUsed(bs)
+local value = raknetBitStreamGetNumberOfBytesUsed(bs)
+local value = raknetBitStreamGetNumberOfUnreadBits(bs)
+-- Получение количества непрочитанных байтов недоступно
+
+7. Чтение данных
+Применение в RakLua:
+Lua:
+local value = bs:readBool() -- bool
+local value = bs:readUInt(8/16/32)() -- uint8/16/32; bs:readUInt16()
+local value = bs:readInt(8/16/32)() -- int8/16/32; bs:readInt16()
+local value = bs:readFloat() -- float
+local value = bs:readString(length) -- string
+local value = bs:readEncoded(size) -- encodedString
+local result = bs:readBuffer(dest, size)
+
+Применение в SAMPFUNCS:
+Lua:
+local value = raknetBitStreamReadBool(bs) -- bool
+local value = raknetBitStreamReadInt8(bs) -- uint8
+local value = raknetBitStreamReadInt16(bs) -- uint16
+local value = raknetBitStreamReadInt32(bs) -- int32
+local value = raknetBitStreamReadFloat(bs) -- float
+local value = raknetBitStreamReadString(bs, length) -- string
+local value = raknetBitStreamDecodeString(bs, size) -- encodedString
+raknetBitStreamReadBuffer(bs, dest, size)
+
+8. Запись значений
+Применение в RakLua:
+Lua:
+bs:writeBool(value)
+bs:writeUInt(8/16/32)(value) -- bs:writeUInt16(value)
+bs:writeInt(8/16/32)(value) -- bs:writeInt16(value)
+bs:writeFloat(value)
+bs:writeString(value)
+bs:writeEncoded(value)
+bs:writeBuffer(dest, size)
+bs:writeBitStream(bitStream)
+
+Применение в SAMPFUNCS:
+Lua:
+raknetBitStreamWriteBool(bs, value)
+raknetBitStreamWriteInt8(bs, value)
+raknetBitStreamWriteInt16(bs, value)
+raknetBitStreamWriteInt32(bs, value)
+raknetBitStreamWriteFloat(bs,value)
+raknetBitStreamWriteString(bs, value)
+raknetBitStreamEncodeString(bs, value)
+raknetBitStreamWriteBuffer(bs, dest, size)
+raknetBitStreamWriteBitStream(bs, bitStream)
+
+9. Отправка RPC/пакетов; Эмуляция входящих RPC/пакетов
+Применение в RakLua:
+Lua:
+bs:sendRPC(rpcId)
+bs:sendPacket()
+bs:emulIncomingRPC(rpcId)
+bs:emulIncomingPacket(packetId)
+
+Применение в SAMPFUNCS:
+Lua:
+raknetSendRpc(rpcId, bs)
+raknetSendBitStream(bs)
+raknetEmulRpcReceiveBitStream(rpcId, bs)
+raknetEmulPacketReceiveBitStream(packetId, bs)
+
+10. Установка обработчиков на входящие/исходящие RPC и пакеты
+Применение в RakLua:
+Lua:
+RakLua.registerHandler(RakLuaEvents.INCOMING_RPC, func)
+RakLua.registerHandler(RakLuaEvents.INCOMING_PACKET, func)
+RakLua.registerHandler(RakLuaEvents.OUTGOING_RPC, func)
+RakLua.registerHandler(RakLuaEvents.OUTGOING_PACKET, func)
+
+Применение в SAMPFUNCS:
+Lua:
+addEventHandler("onReceiveRPC", func)
+addEventHandler("onReceivePacket", func)
+addEventHandler("onSendRPC", func)
+addEventHandler("onSendPacket", func)
+
+---
+
+События и их индексы
+
+Входящие RPC: RakLuaEvents.INCOMING_RPC
+Исходящие RPC: RakLuaEvents.OUTGOING_RPC
+Входящие пакеты: RakLuaEvents.INCOMING_PACKET
+Исходящие пакеты: RakLuaEvents.OUTGOING_PACKET
+
+Дополнительная функция: RakLua.getSampVersion(), возвращает индекс исходя из перечисления:
+
+SAMP не загружен (одиночная игра / SAMP не установлен): RakLuaSampVersions.SAMP_NOT_LOADED
+Неизвестная версия SAMP (неподдерживаемая): RakLuaSampVersions.SAMP_UNKNOWN
+Версия SAMP 0.3.7-R1: RakLuaSampVersions.SAMP_037_R1
+Версия SAMP 0.3.7-R3-1: RakLuaSampVersions.SAMP_037_R3_1
+
+---
+
+Примеры эмуляции исходящих RPC/пакетов
+
+Для начала хочу подметить, что работа с BitStream производится через новый класс, предоставляемый этой библиотекой — RakLuaBitStream. Однако вы можете получить оригинальный BitStream через local bitStream = bs:getBitStream(), но он, скорее всего, для вас является бесполезным.
+
+Давайте начнём с простого: эмуляция отправки, например, команды.
+
+Lua:
+function send_rpc_command(text)
+    local bs = RakLuaBitStream.new()
+    bs:writeInt32(text:len())
+    bs:writeString(text)
+    if bs:sendRPC(50) --[[RPC_ServerCommand в 0.3.7-R3]] then
+        print("RPC was sent!")
+    else
+        print("We couldn't send RPC.")
+    end
+end
+
+Довольно просто, не так ли? Вы также можете убрать проверку на успешность отправки RPC, поскольку, если вы всё правильно записали, то оно, вероятнее всего, отправится. Также обратите внимание, что мы не удаляем BitStream — нам этого не нужно делать, об этом позаботится сам SAMP.
+
+Можем отправить какое-либо сообщение просто в чат:
+
+Lua:
+function send_text(text)
+    local bs = RakLuaBitStream.new()
+    bs:writeUInt8(text:len())
+    bs:writeString(text)
+    if bs:sendRPC(101) --[[RPC_Chat в 0.3.7-R3]] then
+        print("RPC was sent!")
+    else
+        print("We couldn't send RPC.")
+    end
+end
+
+Или написать целый sampSendChat(text):
+
+Lua:
+function send_rpc_command(text)
+    local bs = RakLuaBitStream.new()
+    bs:writeInt32(text:len())
+    bs:writeString(text)
+    return bs:sendRPC(50) --[[RPC_ServerCommand в 0.3.7-R3]]
+end
+
+function send_text(text)
+    local bs = RakLuaBitStream.new()
+    bs:writeUInt8(text:len())
+    bs:writeString(text)
+    return bs:sendRPC(101) --[[RPC_Chat в 0.3.7-R3]]
+end
+
+function sampSendChat(text)
+    text = tostring(text)
+    return text:sub(1, 1) == "/" and send_rpc_command(text) or send_text(text)
+end
+
+Мы также можем отправлять пакеты, достаточно лишь заполнить его и отправить:
+
+Lua:
+local bs = RakLuaBitStream.new()
+bs:writeUInt8(id) -- ID пакета
+-- И заполняем необходимыми данными
+bs:sendPacket()
+
+---
+
+Отлавливание и обработка входящих/исходящих RPC и пакетов
+
+Давайте хукнем, например, всеми известные onServerMessage, onSetPlayerHealth и onSetPlayerPos из входящих RPC:
+
+Lua:
+local RakLua = require 'RakLua'
+
+function main()
+    RakLua.registerHandler(RakLuaEvents.INCOMING_RPC,
+        function(id, bs)
+            if id == 93 then -- RPC_ClientMessage
+                local color = bs:readInt32() -- Читаем цвет
+                local textLen = bs:readInt32() -- Читаем длину текста
+                local text = bs:readString(textLen) -- Читаем сам текст
+                local res = onServerMessage(color, text) -- Вызываем свою функцию
+                if type(res) == "boolean" then -- Если тип возвращаемого значения bool
+                    return res -- Возвращаем значение, сам обработчик уже обработает/не обработает
+                    -- исходя из возвращаемого значения
+                elseif type(res) == "table" then
+                    bs:resetWritePointer() -- Сбросим указатель записи, чтобы перезаписать всё
+                    bs:writeInt32(res[1]) -- Запишем цвет
+                    bs:writeInt32(res[2]:len()) -- Запишем длину текста
+                    bs:writeString(res[2]) -- Запишем сам текст
+                end
+            elseif id == 14 then -- RPC_SetPlayerHealth
+                local health = bs:readFloat() -- Получим количество HP, которое сервер
+                -- Хочет нам установить
+                if health < 5 then
+                    return false
+                end
+            elseif id == 12 then -- RPC_SetPlayerPos
+                local x, y, z = bs:readFloat(), bs:readFloat(), bs:readFloat()
+                print(string.format("Server tried to set your position at %.2f; %.2f; %.2f", x, y, z))
+                return false -- Проигнорируем телепортацию
+            end
+        end
+    )
+end
+
+function onServerMessage(color, text)
+    if color == -1 then
+        return false
+    elseif text == "hello" then
+        return true
+    end
+    return {color, "hello"}
+end
+
+Мы написали обработчик, который при получении RPC ClientMessage будет вызывать функцию onServerMessage. При получении RPC SetPlayerHealth, если сервер попытается установить HP ниже пяти, он будет игнорировать это действие. А RPC SetPlayerPos будет всегда игнорировать попытку сервера телепортировать нас и писать в moonloader.log соответствующую информацию.
+
+Давайте напишем обработчик на исходящие RPC:
+
+Lua:
+RakLua.registerHandler(RakLuaEvents.OUTGOING_RPC,
+    function(id, bs, priority, reliability, orderingChannel, shiftTimestamp)
+        if id == 101 then -- RPC_Chat
+            local textLen = bs:readUInt8()
+            local text = bs:readString(textLen)
+            local res = onSendChat(text)
+            if type(res) == "boolean" then
+                return res
+            elseif type(res) == "table" then
+                bs:resetWritePointer()
+                bs:writeUInt8(res[1]:len())
+                bs:writeString(res[1])
+            end
+        elseif id == 50 then -- RPC_ServerCommand
+            local cmdLen = bs:readInt32()
+            local cmd = bs:readString(cmdLen)
+            local res = onSendCommand(cmd)
+            if type(res) == "boolean" then
+                return res
+            elseif type(res) == "table" then
+                bs:resetWritePointer()
+                bs:writeInt32(res[1]:len())
+                bs:writeString(res[1])
+            end
+        end
+    end
+)
+
+function onSendChat(text)
+    if text == "hello" then
+        text = "bye"
+    elseif text == "privet" then
+        return false
+    end
+    return {"[Префикс] "..text}
+end
+
+function onSendCommand(cmd)
+    if cmd == "/help" then
+        cmd = "/mm"
+    elseif cmd == "/admins" then
+        return false
+    end
+    return {cmd}
+end
+
+Обработчик, при получении RPC Chat или ServerCommand, будет вызывать соответствующие функции и, исходя из их возвращаемых аргументов, действовать.
+
+Обработка исходящих пакетов:
+
+Lua:
+RakLua.registerHandler(RakLuaEvents.OUTGOING_PACKET,
+    function(id, bs, priority, reliability, orderingChannel)
+        if id == 207 then -- ID_PLAYER_SYNC
+            bs:ignoreBytes(35) -- or bs:skipBytes(35); пропускаем 35 байт
+            local hp, armor = bs:readUInt8(), bs:readUInt8()
+            print(string.format("I sent %d HP; %d armor.", hp, armor))
+        end
+    end
+)
+
+Если отправляем Packet PLAYER_SYNC, то пропускаем первые 35 байт, читаем количество здоровья, брони и выводим в moonloader.log.
+
+Вот и всё, мы научились работать с RakLua, возможно даже, что и с BitStream, раз ранее не работали.
+Также хочу отметить, что поддержка с SAMP.Lua в наличии, но только начиная с версии 2.0. Для совместимости с SAMP.Lua необходимо вызвать функцию RakLua.defineSampLuaCompatibility() до подгрузки SAMP.Lua.

@@ -1,0 +1,749 @@
+================================================================================
+ЭМУЛЯЦИЯ RPC И ЗАПОЛНЕНИЕ BITSTREAM ДЛЯ KIPЯТИЛЬНИKОВ
+================================================================================
+
+ВВЕДЕНИЕ
+=========
+Всем салам, в этой "статье" я попытаюсь объяснить как эмулировать получение RPC, а так же как "заполнить" битстрим.
+
+Для начала нам необходимо найти айди и содержимое RPC, получение которого мы будем эмулировать. Для этого перейдем по этой ссылке.
+Лично я выберу RPC 153 (установка скина игроку)
+
+================================================================================
+НЕОБХОДИМЫЕ ФУНКЦИИ ДЛЯ РАБОТЫ С BITSTREAM
+================================================================================
+
+Для написания кода нам нужны следующие функции:
+
+-- Основные функции для работы с BitStream
+bs = raknetNewBitStream() --создаем битстрим (вместо bs можно написать что угодно)
+raknetEmulRpcReceiveBitStream(int rpc, bs) --эмулируем получение RPC (айди rpc, битстрим)
+raknetDeleteBitStream(bs) --после эмуляции удаляем битстрим
+
+-- Функции для записи данных в BitStream
+raknetBitStreamWriteBool(Bitstream bs, bool value)  -- записать в бс данные типа bool (true/false)
+raknetBitStreamWriteInt8(Bitstream bs, int value)  -- записать в бс данные типа int8 (число)
+raknetBitStreamWriteInt16(Bitstream bs, int value)  -- записать в бс данные типа int16 (число)
+raknetBitStreamWriteInt32(Bitstream bs, int value)  -- записать в бс данные типа int32 (число)
+raknetBitStreamWriteFloat(Bitstream bs, float value)  -- записать в бс данные типа float (пример: 1.1337)
+raknetBitStreamWriteString(Bitstream bs, string str)  -- записать в бс данные типа string (пример: "хуй трахать сперма пирожки")
+
+================================================================================
+ПРИМЕР: ЭМУЛЯЦИЯ RPC 153 (SetPlayerSkin)
+================================================================================
+
+Для начала нам необходимо создать битстрим, для этого будем использовать функцию:
+raknetNewBitStream()
+
+Теперь перейдем к списку RPC и посмотрим что должно быть в RPC
+Тут мы видим что бс состоит из 2 параметров, а именно: int32 ид игрока, int32 ид скина
+
+!!! в списке rpc написано uint, но нам похуй, будем юзать int, а так же надо запомнить что нельзя вписывать в int число меньше нуля
+
+Теперь соблюдая порядок составляем такой код:
+```lua
+bs = raknetNewBitStream()
+raknetBitStreamWriteInt32(bs, select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) --id игрока которому будем выдавать скин
+raknetBitStreamWriteInt32(bs, 49) --id скина
+
+raknetEmulRpcReceiveBitStream(153, bs) --эмулируем получение 153 rpc
+raknetDeleteBitStream(bs) --удаляем бс
+```
+
+================================================================================
+ГОТОВЫЙ ПРИМЕР С КОМАНДОЙ
+================================================================================
+
+Пример кода с изменением скина:
+
+```lua
+function main()
+    while not isSampAvailable() do wait(0) end
+    sampRegisterChatCommand('setskin', function(skinId)
+        bs = raknetNewBitStream()
+        raknetBitStreamWriteInt32(bs, select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) --id игрока которому будем выдавать скин
+        raknetBitStreamWriteInt32(bs, tonumber(skinId)) --id скина
+        raknetEmulRpcReceiveBitStream(153, bs)
+        raknetDeleteBitStream(bs)
+    end)
+    wait(-1)
+end
+```
+
+================================================================================
+СПИСОК ВСЕХ RPC
+================================================================================
+
+================================================================================
+СПРАВОЧНИК ПО ВСЕМ RPC
+================================================================================
+
+**RPC List**
+Nexius edited this page on Oct 19, 2024 · 163 revisions
+
+================================================================================
+OUTGOING RPCs (ОТ СЕРВЕРА К КЛИЕНТУ)
+================================================================================
+
+--------------------------------------------------------------------------------
+АКТЕРЫ (ACTORS)
+--------------------------------------------------------------------------------
+
+**ShowActor - ID: 171**
+Parameters: UINT16 wActorID, UINT32 SkinID, float X, float Y, float Z, float Angle, float Health, UINT8 Invulnerable
+
+**HideActor - ID: 172**
+Parameters: UINT16 wActorID
+
+**ApplyActorAnimation - ID: 173**
+Parameters: UINT16 wActorID, UINT8 AnimLibLength, char[] AnimLib, UINT8 AnimNameLength, char[] AnimName, float fDelta, bool loop, bool lockx, bool locky, bool freeze, UINT32 time
+
+**ClearActorAnimation - ID: 174**
+Parameters: UINT16 wActorID
+
+**SetActorFacingAngle - ID: 175**
+Parameters: UINT16 wActorID, float angle
+
+**SetActorPos - ID: 176**
+Parameters: UINT16 wActorID, float x, float y, float z
+
+**SetActorHealth - ID: 178**
+Parameters: UINT16 wActorID, float health
+
+--------------------------------------------------------------------------------
+ПРИКРЕПЛЕННЫЕ ОБЪЕКТЫ (ATTACHED OBJECTS)
+--------------------------------------------------------------------------------
+
+**SetPlayerAttachedObject - ID: 113**
+Parameters: UINT16 playerid, UINT32 Index, bool create, UINT32 Model, UINT32 bone, float fOffsetX, float fOffsetY, float fOffsetZ, float fRotX, float fRotY, float fRotZ, float fScaleX, float fScaleY, float fScaleZ, UINT32 materialcolor1, UINT32 materialcolor2
+
+*Additional Information:* This RPC can be used to Attach/Remove objects from players. To attach, the 3rd parameter (bool create) must be true. To remove, send the first three parameters only and make sure the 3rd one is false.
+
+--------------------------------------------------------------------------------
+ЧАТ-ПУЗЫРИ (CHAT BUBBLE)
+--------------------------------------------------------------------------------
+
+**ChatBubble - ID: 59**
+Parameters: UINT16 playerid, UINT32 color, float drawDistance, UINT32 expiretime, UINT8 textLength, char[] text
+
+--------------------------------------------------------------------------------
+ЧЕКПОИНТЫ (CHECKPOINTS)
+--------------------------------------------------------------------------------
+
+**DisableCheckpoint - ID: 37**
+Parameters: There are no parameters, just send this RPC to the player you wish to disable the checkpoint.
+
+**SetRaceCheckpoint - ID: 38**
+Parameters: UINT8 type, float X, float Y, float Z, float nextposX, float nextposY, float nextposZ, float radius
+
+**DisableRaceCheckpoint - ID: 39**
+Parameters: There are no parameters, just send this RPC to the player you wish to disable the checkpoint.
+
+**SetCheckpoint - ID: 107**
+Parameters: float x, float y, float z, float radius
+
+--------------------------------------------------------------------------------
+ДИАЛОГИ (DIALOGS)
+--------------------------------------------------------------------------------
+
+**ShowDialog - ID: 61**
+Parameters: INT16 wDialogID, UINT8 bDialogStyle, UINT8 bTitleLength, char[] szTitle, UINT8 bButton1Len, char[] szButton1, UINT8 bButton2Len, char[] szButton2, CSTRING szInfo[4096]
+
+--------------------------------------------------------------------------------
+ГЭНГ-ЗОНЫ (GANG ZONES)
+--------------------------------------------------------------------------------
+
+**AddGangZone - ID: 108**
+Parameters: INT16 wGangZoneID, float min_x, float min_y, float max_x, float max_y, UINT32 color
+
+**GangZoneDestroy - ID: 120**
+Parameters: INT16 wGangZoneID
+
+**GangZoneFlash - ID: 121**
+Parameters: INT16 wGangZoneID, UINT32 color
+
+**GangZoneStopFlash - ID: 85**
+Parameters: INT16 wGangZoneID
+
+--------------------------------------------------------------------------------
+ИГРОВОЙ ТЕКСТ (GAME TEXT)
+--------------------------------------------------------------------------------
+
+**ShowGameText - ID: 73**
+Parameters: UINT32 dStyle, UINT32 dTime, UINT32 dMessageLength, char[] Message
+
+--------------------------------------------------------------------------------
+ГРАВИТАЦИЯ (GRAVITY)
+--------------------------------------------------------------------------------
+
+**SetGravity - ID: 146**
+Parameters: float gravity
+
+--------------------------------------------------------------------------------
+ИКОНКИ КАРТЫ (MAP ICONS)
+--------------------------------------------------------------------------------
+
+**SetMapIcon - ID: 56**
+Parameters: UINT8 bIconID, float posX, float posY, float posZ, UINT8 type, UINT32 color, UINT8 style
+
+**RemoveMapIcon - ID: 144**
+Parameters: UINT8 bIconID
+
+--------------------------------------------------------------------------------
+МЕНЮ (MENUS)
+--------------------------------------------------------------------------------
+
+**InitMenu - ID: 76**
+Parameters: UINT8 MenuID, UINT32 bColumns, UINT32 TitleLength, char[] Title, float PosX, float PosY, float Col1Width, float Col2Width, UINT32 bMenuEnabled, UINT32 bRowEnabled, UINT32 Col1HeaderLength, char[] Col1Header, UINT8 Col1Count, UINT32 Col1ItemsLength, char[] Col1Items, UINT32 Col2HeaderLength, char[] Col2Header, UINT8 Col2Count, UINT32 Col2ItemsLength, char[] Col2Items
+
+*Additional Information:*
+- bRowEnabled is an array of interactive rows with size 12 (0 to 11).
+- Col1Items is an array of items text with size Col1Count. Col2Items is an array of items text with size Col2Count.
+- If bColumns is false, it means that Col2Width, Col2Header, Col2Count and Col2Items should be skipped.
+
+**ShowMenu - ID: 77**
+Parameters: UINT8 MenuID
+
+**HideMenu - ID: 78**
+Parameters: UINT8 MenuID
+
+--------------------------------------------------------------------------------
+ИМЕННЫЕ МЕТКИ (NAME TAGS)
+--------------------------------------------------------------------------------
+
+**ShowPlayerNameTag - ID: 80**
+Parameters: UINT16 wPlayerID, UINT8 show
+
+--------------------------------------------------------------------------------
+ОБЪЕКТЫ (OBJECTS)
+--------------------------------------------------------------------------------
+
+**CreateObject - ID: 44**
+Parameters: UINT16 wObjectID, UINT32 ModelID, float x, float y, float z, float rotx, float roty, float rotz, float DrawDistance, UINT8 NoCameraCol, UINT16 attachedObject, UINT16 attachedVehicle, float AttachOffsetX, float AttachOffsetY, float AttachOffsetZ, float AttachRotX, float AttachRotY, float AttachRotZ, UINT8 SyncRotation
+
+*Additional Information:* This RPC has multiple usages, such as determining if the object is attached to a vehicle or object. If you don't want this object to be attached to an object or vehicle, just make sure the parameters "attachedVehicle" or "attachedObject" have the value -1.
+
+**SetPlayerObjectMaterial(Text)- ID: 84**
+*Parameters For Material:* UINT16 wObjectID, UINT8 MaterialType, UINT8 MaterialID, UINT16 ModelID, UINT8 libraryNameLength, char[] libraryName, UINT8 textureNameLength, char[] textureName, UINT32 color
+
+*Parameters For MaterialText:* UINT16 wObjectID, UINT8 MaterialType, UINT8 MaterialID, UINT8 MaterialSize, UINT8 fontNameLength, char[] fontName, UINT8 FontSize, UINT8 Bold, UNIT32 FontColor, UNIT32 BackgroundColor, UNIT8 Align, CSTRING text[2048]
+
+*Additional Information:* Incognito's Streamer plugin uses this RPC, too. This RPC has multiple usages, you have to check for MaterialType to see if it's SetPlayerObjectMaterial or SetPlayerObjectMaterialText.
+
+**AttachObjectToPlayer - ID: 75**
+Parameters: UINT16 wObjectID, UINT16 wPlayerID, float x, float y, float z, float rotx, float roty, float rotz
+
+**AttachCameraToObject - ID: 81**
+Parameters: UINT16 wObjectID
+
+**EditAttachedObject - ID: 116**
+Parameters: UINT32 index
+
+**EditObject - ID: 117**
+Parameters: bool PlayerObject, UINT16 wObjectID
+
+**EnterEditObject - ID: 27**
+Parameters: There are no parameters, just send this RPC to the player that should be able to select the object.
+
+**CancelEdit - ID: 28**
+Parameters: There are no parameters, just send this RPC to the player that should quit the object editing.
+
+**SetObjectPos - ID: 45**
+Parameters: UINT16 wObjectID, float x, float y, float z
+
+**SetObjectRotation - ID: 46**
+Parameters: UINT16 wObjectID, float rotx, float roty, float rotz
+
+**DestroyObject - ID: 47**
+Parameters: UINT16 wObjectID
+
+**MoveObject - ID: 99**
+Parameters: UINT16 wObjectID, float x, float y, float z, float target_X, float target_Y, float target_Z, float speed, float target_rX, float target_rY, float target_rZ
+
+**StopObject - ID: 122**
+Parameters: UINT16 wObjectID
+
+--------------------------------------------------------------------------------
+ПИКАПЫ (PICKUPS)
+--------------------------------------------------------------------------------
+
+**CreatePickup - ID: 95**
+Parameters: INT32 iPickupID, INT32 iModelID, INT32 iSpawnType, float x, float y, float z
+
+**DestroyPickup - ID: 63**
+Parameters: INT32 iPickupID
+
+--------------------------------------------------------------------------------
+ИГРОКИ (PLAYER)
+--------------------------------------------------------------------------------
+
+**ServerJoin - ID: 137**
+Parameters: UINT16 wPlayerID, UINT32 dColor, UINT8 isNPC, UINT8 PlayerNameLength, char[] PlayerName
+
+*Additional Information:* Keeping dColor parameter as 0 will make random color on each client.
+
+**ServerQuit - ID: 138**
+Parameters: UINT16 wPlayerID, UINT8 reason
+
+*Additional Information:* reasons: 0 = Timeout, 1 = Quit, 2 = Kick/Ban.
+
+**InitGame - ID: 139**
+Parameters: bool bZoneNames, bool bUseCJWalk, bool bAllowWeapons, bool bLimitGlobalChatRadius, float fGlobalChatRadius, bool bStuntBonus, float fNameTagDistance, bool bDisableEnterExits, bool bNameTagLOS, bool bManualVehEngineAndLights, UINT32 dSpawnsAvailable, UINT16 wPlayerID, bool bShowNameTags, UINT32 dShowPlayerMarkers, UINT8 bWorldTime, UINT8 bWeather, float fGravity, bool bLanMode, UINT32 dDeathDropMoney, bool bInstagib, UINT32 dOnfootRate, UINT32 dInCarRate, UINT32 dWeaponRate, UINT32 dMultiplier, UINT32 dLagCompMode, UINT8 length, char[] HostName, UINT8 bVehicleModels, UINT32 dVehicleFriendlyFire
+
+*Additional Information:* bVehicleModels is an array of used vehicle models with size 212 (0 to 211).
+
+**ConnectionRejected - ID: 130**
+Parameters: UINT8 reason
+
+*Additional Information:* This RPC disconnects a player from the server showing him "CONNECTION REJECTED: " message. Values for reason: 1 = Incorrect Version, 2 = Unacceptable NickName, 3 = Bad mod version, 4 = Unable to allocate a player slot.
+
+**UpdateScoresAndPings - ID: 155**
+Parameters: UINT16 wPlayerID, INT32 score, UINT32 ping
+
+**ClientCheck - ID: 103**
+Parameters: UINT8 type, UINT32 address, UINT16 offset, UINT16 count
+
+**GameModeRestart - ID: 40**
+Parameters: There are no parameters, just send this RPC to the player that should be reconnected.
+
+*Additional Information:* This RPC reconnects a player to the server showing him "The server is restarting..." message.
+
+**ApplyPlayerAnimation - ID: 86**
+Parameters: UINT16 wPlayerID, UINT8 AnimLibLength, char[] AnimLib, UINT8 AnimNameLength, char[] AnimName, float fDelta, bool loop, bool lockx, bool locky, bool freeze, UINT32 dTime
+
+**ClearPlayerAnimation - ID: 87**
+Parameters: UINT16 wPlayerID
+
+**DeathBroadcast - ID: 166**
+Parameters: UINT16 wPlayerID
+
+**SetPlayerName - ID: 11**
+Parameters: UINT16 wPlayerID, UINT8 NameLength, char[] Name, UINT8 bSuccess
+
+*Additional Information:* Keep bSuccess parameter as 1.
+
+**SetPlayerPos - ID: 12**
+Parameters: float x, float y, float z
+
+**SetPlayerPosFindZ - ID: 13**
+Parameters: float x, float y, float z
+
+**SetPlayerFacingAngle - ID: 19**
+Parameters: float angle
+
+**SetPlayerSkillLevel - ID: 34**
+Parameters: UINT16 wPlayerID, UINT32 dSkillID, UINT16 wLevel
+
+**SetPlayerSkin - ID: 153**
+Parameters: UINT32 wPlayerID, UINT32 dSkinID
+
+**SetPlayerTime - ID: 29**
+Parameters: UINT8 bHour, UINT8 bMinute
+
+**SetPlayerSpecialAction - ID: 88**
+Parameters: UINT8 bActionID
+
+**SetWeather - ID: 152**
+Parameters: UINT8 bWeatherID
+
+**SetWorldBounds - ID: 17**
+Parameters: float max_x, float min_x, float max_y, float min_y
+
+**SetPlayerVelocity - ID: 90**
+Parameters: float x, float y, float z
+
+**TogglePlayerControllable - ID: 15**
+Parameters: UINT8 moveable
+
+*Additional Information:* moveable must be 1 to enable and 0 to disable.
+
+**TogglePlayerSpectating - ID: 124**
+Parameters: UINT32 spectating
+
+*Additional Information:* spectating must be 1 to enable and 0 to disable.
+
+**ToggleClock - ID: 30**
+Parameters: UINT8 toggle
+
+*Additional Information:* toggle must be 1 to enable and 0 to disable.
+
+**SetPlayerTeam - ID: 69**
+Parameters: UINT16 wPlayerID, UINT8 bTeamID
+
+**PlaySound - ID: 16**
+Parameters: UINT32 soundid, float x, float y, float z
+
+**GivePlayerMoney - ID: 18**
+Parameters: INT32 iMoney
+
+**ResetPlayerMoney - ID: 20**
+Parameters: There are no parameters, just send this RPC to the player you wish to reset the money.
+
+**ResetPlayerWeapons - ID: 21**
+Parameters: There are no parameters, just send this RPC to the player you wish to reset the weapons.
+
+**GivePlayerWeapon - ID: 22**
+Parameters: UINT32 dWeaponID, UINT32 dBullets
+
+**PlayAudioStream - ID: 41**
+Parameters: UINT8 UrlLength, char[] Url, float x, float y, float z, float radius, UINT8 UsePos
+
+*Additional Information:* UsePos must be 1 if you want the sound to play at the position it was set, otherwise send it as 0.
+
+**PlayCrimeReport - ID: 112**
+Parameters: UINT16 suspectId, UINT32 inVehicle, UINT32 vehicleModel, UINT32 vehicleColor, UINT32 crime, float x, float y, float z
+
+**StopAudioStream - ID: 42**
+Parameters: There are no parameters, just send this RPC to the player you wish to stop the audio stream for.
+
+**RemoveBuilding - ID: 43**
+Parameters: UINT32 dObjectModel, float x, float y, float z, float radius
+
+**SetPlayerHealth - ID: 14**
+Parameters: float health
+
+**SetPlayerArmour - ID: 66**
+Parameters: float armour
+
+**SetWeaponAmmo - ID: 145**
+Parameters: UINT8 bWeaponID, UINT16 wAmmo
+
+**SetCameraBehind - ID: 162**
+Parameters: There are no parameters, just send this RPC to the player you wish to set the camera behind.
+
+**SetArmedWeapon - ID: 67**
+Parameters: UINT32 dWeaponID
+
+**WorldPlayerAdd - ID: 32**
+Parameters: UINT16 wPlayerID, UINT8 team, UINT32 dSkinId, float PosX, float PosY, float PosZ, float facing_angle, UINT32 player_color, UINT8 fighting_style, UINT16 wSkillLevel
+
+*Additional Information:* wSkillLevel is an array of weapon skill levels with size 11 (0 to 10).
+
+**WorldPlayerRemove - ID: 163**
+Parameters: UINT16 wPlayerID
+
+**InterpolateCamera - ID: 82**
+Parameters: bool bPosSet, float fromPosX, float fromPosY, float fromPosZ, float toPosX, float toPosY, float toPosZ, UINT32 time, UINT8 cutType
+
+**CreateExplosion - ID: 79**
+Parameters: float X, float Y, float Z, UINT32 wType, float radius
+
+**SendDeathMessage - ID: 55**
+Parameters: UINT16 wKillerID, UINT16 wPlayerID, UINT8 reason
+
+**SendGameTimeUpdate - ID: 60**
+Parameters: INT32 time
+
+**SendClientMessage - ID: 93**
+Parameters: UINT32 dColor, UINT32 dMessageLength, char[] Message
+
+**SetShopName - ID: 33**
+Parameters: UINT32 length, char[] Name
+
+**SetPlayerDrunkLevel - ID: 35**
+Parameters: INT32 iDrunkLevel
+
+**SetPlayerFightingStyle - ID: 89**
+Parameters: UINT16 wPlayerID, UINT8 fightstyle
+
+**SetInterior - ID: 156**
+Parameters: UINT8 bInteriorID
+
+**SetPlayerColor - ID: 72**
+Parameters: UINT16 wPlayerID, UINT32 dColor
+
+**ForceClassSelection - ID: 74**
+Parameters: There are no parameters, just send this RPC to the player you wish to force class selection for.
+
+**ToggleWidescreen - ID: 111**
+Parameters: UINT8 enable
+
+**SetPlayerWantedLevel - ID: 133**
+Parameters: UINT8 bWantedLevel
+
+**SetCameraPos - ID: 157**
+Parameters: float lookposX, float lookposY, float lookposZ
+
+**SetCameraLookAt - ID: 158**
+Parameters: float lookposX, float lookposY, float lookposZ, UINT8 cutType
+
+--------------------------------------------------------------------------------
+ИНФОРМАЦИЯ О СПАВНЕ (SPAWN INFO)
+--------------------------------------------------------------------------------
+
+**SetSpawnInfo - ID: 68**
+Parameters: UINT8 byteTeam, UINT32 dSkin, UINT8 unused, float X, float Y, float Z, float fRotation, UINT32 dSpawnWeapons1, UINT32 dSpawnWeapons2, UINT32 dSpawnWeapons3, UINT32 dSpawnWeaponsAmmo1, UINT32 dSpawnWeaponsAmmo2, UINT32 dSpawnWeaponsAmmo3
+
+**RequestClass - ID: 128**
+Parameters: UINT8 bRequestResponse, UINT8 byteTeam, UINT32 dSkin, UINT8 unused, float X, float Y, float Z, float fRotation, UINT32 dSpawnWeapons1, UINT32 dSpawnWeapons2, UINT32 dSpawnWeapons3, UINT32 dSpawnWeaponsAmmo1, UINT32 dSpawnWeaponsAmmo2, UINT32 dSpawnWeaponsAmmo3
+
+*Additional Information:* if bRequestResponse is 0, it means the ClassID recieved was invalid (not selectable), and the rest of the Bitstream is empty. Otherwise, the data after bRequestResponse is identical to the one of SetSpawnInfo.
+
+**RequestSpawn - ID: 129**
+Parameters: UINT8 bRequestResponse
+
+*Additional Information:* if bRequestResponse is 0, it means the spawn request was declined.
+
+--------------------------------------------------------------------------------
+НАБЛЮДЕНИЕ (SPECTATE)
+--------------------------------------------------------------------------------
+
+**SpectatePlayer - ID: 126**
+Parameters: UINT16 wPlayerID, UINT8 bSpecCamType
+
+**SpectateVehicle - ID: 127**
+Parameters: UINT16 wVehicleID, UINT8 bSpecCamType
+
+--------------------------------------------------------------------------------
+СТАНТ-БОНУС (STUNT BONUS)
+--------------------------------------------------------------------------------
+
+**EnableStuntBonus - ID: 104**
+Parameters: UINT8 enable
+
+--------------------------------------------------------------------------------
+ТЕКСТДРАВЫ (TEXTDRAWS)
+--------------------------------------------------------------------------------
+
+**ToggleSelectTextDraw - ID: 83**
+Parameters: UINT8 enable, UINT32 color
+
+*Additional Information:* This RPC can be used to enable/disable TextDraw selection for clickable TextDraws. Use 1 to enable and 0 to disable.
+
+**TextDrawSetString - ID: 105**
+Parameters: UINT16 wTextDrawID, UINT16 TextLength, char[] Text
+
+**ShowTextDraw - ID: 134**
+Parameters: UINT16 wTextDrawID, UINT8 Flags, float fLetterWidth, float fLetterHeight, UINT32 dLetterColor, float fLineWidth, float fLineHeight, UINT32 dBoxColor, UINT8 Shadow, UINT8 Outline, UINT32 dBackgroundColor, UINT8 Style, UINT8 Selectable, float fX, float fY, UINT16 wModelID, float fRotX, float fRotY, float fRotZ, float fZoom, INT16 wColor1, INT16 wColor2, UINT16 szTextLen, char[] szText
+
+*Additional Information:* global textdraws use IDs 0-2047 and per-player use IDs 2048-2303.
+
+*Values of the Flags field:*
+- bit 1: box on/off
+- bit 2: align left
+- bit 3: align center
+- bit 4: align right
+- bit 5: proportional font on/off
+
+**HideTextDraw - ID: 135**
+Parameters: UINT16 wTextDrawID
+
+--------------------------------------------------------------------------------
+ТРАНСПОРТ (VEHICLES)
+--------------------------------------------------------------------------------
+
+**PlayerEnterVehicle - ID: 26**
+Parameters: UINT16 wPlayerID, UINT16 wVehicleID, UINT8 bIsPassenger
+
+**PlayerExitVehicle - ID: 154**
+Parameters: UINT16 wPlayerID, UINT16 wVehicleID
+
+**RemoveVehicleComponent - ID: 57**
+Parameters: UINT16 wVehicleID, UINT16 wComponentID
+
+**AttachTrailerToVehicle - ID: 148**
+Parameters: UINT16 wTrailerID, UINT16 wVehicleID
+
+**DetachTrailerFromVehicle - ID: 149**
+Parameters: UINT16 wVehicleID
+
+**LinkVehicleToInterior - ID: 65**
+Parameters: UINT16 wVehicleID, UINT8 bInteriorID
+
+**PutPlayerInVehicle - ID: 70**
+Parameters: UINT16 wVehicleID, UINT8 bSeatID
+
+**RemovePlayerFromVehicle - ID: 71**
+Parameters: There are no parameters, just send this RPC to the player that should be removed from a vehicle.
+
+**UpdateVehicleDamageStatus - ID: 106**
+Parameters: UINT16 wVehicleID, UINT32 panels, UINT32 doors, UINT8 lights, UINT8 tires
+
+**SetVehicleTireStatus - ID: 98**
+Parameters: UINT16 wVehicleID, UINT8 tires
+
+**ScmEvent - ID: 96**
+Parameters: UINT16 wPlayerID, UINT32 eventType, UINT32 wVehicleID, UINT32 param1, UINT32 param2
+
+**SetVehicleNumberPlate - ID: 123**
+Parameters: UINT16 wVehicleID, UINT8 PlateLength, char[] PlateText
+
+**DisableVehicleCollisions - ID: 167**
+Parameters: bool disable
+
+**SetVehicleHealth - ID: 147**
+Parameters: UINT16 wVehicleID, float Health
+
+**SetVehicleVelocity - ID: 91**
+Parameters: UINT8 turn, float x, float y, float z
+
+*Additional Information:* if turn is 1, angular velocity will be applied.
+
+**SetVehiclePos - ID: 159**
+Parameters: UINT16 wVehicleID, float x, float y, float z
+
+**SetVehicleZAngle - ID: 160**
+Parameters: UINT16 wVehicleID, float Angle
+
+**SetVehicleParams - ID: 161**
+Parameters: UINT16 wVehicleID, UINT8 bObjective, UINT8 bDoorsLocked
+
+**SetVehicleParamsEx - ID: 24**
+Parameters: UINT16 wVehicleID, UINT8 bEngine, UINT8 bLights, UINT8 bAlarm, UINT8 bDoors, UINT8 bBonnet, UINT8 bBoot, UINT8 bObjective, UINT8 bSiren, UINT8 bDoorDriver, UINT8 bDoorPassenger, UINT8 bDoorBackLeft, UINT8 bDoorBackRight, UINT8 bWindowDriver, UINT8 bWindowPassenger, UINT8 bWindowBackLeft, UINT8 bWindowBackRight
+
+**WorldVehicleAdd - ID: 164**
+Parameters: UINT16 wVehicleID, UINT32 ModelID, float X, float Y, float Z, float Angle, UINT8 InteriorColor1, UINT8 InteriorColor2, float Health, UINT8 interior, UINT32 DoorDamageStatus, UINT32 PanelDamageStatus, UINT8 LightDamageStatus, UINT8 tireDamageStatus, UINT8 addSiren, UINT8 modslot0, UINT8 modslot1, UINT8 modslot2, UINT8 modslot3, UINT8 modslot4, UINT8 modslot5, UINT8 modslot6, UINT8 modslot7, UINT8 modslot8, UINT8 modslot9, UINT8 modslot10, UINT8 modslot11, UINT8 modslot12, UINT8 modslot13, UINT8 PaintJob, UINT32 BodyColor1, UINT32 BodyColor2
+
+**WorldVehicleRemove - ID: 165**
+Parameters: UINT16 wVehicleID
+
+--------------------------------------------------------------------------------
+3D ТЕКСТОВЫЕ МЕТКИ (3D TEXT LABELS)
+--------------------------------------------------------------------------------
+
+**Create3DTextLabel - ID: 36**
+Parameters: UINT16 wLabelID, UINT32 color, float x, float y, float z, float DrawDistance, UINT8 testLOS, UINT16 attachedPlayer, UINT16 attachedVehicle, CSTRING text[4096]
+
+**Delete3DTextLabel - ID: 58**
+Parameters: UINT16 wLabelID
+
+--------------------------------------------------------------------------------
+МИРОВОЕ ВРЕМЯ (WORLD TIME)
+--------------------------------------------------------------------------------
+
+**SetWorldTime - ID: 94**
+Parameters: UINT8 bHour
+
+*Additional Information:* Pretty much the same as SetPlayerTime, except it only sets the hour, and not minutes.
+
+--------------------------------------------------------------------------------
+ЦЕЛЬ КАМЕРЫ (CAMERA TARGET)
+--------------------------------------------------------------------------------
+
+**ToggleCameraTarget - ID: 170**
+Parameters: bool bEnabled
+
+================================================================================
+INCOMING RPCs (ОТ КЛИЕНТА К СЕРВЕРУ)
+================================================================================
+
+--------------------------------------------------------------------------------
+ТРАНСПОРТ
+--------------------------------------------------------------------------------
+
+**EnterVehicle - ID: 26**
+Parameters: UINT16 wVehicleID, UINT8 bIsPassenger
+
+*Additional Information:* if bIsPassenger is 0, the player is about to enter the driver seat. If bIsPassenger is 1, the player is about to enter any of the passenger seats in the vehicle.
+
+**ExitVehicle - ID: 154**
+Parameters: UINT16 wVehicleID
+
+**VehicleDamaged - ID: 106**
+Parameters: UINT16 wVehicleID, UINT32 panels, UINT32 doors, UINT8 lights, UINT8 tires
+
+**ScmEvent - ID: 96**
+Parameters: UINT32 wVehicleID, UINT32 param1, UINT32 param2, UINT32 eventType
+
+**VehicleDestroyed - ID: 136**
+Parameters: UINT16 wVehicleID
+
+--------------------------------------------------------------------------------
+ИГРОВЫЕ СОБЫТИЯ
+--------------------------------------------------------------------------------
+
+**SendSpawn - ID: 52**
+Parameters: No parameters.
+
+**ChatMessage - ID: 101**
+Parameters: UINT8 length, char[] ChatMessage
+
+**InteriorChangeNotification - ID: 118**
+Parameters: UINT8 bInteriorID
+
+**DeathNotification - ID: 53**
+Parameters: UINT8 bReason, UINT16 wKillerID
+
+**SendCommand - ID: 50**
+Parameters: UINT32 length, char[] commandtext
+
+**ClickPlayer - ID: 23**
+Parameters: UINT16 clickedplayer, UINT8 source
+
+**DialogResponse - ID: 62**
+Parameters: INT16 wDialogID, UINT8 bResponse, INT16 wListItem, UINT8 bTextLength, char[] Text
+
+**ClientCheckResponse - ID: 103**
+Parameters: UINT8 type, UINT32 address, UINT8 response
+
+**GiveTakeDamage - ID: 115**
+Parameters: bool bGiveOrTake, UINT16 wPlayerID, float damage_amount, UINT32 dWeaponID, UINT32 dBodypart
+
+*Additional Information:* if bGiveOrTake is true, wPlayerID will receive the damage. If bGiveOrTake is false, wPlayerID will send the damage.
+
+**GiveActorDamage - ID: 177**
+Parameters: bool unused, UINT16 wActorID, float damage_amount, UINT32 dWeaponID, UINT32 dBodypart
+
+**MapMarker - ID: 119**
+Parameters: float X, float Y, float Z
+
+**RequestClass - ID: 128**
+Parameters: UINT16 wClassID
+
+**RequestSpawn - ID: 129**
+Parameters: No parameters.
+
+**MenuSelect - ID: 132**
+Parameters: UINT8 row
+
+**MenuQuit - ID: 140**
+Parameters: No parameters.
+
+**SelectTextDraw - ID: 83**
+Parameters: UINT16 clickedid
+
+**PickedUpPickup - ID: 131**
+Parameters: INT32 iPickupID
+
+**SelectObject - ID: 27**
+Parameters: UINT32 selectType, UINT16 objectid, UINT32 model, float posX, float posY, float posZ
+
+**EditAttachedObject - ID: 116**
+Parameters: UINT32 response, UINT32 index, UINT32 model, UINT32 bone, float offsetX, float offsetY, float offsetZ, float rotX, float rotY, float rotZ, float scaleX, float scaleY, float scaleZ, UINT32 color1, UINT32 color2
+
+**EditObject - ID: 117**
+Parameters: bool PlayerObject, UINT16 objectid, UINT32 response, float pX, float pY, float pZ, float rX, float rY, float rZ
+
+*Additional Information:* if PlayerObject is true, it means the object edited is a player object, otherwise it would be false.
+
+**UpdateScoresAndPings - ID: 155**
+Parameters: No parameters.
+
+--------------------------------------------------------------------------------
+СОЕДИНЕНИЕ И АУТЕНТИФИКАЦИЯ
+--------------------------------------------------------------------------------
+
+**ClientJoin - ID: 25**
+Parameters: UINT32 iVersion, UINT8 byteMod, UINT8 byteNicknameLen, char[] NickName, UINT32 uiClientChallengeResponse, UINT8 byteAuthKeyLen, char[] auth_key, UINT8 iClientVerLen, char[] ClientVersion, UINT32 uiClientChallengeResponse
+
+*Additional Information:* uiClientChallengeResponse parameter is duplicated by the official client at the end, while other client implementations don't do this (they don't send it at all so it's 0).
+
+**NPCJoin - ID: 54**
+Parameters: UINT32 iVersion, UINT8 byteMod, UINT8 byteNicknameLen, char[] NickName, UINT32 uiClientChallengeResponse
+
+*Additional Information:* this RPC will only get sent by NPCs.
+
+--------------------------------------------------------------------------------
+КАМЕРА
+--------------------------------------------------------------------------------
+
+**CameraTarget - ID: 168**
+Parameters: UINT16 ObjectTarget, UINT16 VehicleTarget, UINT16 PlayerTarget, UINT16 ActorTarget
+
+*Additional Information:* This will be sent when an entity is in view of the camera. Multiple things can be shown at the same time. If something is not in view, the target will be 65535.
+
+================================================================================
+ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ
+================================================================================
+
+СОДЕРЖИМОЕ BS можно брать в SAMP.lua

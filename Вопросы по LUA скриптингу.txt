@@ -1,0 +1,108 @@
+--- ВОПРОС ---
+Как вывести текст на русском? Вместо русского текста у меня какие-то каракули.
+--- РЕШЕНИЕ (LUA) ---
+Изменить кодировку файла скрипта на Windows-1251. В Atom: комбинация клавиш Ctrl+Shift+U, в Notepad++: меню Кодировки -> Кодировки -> Кириллица -> Windows-1251.
+
+--- ВОПРОС ---
+Как получить транспорт, в котором сидит игрок?
+--- РЕШЕНИЕ (LUA) ---
+local veh = storeCarCharIsInNoSave(PLAYER_PED)
+
+--- ВОПРОС ---
+Как получить свой id или id другого игрока?
+--- РЕШЕНИЕ (LUA) ---
+local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED) -- получить свой ид
+local _, id = sampGetPlayerIdByCharHandle(ped) -- получить ид другого игрока. ped - это хендл персонажа
+
+--- ВОПРОС ---
+Как проверить, что строка содержит какой-то текст?
+--- РЕШЕНИЕ (LUA) ---
+if string.find(str, 'текст', 1, true) then
+-- строка str содержит "текст"
+end
+
+--- ВОПРОС ---
+Как эмулировать нажатие игровой клавиши?
+--- РЕШЕНИЕ (LUA) ---
+local game_keys = require 'game.keys' -- где-нибудь в начале скрипта вне функции main
+setGameKeyState(game_keys.player.FIREWEAPON, -1) -- будет сэмулировано нажатие клавиши атаки
+
+--- ВОПРОС ---
+Как получить id другого игрока, в которого целюсь я?
+--- РЕШЕНИЕ (LUA) ---
+local valid, ped = getCharPlayerIsTargeting(PLAYER_HANDLE) -- получить хендл персонажа, в которого целится игрок
+if valid and doesCharExist(ped) then -- если цель есть и персонаж существует
+local result, id = sampGetPlayerIdByCharHandle(ped) -- получить samp-ид игрока по хендлу персонажа
+if result then -- проверить, прошло ли получение ида успешно
+-- здесь любые действия с полученным идом игрока
+end
+end
+
+--- ВОПРОС ---
+Как зарегистрировать команду чата SAMP?
+--- РЕШЕНИЕ (LUA) ---
+sampRegisterChatCommand("mycommand", function (param)
+-- param будет содержать весь текст введенный после команды, чтобы разделить его на аргументы используйте string.match()
+sampAddChatMessage("MyCMD", -1)
+end)
+
+--- ВОПРОС ---
+Крашит игру при вызове sampSendChat. Как это исправить?
+--- РЕШЕНИЕ (LUA) ---
+Вызов sampSendChat изнутри обработчика исходящих RPC/пакетов нужно обернуть в скриптовый поток с нулевой задержкой:
+function onSendRpc(id)
+lua_thread.create(function()
+wait(0)
+sampSendChat('Send RPC: ' .. id)
+end)
+end
+
+--- ВОПРОС ---
+list в стиле диалогов почему-то принимается за msgbox.
+function openmenu()
+s = string.format("Player \nVehicle \nOther Huinya")
+sampShowDialog(17, "Mactawish Mod Menu", s, "Ok", "Exit", "DIALOG_STYLE_LIST")
+end
+--- РЕШЕНИЕ (LUA) ---
+тип должен быть int, а не string
+
+--- ВОПРОС ---
+Скрипт сразу крашается, в логах ничего необычного. При релоаде скриптов виснет игра.
+while true do
+local result, button, list, input = sampHasDialogRespond(17)
+if result == true then
+sampAddChatMessage("Была нажата кнопка " .. button, -1)
+end
+if button == 1 then
+sampAddChatMessage("Типа выбран элемент под номером " .. list, -1);
+end
+end
+--- РЕШЕНИЕ (LUA) ---
+ты используешь бесконечный цикл без задержки.
+После: while true do
+Добавь: wait (0)
+
+--- ВОПРОС ---
+Как при нажатии клавиши задействовать команду которая сразу отправится в чат как сообщение?
+--- РЕШЕНИЕ (LUA) ---
+Через sampAddChatMessage можно вывести текст и он никому кроме тебя не будет виден, для ввода команды используй sampSendChat(string text)
+
+--- ВОПРОС ---
+'do' expected near 'if' в цикле while true.
+--- РЕШЕНИЕ (LUA) ---
+while true do
+
+--- ВОПРОС ---
+Как сделать что бы при прицеливании на игрока и нажатии n-ой клавиши выполнялось действие.
+if handle = getCharPlayerIsTargeting(int player) and isKeyDown(VK_1) then
+--- РЕШЕНИЕ (LUA) ---
+local result, target = getCharPlayerIsTargeting(playerHandle)
+if result and isKeyDown(VK_1) then
+....
+result здесь означает, удалось ли получить другого игрока, в которого целится играющий.
+target - это игрок, в которого целится играющий.
+
+--- ВОПРОС ---
+каким образом можно заменить опкод 0ad3: format_stirng 0@ = "Первый пункт%cВторой пункт%cТретий пункт" 0xA 0xA
+--- РЕШЕНИЕ (LUA) ---
+string.format

@@ -1,0 +1,769 @@
+Базовые инструменты это:
+
+* lua - интерпретатор
+* luac - комипилятор
+* luajit - виртуальная машина для исполнения lua-байткода
+* luarocks - аналог PEAR или CPAN
+
+lua [options] [script [args]]
+
+Опции (options) могут быть такими:
+
+-e stat   выполняет строку stat
+-l mod    загрузка модуля require('name') до выполнения скрипта
+-i        переходит в интерактивный режим после запуска скрипта
+-v        выводит информацию о версии
+--        останавливает обработку опций
+-         использует stdin вместо файла и останавливает обработку опций
+
+Перед началом выполнения скрипта, lua собирает все аргументы командной строки в глобальной таблице arg. Имя скрипта сохранено по индексу 0, первый аргумент после имени скрипта – по индексу 1, и т.д. Все аргументы перед именем скрипта (т.е., имя интерпретатора и его опции) сохраняются с отрицательными индексами.
+
+Дополнительные библиотеки luarocks используются примерно в таком ключе:
+
+$ luarocks list
+$ luarocks help install
+$ luarocks install loop
+
+Ключевые слова:
+and break do else elseif end false for function if in local nil not or repeat return then true until while
+
+* Lua является языком, чувствительным к регистру символов!
+* Комментарии в Lua начинаются с --
+* Многострочные комментарии: --[[ .. .. .. ]]
+* Использование точки с запятой в конце строк не является обязательным
+* _VERSION - Глобальная переменная-строка, с номером версии интерпретатора
+* Простейший код: print("Hello") или эквивалент io.write("Hello\n")
+
+Типы данных
+В Lua всего 8 типов данных:
+* nil (неопределенный)
+* boolean (логический)
+* number (числовой)
+* string (строковый)
+* function (функция)
+* userdata (пользовательские данные)
+* thread (поток)
+* table (таблица)
+
+Функция type() возвращает строку-тип
+* Узнать тип данных можно командой type()
+* Возможные результаты функции type() - это строки "nil", "number", "string", "boolean", "table", "function", "thread" и "userdata"
+* Строки - неизменяемы, всегда создаются их копии
+* Строки могут содержать 8-битные символы, включая ноль ('\0')
+
+Область видимости
+x = 1
+do
+   local x = x+1
+   -- вечный print(2)
+   print(x)
+end
+
+* Если local будет стоять в цикле - то каждый раз будут создаваться новые локальные переменные
+
+Математические операции
+-- Сложение/Вычитание/Унарный минус:
+x + y
+x - y
+-x
+
+-- Умножение/Деление:
+x * y
+x / y
+
+-- Деление по модулю:
+x % y
+
+-- Конкатенация строк:
+a = b .. c
+
+-- Получение размера таблицы
+v = #a
+
+-- Операции имеют строгий приоритет:
+^ (самый высокий)
+not   #    - (unary)
+*     /    %
++     -
+..
+<   >   <=  >=  ~=  ==
+and
+or (самый низкий)
+
+Логические операции
+-- Истина/Ложь:
+true
+false
+
+-- Логическое НЕ:
+not
+
+-- Логическое И:
+and
+
+-- Логическое ИЛИ:
+or
+
+-- Логические операции в Lua перегружены
+-- and - возвращает первый false или nil, иначе второй
+-- or - возвращает первый не false и не nil, иначе второй
+
+10 or 20            --> 10
+10 and 20           --> 20
+10 or error()       --> 10
+
+false and error()   --> false
+false and nil       --> false
+false or nil        --> nil
+
+nil or "a"          --> "a"
+nil and 10          --> nil
+
+Битовые операции
+-- Начиная с Lua 5.2 в состав стандартной библиотеки входит bit32
+
+bit.tobit(x)          -- normalize number to the numeric range of bit operations
+bit.tohex(x[,n])      -- convert x to hex with n digits (default 8)
+bit.bnot(x)           -- bitwise not of x
+bit.band(x1[,x2...])  -- bitwise and of x1, x2, ...
+bit.bor(x1[,x2...])   -- bitwise or of x1, x2, ...
+bit.bxor(x1[,x2...])  -- bitwise xor of x1, x2, ...
+bit.lshift(x, n)      -- left-shift of x by n bits
+bit.rshift(x, n)      -- logical right-shift of x by n bits
+bit.arshift(x, n)     -- arithmetic right-shift of x by n bits
+bit.rol(x, n)         -- left-rotate of x by n bits
+bit.ror(x, n)         -- right-rotate of x by n bits
+bit.bswap(x)          -- byte-swap of x (little-endian <-> big-endian)
+
+Операции сравнения
+-- Равенство/неравенство:
+a == b
+a ~= b
+
+-- Больше/меньше:
+a < b
+a > b
+a <= b
+a >= b
+
+! операции проверяют типы данных !
+
+Регулярные выражения
+-- Работа с регулярными выражениями осуществляется модулем string
+
+date = "04/19/64"
+m, d, y = string.match(date, "(%d+)/(%d+)/(%d+)")
+
+-- %d matches a digit (123)
+string.match("foo 123 bar", '%d%d%d')
+
+-- %u matches an uppercase letter (U)
+string.match("text with an Uppercase letter", '%u')
+
+-- Глобальный поиск по шаблону
+string.gmatch(s, pattern)
+
+Пример 1: Проход по всем словам
+s = "hello world from Lua"
+for w in string.gmatch(s, "%a+") do
+    print(w)
+end
+
+Пример 2: Сбор пар "ключ-значение"
+t = {}
+s = "from=world, to=Lua"
+for k, v in string.gmatch(s, "(%w+)=(%w+)") do
+    t[k] = v
+end
+
+Замены на основе регулярных выражений
+-- Возвращает копию s в которой все вхождения pattern заменяются на replace
+-- где replace - строка, таблица или функция
+-- возвращает как второе значение - общеее количество проведенных подстановок
+string.gsub (s, pattern, replace [, n])
+
+Примеры:
+x = string.gsub("hello world", "(%w+)", "%1 %1")
+--> x="hello hello world world"
+
+x = string.gsub("hello world", "%w+", "%0 %0", 1)
+--> x="hello hello world"
+
+x = string.gsub("hello world from Lua", "(%w+)%s*(%w+)", "%2 %1")
+--> x="world hello Lua from"
+
+x = string.gsub("home = $HOME, user = $USER", "%$(%w+)", os.getenv)
+--> x="home = /home/roberto, user = roberto"
+
+x = string.gsub("4+5 = $return 4+5$", "%$(.-)%$", function (s)
+   return loadstring(s)()
+ end)
+--> x="4+5 = 9"
+
+local t = {name="lua", version="5.1"}
+x = string.gsub("$name-$version.tar.gz", "%$(%w+)", t)
+--> x="lua-5.1.tar.gz"
+
+Переменные
+-- Все переменные Lua являются глобальными, если не помечены как local
+x = 1
+do
+  local y = 2
+end
+
+* Все переменные являются частью глобальной таблицы _env
+* обращение к которой определяется глобальной функцией
+gettable_event(_env, "x")
+
+-- Переменные как и весь Lua чувствительны к регистру!
+a = 1
+A = 2
+
+-- Числа - обычные/восьмеричные/десятичные
+a = 0.5
+b = 0777
+c = 0xFF
+
+-- Строки
+a = 'Строка'
+b = "Строка"
+c = [[
+  Строка
+]]
+
+-- Переменные можно присваивать и менять "кучей"
+a,b,c = 1, 2, "three"
+x,y = y,x
+
+simple_str = 'alon123'
+another_s  = "alon123"
+long_str = [[alo
+123]]
+another_long = [==[
+    alo
+    123
+]==]
+
+a,b = b,a      -- обмен в одну строку
+a,b,c = f(),x  -- c будет равно nil
+a,b = ...      -- допустимо внутри функции
+
+* Любая переменная считается глобальной, если она не объявлена как локальная
+* Все глобальные переменные являются полями в таблицах Lua, называемых таблицами окружения
+* Запись var.Name аналогична записи var["Name"]
+
+Массивы и хэши
+* Массивов и хэшей в Lua НЕТ! Вместо них используются ассоциативные ТАБЛИЦЫ
+
+a = {1,3,2,4,3,5}
+for i = 1,#a do
+  print(a[i])
+end
+
+for k,v in ipairs({5,6,7,8,9}) do
+  print(k,v)
+end
+
+-- pair() и ipairs() ведут себя по-разному
+-- ниже индекс [0] - не допускается и на его месте будет nil
+-- поэтому ipairs() покажет 10,20,30,40
+-- а pairs() покажет 10,20,30,40,fred,0
+-- размер таблицы #t покажет 4
+
+t = {fred='one',[0]=1; 10,20,30,40}
+
+for k,v in pairs(t) do
+  print(k,v)
+end
+
+for k,v in ipairs(t) do
+  print(k,v)
+end
+
+-- Таблицы могут присваиваться многострочно
+t = {}
+t.fred = 'one'
+t.mike = 'two'
+print(t.fred)
+
+Метатаблицы
+Метатаблица - это таблица вида {событие=метод-обработчик}, которая определяет возможные действия над любым значением. Метатаблица позволяет перекрывать операции (ключи):
+"add", "div", "mul", "sub", "pow", "unm" (унарный минус), "concat" (конкатенация ..), "len" (размер таблицы #table), "eq" (==), "lt", "le", "gt", "ge", "index" (доступ по индексу), "newindex", "call"
+
+* getmetatable(), setmetatable()
+
+получение значения по ключу из метатаблицы:
+* metatable(obj)[event] -- или
+* rawget(getmetatable(obj) or {}, event)
+
+Кроме метатаблиц, есть еще таблицы-окружения, доступ к которым возможен через функции setfenv(), getfenv()
+
+Пример метатаблиц: Сложение дробных чисел a.b + a.b
+f1 = {a = 1, b = 2}
+f2 = {a = 2, b = 3}
+
+metafraction = {}
+function metafraction.__add(f1, f2)
+  sum = {}
+  sum.b = f1.b * f2.b
+  sum.a = f1.a * f2.b + f2.a * f1.b
+  return sum
+end
+
+setmetatable(f1, metafraction)
+setmetatable(f2, metafraction)
+
+s = f1 + f2
+
+Еще простой пример:
+Dog={}
+function Dog:new(q)
+    q = q or { name='1', age=1 }
+    setmetatable(q, self)
+    self.__index = self
+    self.__len = function (self) 
+        return self.age+10
+    end
+    return q
+end
+
+function Dog:dump()
+    print(self.name..': '..self.age)
+end
+
+p1 = Dog:new()
+p2 = Dog:new()
+p2.name = '2'
+p2.age = 2
+p1:dump()
+p2:dump()
+print(#p1)
+
+Класс на метатаблицах
+function Class()
+	local class = {}
+	local mClass = {__index = class}
+	function class.instance()
+		return setmetatable({}, mClass)
+	end
+	return class
+end
+
+Rectangle = Class()
+function Rectangle.new(x, y, w, h)
+	local self = Rectangle.instance()
+        self.x = x or 0
+        self.y = y or 0
+	self.w = w or 10
+	self.h = h or 10
+	return self
+end
+
+function Rectangle.area(self)
+	return self.w * self.h
+end
+
+rect = Rectangle.new(10, 20, 30, 40)
+print('rect.area(rect)', rect.area(rect)) --> 1200
+print('rect:area()',     rect:area())     --> 1200
+
+Реализация класса с наследованием:
+function Class(parent)
+	local class = {}
+	local mClass = {}
+	class.__index = class
+	mClass.__index = parent
+	class.Super    = parent
+
+	function mClass:__call(...)
+		local instance = setmetatable({}, class)
+		if type(class.init) == 'function' then
+			return instance, instance:init(...)
+		end
+		return instance
+	end
+	return setmetatable(class, mClass)
+end
+
+Shape = Class()
+function Shape:init(x, y)
+	self.x = x or 0
+	self.y = y or 0
+	return '!!!'
+end
+
+function Shape:posArea()
+	return self.x * self.y
+end
+
+function Shape:__tostring()
+	return '[' .. self.x .. ', ' .. self.y ..']'
+end
+
+local foo, value = Shape(10, 20)
+
+Rectangle = Class(Shape)
+function Rectangle:init(x, y, w, h)
+	self.Super.init(self, x, y)
+	self.w, self.h = self:getDefault(w, h)
+end
+
+function Rectangle:area()
+	return self.w * self.h
+end
+
+function Rectangle:getDefault(w, h)
+	return w or 10, h or 20
+end
+
+function Rectangle:__tostring()
+	return '['..self.x..', '..self.y..', '..self.w .. ', '..self.h..']'
+end
+
+rect = Rectangle(10, 20, 30, 40)
+print('rect',           rect)           --> [10, 20, 30, 40]
+print('rect:area()'   , rect:area())    --> 1200
+print('rect:posArea()', rect:posArea()) --> 200
+
+Условия
+if exp then
+   -- block
+elseif exp then
+   -- block
+else
+   -- block
+end
+
+-- Эквивалент тернарного оператора (a?b:c)
+a=true
+b=a and "true" or "not true"
+
+-- Эквивалент установки значения по умолчанию
+x = (func1() or "default")
+
+Циклы
+-- Цикл While
+a=1
+while a<5 do
+    a = a + 1
+    if a==4 then break end
+end
+
+-- Цикл Repeat
+a = 10
+repeat
+   a = a - 1
+until a==1
+
+-- Цикл For
+for i = startValue, stopValue, step do
+   print(i)
+end
+
+Исключения
+-- Обработка исключений связана с вызовом pcall()
+local status, err = pcall(function () a=5/0 end)
+print(status)
+print(err)
+
+-- Можно самому вызывать исключение
+if not (a and b) then error() end
+
+* Исключения генерятся функцией error(message [, level]) и могут быть перехвачены только внутри вызова pcall(f, arg1, ...)
+
+Пример:
+function test_f(...)
+   a = ...
+   if (a ~= 1) then error("Incorrect call") end
+   print ("Ok!")
+   return 100,200;
+end
+
+res = { pcall(test_f, 1) }
+for i,v in ipairs(res) do
+   print(i,' ',v)
+end
+
+Операция "двоеточие"
+Операция "двоеточние" - это способ неявно передать значение self.
+function t.a.b.c:f (params) body end
+аналогично
+t.a.b.c.f = function (self, params) body end
+
+Пример:
+t = {}
+function t:sayhello()
+    print ("Привет, " .. self.Name)
+end
+t.Name = "Василий"
+t:sayhello()
+t.sayhello(t)
+t['sayhello'](t)
+
+Функции
+-- Функции могут быть локальны и возвращать несколько значений
+function f() return 1 end
+local function f() return 1,2,3 end
+
+-- Функции могут содержать неопределенные параметры
+function f(a, b, ...) end
+
+-- SAMPLE 1
+printR = ""
+function printx(...)
+    for i,v in ipairs{...} do
+        printR = printR .. tostring(v) .. ", "
+    end
+    printR = printR .. "n"
+end
+printx('c','a','d','b')
+
+-- SAMPLE 2
+function fwrite (fmt, ...)
+   return io.write(string.format(fmt, unpack(arg)))
+end
+
+-- Названия функций могут сразу попадать в таблицы
+a={}; a.b={}
+function a.b.f(p1,p2) print(p1,p2) end
+a.b.f = function (p1,p2) print(p1,p2) end
+a.b.f(3,4) -- 3  4
+
+-- Функции могут принимать аргумент self (через :)
+a={b={}}
+function a.b:f(p1,p2) print(p1,p2) end
+a.b.f = function (self, p1, p2) print(p1,p2) end
+a.b:f(3, 4) -- 3  4
+
+-- Дополнительные вызовы
+return ...       -- вернуть все полученные аргументы
+a = {f(x,y,z)}   -- взять список возвращаемых значений
+a = {f(),nil}    -- взять только первый результат
+a = (f(x,y,z))   -- взять только первое значение
+a,b,c = f(x)
+
+Анонимные функции
+function makeaddfunc(x)
+  return function(y)
+    return x + y
+  end
+end
+plustwo = makeaddfunc(2)
+print(plustwo(5)) -- Выводит 7
+
+Подпрограммы (Coroutines)
+co = coroutine.create(function(a,b)
+    print(a,b)
+    coroutine.yield(3,4)
+    return a+10
+end )
+
+print(coroutine.resume(co,1,2))
+print(coroutine.resume(co,1,2))
+
+* coroutine.create(f) - Создает новую подпрограмму
+* coroutine.running() - Возвращает выполняемую подпрограмму
+* coroutine.status(co) - Состояния: "running", "suspended", "normal", "dead"
+* coroutine.wrap(f)
+* coroutine.yield(···)
+
+Модули
+* module (name [, ···]) - Создает модуль.
+* require (modname) - Загружает модуль.
+* package.cpath - Путь для C загрузчика.
+* package.path - Путь для Lua загрузчика.
+* package.loaded - Таблица загруженных модулей.
+* package.preload - Таблица загрузчиков.
+* package.loadlib (libname, funcname) - Динамическое связывание.
+* package.seeall (module) - Наследование глобального окружения.
+
+Пример модуля (5.3):
+local mymodule = {}
+local function private()
+    print("in private function")
+end
+function mymodule.foo()
+    print("Hello World!")
+end
+function mymodule.bar()
+    private()
+    mymodule.foo()
+end
+return mymodule
+
+Классы с помощью замыканий
+local function Animal(initName, initSize)
+    local public = {
+        name = initName or 'N/A'
+    }
+    local private = {
+        size = initSize or '0'
+    }
+    function public.voice()
+        print( 'Animal ' .. public.name .. ' ' .. private.size)
+    end
+    function public.getSize()
+        return private.size
+    end
+    function public.getClassName()
+        return 'Animal'
+    end
+    return public
+end
+
+local function Dog(initName,initSize)
+    local obj = Animal(initName,initSize)
+    function obj.voice()
+        print( 'Dog ' .. obj.name .. ' ' .. obj.getSize())
+    end
+    function obj.getClassName()
+        return 'Dog'
+    end
+    return obj
+end
+
+Класс-построитель SQL-запроса
+SQL={}
+function SQL:new()
+   local props = { xselect = '*', xfrom = nil, xorder = nil }
+   self.__index = self
+   return setmetatable(props, self)
+end
+function SQL:select(str)
+   self.xselect = str
+   return self
+end
+function SQL:from(tab)
+  self.xfrom = tab
+  return self
+end
+function SQL:orderby(ord)
+  self.xorder=ord
+  return self
+end
+function SQL:make()
+  local r=''
+  if self.xselect~=nil then r = string.format('SELECT %s',self.xselect) end
+  if self.xfrom~=nil then r = r .. string.format(' FROM %s',self.xfrom) end
+  if self.xorder~=nil then r = r .. string.format(' ORDER BY %s',self.xorder) end
+  return r
+end
+
+Итерируемый класс
+List = {}
+function List:new(q)
+   local q = q or {}
+   setmetatable(q, self)
+   self.__index = self
+   self.__pairs = function (t)
+      return function (t, k)
+        local v
+        k,v = next(t,k)
+        if v~=nil then return k,v end
+      end, t, nil
+   end
+   return q
+end
+
+Базовые функции
+* assert (v [, message]) - Ошибка если v=false.
+* collectgarbage (opt [, arg]) - Интерфейс к сборщику мусора.
+* dofile (filename) - Выполняет Lua задачу из файла.
+* error (message [, level]) - Генерирует ошибку.
+* _G - Глобальное окружение.
+* getfenv ([f]) - Возвращает текущее окружение.
+* getmetatable (object) - Возвращает метатаблицу.
+* ipairs (t) - Итератор по целым ключам.
+* load (func [, chunkname]) - Загружает составной оператор.
+* next (table [, index]) - Получает следующее поле таблицы.
+* pairs (t) - Итератор по всем парам.
+* pcall (f, arg1, ···) - Вызов в защищенном режиме.
+* print (···) - Вывод в stdout.
+* rawequal(v1, v2) - Сравнение без метаметодов.
+* rawget/rawset - Доступ/присваивание без метаметодов.
+* select (index, ···) - Возвращает параметры по индексу.
+* setmetatable (table, metatable) - Установка метатаблицы.
+* tonumber / tostring - Преобразование типов.
+* type (v) - Возвращает тип.
+* unpack (list [, i [, j]]) - Возвращает элементы таблицы.
+* xpcall (f, err) - pcall с обработчиком ошибок.
+
+Математические функции (math)
+abs, acos, asin, atan, atan2, ceil, cos, cosh, deg, exp, floor, fmod, frexp, huge, ldexp, log, log10, max, min, modf, pi, pow, rad, random, randomseed, sin, sinh, sqrt, tan, tanh.
+
+Строковые функции (string)
+byte, char, dump, find, format, len, lower, match, rep, reverse, sub, upper.
+
+Табличные функции (table)
+concat, insert, maxn, remove, sort.
+
+Системные функции (os)
+clock, date, difftime, execute, exit, getenv, remove, rename, setlocale, time, tmpname.
+
+Файловые функции (io)
+io.close, io.flush, io.input, io.lines, io.open, io.output, io.popen, io.read, io.tmpfile, io.type, io.write.
+Методы file: close, flush, lines, read, seek, setvbuf, write.
+
+Отладка (debug)
+* debug.debug() - Интерактивный отладчик.
+* debug.gethook / sethook - Работа с хуками.
+* debug.getinfo - Информация о функции.
+* debug.getlocal / setlocal - Работа с локальными переменными.
+* debug.getmetatable / setmetatable - Работа с метатаблицами.
+* debug.getregistry() - Таблица регистров.
+* debug.traceback - Получение трассировки.
+
+Пример трассировки всего стека:
+function traceback()
+  local level = 1
+  while true do
+    local info = debug.getinfo(level, "Sl")
+    if not info then break end
+    if info.what == "C" then
+      print(level, "C function")
+    else
+      print(string.format("[%s]:%d", info.short_src, info.currentline))
+    end
+    level = level + 1
+  end
+end
+
+API: Доступ к парам ключ-значение (C)
+lua_pushnil(L);  // first key
+while (lua_next(L, t) != 0)
+{
+  printf("%s - %s\\n", luaL_typename(L, -2), luaL_typename(L, -1));
+  lua_pop(L, 1);
+}
+
+Кеширование значений (Memoize)
+function Memoize(func, t)
+  return setmetatable(
+    t or {},
+    {__index =
+      function(t, k)
+        local v = func(k);
+        t[k] = v;
+        return v;
+      end
+    }
+  )
+end
+
+Игровой цикл на корутинах
+co = coroutine.create(function (list)
+    local step = 1
+    while true do
+        obj = list[step]
+        coroutine.yield(obj)
+        step = step % #list + 1
+    end
+    return true
+end)
+
+function main()
+    repeat
+        status,obj = coroutine.resume(co,mklist())
+        if obj()==false then break end
+    until status==false
+end

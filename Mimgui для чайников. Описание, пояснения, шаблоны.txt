@@ -1,0 +1,239 @@
+🔗 ИСТОЧНИК: https://www.blast.hk/threads/170647
+
+Гайд — Mimgui для чайников. Описание, пояснения, шаблоны
+
+Добро пожаловать в руководство по использованию графической библиотеки mimgui. Данная статья призвана стать отправной точкой для начинающих разработчиков, желающих освоить возможности Dear ImGui в среде MoonLoader.
+
+Путеводитель по гайду:
+2.0 — Типы буферов
+2.1 — Основные аспекты работы
+2.2 — Основные функции элементов интерфейса
+2.3 — Функции для оформления mimgui-окна
+2.4 — Изменение стиля (темы) mimgui
+
+Дополнительные возможности:
+3.0 — Цветной текст
+3.1 — Текст по центру
+3.2 — Изменение шрифта (размера) текста
+3.3 — Цветная кнопка и сепаратор
+
+Полезные материалы для изучения:
+— Основной гайд по mimgui от #Northn (описание API и отличия от Moon ImGui).
+— Примеры Mimgui с пояснениями от MLycoris (практический разбор скриптов).
+— Видео-гайды от chapo.
+
+2.0 Типы буферов mimgui
+
+Изучение библиотеки стоит начать с типов данных, которые используются для создания буферов. Буфер необходим для хранения состояний и значений различных функций mimgui.
+
+— imgui.new.bool() — возвращает логическое значение true/false (по умолчанию установлено false).
+— imgui.new.char[128]() — выделяет память для хранения строковых символов (в данном случае 128 байт).
+— imgui.new.int() — хранит в себе целое число (например: 1, 2, 3, 4).
+— imgui.new.float() — хранит в себе число с плавающей точкой (например: 1.1, 1.2, 1.3, 1.4).
+
+В скобках при создании буфера можно задать значение по умолчанию:
+— imgui.new.bool(true) — изначально будет возвращать значение true.
+— imgui.new.int(2) — начальное значение будет равно двум.
+
+2.1 Основные аспекты
+
+Реализация открытия окна по команде:
+
+Lua:
+local imgui = require 'mimgui'
+local encoding = require 'encoding'
+encoding.default = 'CP1251'
+local u8 = encoding.UTF8
+local new = imgui.new
+local WinState = new.bool()
+
+imgui.OnFrame(function() return WinState[0] end, function(player)
+    imgui.SetNextWindowPos(imgui.ImVec2(500, 500), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+    imgui.SetNextWindowSize(imgui.ImVec2(245, 270), imgui.Cond.Always)
+    imgui.Begin('##Window', WinState, imgui.WindowFlags.NoResize)
+    imgui.End()
+end)
+
+function main()
+    sampRegisterChatCommand('cmd', function() WinState[0] = not WinState[0] end)
+    wait(-1)
+end
+
+Реализация открытия окна по нажатию клавиши:
+
+Lua:
+require('lib.moonloader')
+local imgui = require 'mimgui'
+local encoding = require 'encoding'
+encoding.default = 'CP1251'
+local u8 = encoding.UTF8
+local new = imgui.new
+local WinState = new.bool()
+
+imgui.OnFrame(function() return WinState[0] end, function(player)
+    imgui.SetNextWindowPos(imgui.ImVec2(500, 500), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+    imgui.SetNextWindowSize(imgui.ImVec2(245, 270), imgui.Cond.Always)
+    imgui.Begin('##Window', WinState, imgui.WindowFlags.NoResize)
+    imgui.End()
+end)
+
+function main()
+    while true do wait(0)
+        -- Если нажата клавиша R и не активен курсор SAMP (чтобы избежать активации при открытом чате)
+        if wasKeyPressed(VK_R) and not sampIsCursorActive() then
+            WinState[0] = not WinState[0]
+        end
+    end
+end
+
+Флаги окна (Window Flags):
+В функции imgui.Begin можно задать параметры, влияющие на поведение и вид окна. Наиболее популярные из них:
+— imgui.WindowFlags.NoDecoration — убирает заголовок, полосу прокрутки и другие элементы оформления.
+— imgui.WindowFlags.NoTitleBar — скрывает заголовок окна.
+— imgui.WindowFlags.NoResize — запрещает пользователю изменять размер окна вручную.
+— imgui.WindowFlags.NoMove — запрещает передвигать окно по экрану.
+— imgui.WindowFlags.AlwaysAutoResize — окно автоматически подстраивается под размер содержимого.
+— imgui.WindowFlags.NoBackground — делает фон окна полностью прозрачным.
+— imgui.WindowFlags.NoScrollbar — отключает вертикальную полосу прокрутки.
+— imgui.WindowFlags.NoCollapse — запрещает сворачивать окно двойным кликом по заголовку.
+— imgui.WindowFlags.NoScrollWithMouse — отключает прокрутку с помощью колесика мыши.
+— imgui.WindowFlags.NoSavedSettings — запрещает библиотеке сохранять настройки окна (позицию, размер) в .ini файл.
+— imgui.WindowFlags.NoInputs — отключает взаимодействие с мышью и клавиатурой для данного окна.
+
+При использовании нескольких флагов их следует перечислять через знак «+». Пример:
+Lua:
+imgui.Begin('##Window', WinState, imgui.WindowFlags.NoMove + imgui.WindowFlags.NoScrollbar + imgui.WindowFlags.AlwaysAutoResize)
+
+Важные примечания:
+1. Любую интерактивную функцию можно использовать как условие в блоке `if`. Действие внутри блока выполнится только в момент взаимодействия пользователя с элементом.
+2. Ключ [0] критически важен. В mimgui буферы, созданные через `imgui.new`, являются объектами FFI. Чтобы получить или изменить их текущее значение, необходимо обращаться к индексу [0] (например, `WinState[0]`). В старом Moon ImGui для этого использовалось свойство `.v`.
+
+2.2 Основные функции элементов
+
+[imgui.Button] — обычная кнопка.
+Lua:
+if imgui.Button('Нажми меня') then
+    sampAddChatMessage('Вы нажали на кнопку', -1)
+end
+
+Дополнительные варианты кнопок:
+— imgui.InvisibleButton('ID', imgui.ImVec2(50, 24)) — невидимая область для клика.
+— imgui.ArrowButton('ID', number) — кнопка-стрелка (0=влево, 1=вправо, 2=вверх, 3=вниз).
+— imgui.SmallButton('Текст') — кнопка уменьшенного размера.
+
+[imgui.CollapsingHeader] — выпадающая вкладка. Позволяет компактно разместить информацию.
+Lua:
+if imgui.CollapsingHeader(u8'Дополнительные настройки') then
+    imgui.Text(u8'Здесь может быть ваш текст или другие элементы.')
+    imgui.Separator()
+end
+
+[imgui.Checkbox] — флажок выбора. Работает с буфером типа bool.
+Lua:
+-- В начале скрипта: local checkboxone = new.bool()
+imgui.Checkbox(u8'Включить функцию', checkboxone)
+if checkboxone[0] then
+    -- логика работы при включенном чекбоксе
+end
+
+[imgui.RadioButton] — переключатель.
+Существует два варианта: RadioButtonBool (для одного состояния) и RadioButtonIntPtr (для выбора одного значения из нескольких).
+Lua:
+if imgui.RadioButtonIntPtr(u8'Вариант 1', radioInt, 1) then radioInt[0] = 1 end
+if imgui.RadioButtonIntPtr(u8'Вариант 2', radioInt, 2) then radioInt[0] = 2 end
+
+[imgui.InputText] — поле для ввода текста.
+Для работы требуется буфер типа char. Чтобы использовать полученный текст в функциях SAMP, его необходимо декодировать через `ffi.string` и `u8:decode`.
+Lua:
+-- local inputField = new.char[256]()
+imgui.InputText(u8"Введите сообщение", inputField, 256)
+local text = u8:decode(ffi.string(inputField))
+
+[imgui.SliderInt и imgui.SliderFloat] — ползунки для выбора числового значения.
+Lua:
+imgui.SliderInt(u8'Громкость', SliderOne, 0, 100) -- Минимум 0, максимум 100.
+imgui.SliderFloat(u8'Прозрачность', SliderTwo, 0.0, 1.0)
+
+[imgui.Combo] — выпадающий список.
+Lua:
+local item_list = {u8'Первый', u8'Второй', u8'Третий'}
+local ImItems = imgui.new['const char*'][#item_list](item_list)
+imgui.Combo(u8'Выберите пункт', ComboTest, ImItems, #item_list)
+
+2.3 Функции для оформления окна
+
+— imgui.Text('Текст') — обычный текст без переноса.
+— imgui.TextWrapped('Длинный текст...') — текст, который автоматически переносится на новую строку при достижении края окна.
+— imgui.Separator() — горизонтальная разделительная линия.
+— imgui.SameLine() — располагает следующий элемент на той же строке, что и предыдущий.
+— imgui.PushItemWidth(width) / imgui.PopItemWidth() — временно изменяет ширину элементов (слайдеров, комбо, инпутов).
+— imgui.SetCursorPos(imgui.ImVec2(x, y)) — устанавливает координаты для следующего элемента вручную.
+
+[imgui.BeginChild] — создание вложенной области (подокна) со своими границами и прокруткой.
+Lua:
+if imgui.BeginChild('MyChild', imgui.ImVec2(200, 100), true) then
+    imgui.Text(u8'Контент внутри дочернего окна')
+    imgui.EndChild()
+end
+
+[imgui.BeginPopupModal] — создание модальных всплывающих окон.
+Lua:
+if imgui.Button('Открыть окно') then imgui.OpenPopup(u8'Заголовок') end
+if imgui.BeginPopupModal(u8'Заголовок', _, imgui.WindowFlags.NoResize) then
+    imgui.Text(u8'Это важное сообщение!')
+    if imgui.Button(u8'ОК') then imgui.CloseCurrentPopup() end
+    imgui.End()
+end
+
+[Вкладки] — реализуются либо через BeginTabBar / BeginTabItem, либо вручную через кнопки и переменную-переключатель.
+
+[imgui.IsItemHovered / IsItemClicked] — функции для проверки наведения курсора или клика по конкретному элементу. Позволяют создавать всплывающие подсказки (Tooltips).
+
+[imgui.ProgressBar] — индикатор выполнения.
+Lua:
+imgui.ProgressBar(currentValue / maxValue, imgui.ImVec2(-1, 0), 'Загрузка...')
+
+2.4 Изменение стиля (темы)
+
+Стили в mimgui настраиваются через объект `imgui.GetStyle()`. Вы можете менять цвета элементов (например, `style.Colors[imgui.Col.WindowBg]`), скругления (`WindowRounding`, `FrameRounding`) и отступы (`WindowPadding`). Обычно функцию с настройками темы вызывают внутри `imgui.OnInitialize`.
+
+3.0 Дополнительные возможности: Цветной текст
+
+Так как стандартного способа использовать HEX-коды внутри `imgui.Text` нет, сообществом была разработана функция `TextColoredRGB`.
+
+Пример логики функции (упрощенно): она ищет вхождения тегов вида {RRGGBB} в строке, разбивает текст на части и отрисовывает их последовательно с помощью `imgui.TextColored`.
+
+Использование:
+Lua:
+imgui.TextColoredRGB('{FF0000}Красный {00FF00}Зеленый {0000FF}Синий')
+
+3.1 Текст по центру
+
+Для выравнивания текста по центру окна используется расчет ширины окна и размера самого текста:
+Lua:
+function imgui.CenterText(text)
+    local width = imgui.GetWindowWidth()
+    local textSize = imgui.CalcTextSize(u8(text))
+    imgui.SetCursorPosX((width - textSize.x) / 2)
+    imgui.Text(u8(text))
+end
+
+3.2 Шрифты
+
+Для загрузки кастомных шрифтов используется `imgui.GetIO().Fonts:AddFontFromFileTTF`. Шрифты должны подгружаться в `imgui.OnInitialize`. Для переключения на нужный шрифт в процессе отрисовки используйте пару функций `PushFont(handle)` и `PopFont()`.
+
+3.3 Цветные кнопки и сепараторы
+
+Вы можете создать свою обертку для кнопок, которая будет менять цвета через `PushStyleColor(imgui.Col.Button, color)`. После отрисовки кнопки обязательно нужно вызвать `PopStyleColor`, чтобы вернуть стандартные цвета для остальных элементов.
+
+---
+
+Обсуждение и вопросы (FAQ):
+
+Sadow: Обратите внимание, что `ffi.string(inputField)` используется для преобразования буфера символов в строку Lua. Без этого корректная работа со строками невозможна.
+the same: Есть ли смысл переходить с imgui на mimgui?
+chromiusj: Да, mimgui считается более оптимизированным и стабильным для использования в GTA:SA.
+AnWu: Рекомендую оформлять такие гайды как полноценные статьи, избегать излишней пестроты в оформлении и использовать фильтры ImGui вместо ручной сортировки списков.
+
+Автор гайда: MLycoris.
+Данное руководство содержит базовые шаблоны, которые помогут вам начать создавать качественные интерфейсы для своих скриптов.

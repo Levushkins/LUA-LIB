@@ -1,0 +1,174 @@
+================================================================================
+EntityRender - Библиотека для рендеринга сущностей в mimgui
+================================================================================
+
+Описание:
+---------
+Данная библиотека дает возможность рендерить сущности в mimgui. Например: педов, транспорт, объекты.
+
+Установка:
+----------
+Скачать файл EntityRender.dll из вложений и перенести его в папку moonloader\lib.
+
+================================================================================
+ДОСТУПНЫЕ ФУНКЦИИ
+================================================================================
+
+entityRender.init() -- Инициализирует библиотеку. Вызывается один раз перед работой с библиотекой
+
+ptr texturePtr = entityRender.getD3D9Texture() -- Возвращает указатель на IDirect3Texture9 для рендера ImGui::Image
+
+entityRender.recreateTexture(int nId) -- Пересоздает текстуру по её ID
+
+bool result = entityRender.setTexturePos(int nId, float x, float y, float z) -- Устанавливает позицию текстуре по её ID
+
+bool result = entityRender.setTextureRotate(int nId, float x, float y, float z) -- Устанавливает поворот текстуре под её ID
+
+bool result = entityRender.setTextureModel(int nId, int nModelId) -- Устанавливает модель текстуре по её ID
+
+bool result = entityRender.setTextureBackground(int nId, float r, float g, float b, float a) -- Устанавливает цвет заднего фона текстуры по её ID
+
+bool result = entityRender.setTextureVehicleColor(int nId, int nPrimary, int nSecondary) -- Устанавливает цвет транспорту по ID текстуры
+
+bool result = entityRender.deleteTexture(int nId) -- Удаляет текстуру по её ID
+
+entityRender.deleteAllTextures() -- Удаляет всё текстуры
+
+bool result = entityRender.isTextureExist(int nId)
+
+int nId = entityRender.addEntity(int nModelId, int nTextureSizeX, nTextureSizeY) -- Создает текстуру с указаной моделью и возвращает её ID
+
+================================================================================
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
+================================================================================
+
+-- Код говно, но мне похуй
+
+-- Подключение библиотек
+local entityRender = require("EntityRender")
+local imgui = require 'mimgui'
+
+-- Переменные для ImGui окна
+local renderWindow = imgui.new.bool(true)
+
+-- Переменные для первой текстуры
+local vPos = imgui.new.float[3](0.1, -2.00, 50.0)
+local bgColor = imgui.new.float[4](1.0, 1.0, 1.0, 1.0)
+local vRotate = imgui.new.float[3](0.0, 0.0, 0.0)
+local nModel = imgui.new.int(411)
+local nVehicleColor = imgui.new.int[2](0, 0)
+
+-- Переменные для второй текстуры
+local vPos1 = imgui.new.float[3](0.1, -2.00, 50.0)
+local bgColor1 = imgui.new.float[4](1.0, 1.0, 1.0, 1.0)
+local vRotate1 = imgui.new.float[3](0.0, 0.0, 0.0)
+local nModel1 = imgui.new.int(411)
+local nVehicleColor1 = imgui.new.int[2](0, 0)
+
+-- ID текстур
+local nTextureId = nil
+local nTextureId1 = nil
+
+-- Основная функция инициализации
+function main()
+    entityRender.init()
+    nTextureId = entityRender.addEntity(nModel[0], 256, 256)
+    nTextureId1 = entityRender.addEntity(nModel1[0], 256, 256)
+end
+
+-- Инициализация ImGui
+imgui.OnInitialize(function()
+    imgui.GetIO().IniFilename = nil
+end)
+
+-- Основной цикл рендеринга
+local newFrame = imgui.OnFrame(
+    function() return renderWindow[0] end,
+    function(player)
+        -- Получение разрешения экрана
+        local resX, resY = getScreenResolution()
+        local sizeX, sizeY = 600, 300
+
+        -- Настройка позиции и размера окна
+        imgui.SetNextWindowPos(imgui.ImVec2(resX / 2, resY / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+        imgui.SetNextWindowSize(imgui.ImVec2(sizeX, sizeY), imgui.Cond.FirstUseEver)
+
+        -- Создание главного окна
+        if imgui.Begin('Main Window', renderWindow, imgui.WindowFlags.AlwaysAutoResize) then
+
+            -- Отображение текстур
+            if (entityRender.getD3D9Texture(nTextureId) ~= nil) then
+                imgui.Image(entityRender.getD3D9Texture(nTextureId), imgui.ImVec2(255.0, 255.0))
+            end
+
+            if (entityRender.getD3D9Texture(nTextureId1) ~= nil) then
+                imgui.SameLine()
+                imgui.Image(entityRender.getD3D9Texture(nTextureId1), imgui.ImVec2(255.0, 255.0))
+            end
+
+            -- Контролы для первой текстуры
+            if (imgui.DragFloat3("pos", vPos, 0.1, -100.0, 100.0)) then
+                entityRender.setTexturePos(nTextureId, vPos[0], vPos[1], vPos[2])
+                entityRender.recreateTexture(nTextureId)
+            end
+
+            imgui.SameLine()
+
+            -- Контролы для второй текстуры
+            if (imgui.DragFloat3("pos1", vPos1, 0.1, -100.0, 100.0)) then
+                entityRender.setTexturePos(nTextureId1, vPos1[0], vPos1[1], vPos1[2])
+                entityRender.recreateTexture(nTextureId1)
+            end
+
+            -- Контролы поворота первой текстуры
+            if (imgui.DragFloat3("rotate", vRotate, 0.1, -360.0, 360.0)) then
+                entityRender.setTextureRotate(nTextureId, vRotate[0], vRotate[1], vRotate[2])
+                entityRender.recreateTexture(nTextureId)
+            end
+
+            imgui.SameLine()
+
+            -- Контролы поворота второй текстуры
+            if (imgui.DragFloat3("rotate1", vRotate1, 0.1, -360.0, 360.0)) then
+                entityRender.setTextureRotate(nTextureId1, vRotate1[0], vRotate1[1], vRotate1[2])
+                entityRender.recreateTexture(nTextureId1)
+            end
+
+            -- Контролы цвета фона первой текстуры
+            if (imgui.ColorEdit4("bg color", bgColor)) then
+                entityRender.setTextureBackground(nTextureId, bgColor[0] * 255, bgColor[1] * 255, bgColor[2] * 255, bgColor[3] * 255)
+                entityRender.recreateTexture(nTextureId)
+            end
+
+            imgui.SameLine()
+
+            -- Контролы цвета фона второй текстуры
+            if (imgui.ColorEdit4("bg color1", bgColor1)) then
+                entityRender.setTextureBackground(nTextureId1, bgColor1[0] * 255, bgColor1[1] * 255, bgColor1[2] * 255, bgColor1[3] * 255)
+                entityRender.recreateTexture(nTextureId1)
+            end
+
+            -- Контролы цвета транспорта
+            imgui.InputInt2("vehicle color", nVehicleColor)
+            imgui.SameLine()
+            imgui.InputInt2("vehicle color1", nVehicleColor1)
+
+            -- Контролы модели
+            imgui.InputInt("model", nModel)
+            imgui.SameLine()
+            imgui.InputInt("model1", nModel1)
+
+            -- Кнопка пересоздания текстур
+            if (imgui.Button("recreate")) then
+                entityRender.setTextureModel(nTextureId, nModel[0])
+                entityRender.setTextureVehicleColor(nTextureId, nVehicleColor[0], nVehicleColor[1])
+                entityRender.recreateTexture(nTextureId)
+                entityRender.setTextureModel(nTextureId1, nModel1[0])
+                entityRender.setTextureVehicleColor(nTextureId1, nVehicleColor1[0], nVehicleColor1[1])
+                entityRender.recreateTexture(nTextureId1)
+            end
+
+            imgui.End()
+        end
+    end
+)

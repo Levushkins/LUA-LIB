@@ -1,0 +1,272 @@
+# Particles.lua — Библиотека частиц для mimgui (MoonLoader)
+
+Представляю попытку портировать **particles.js** на Lua под **mimgui**.
+Работает как внутри окон, так и на заднем фоне (drawlist).
+
+Это полноценная библиотека, а не просто сниппет. Она не использует d3d рендер, а работает полностью на средствах mimgui.
+Решение гибкое, требует наличия `mimgui`.
+
+---
+
+## ?? Установка
+
+1. Скачайте файл `Particles.lua`.
+2. Поместите его в папку: `moonloader/lib/`.
+
+---
+
+## ?? Примеры использования
+
+### Пример 1: Частицы внутри окна (Window)
+
+В этом примере частицы отрисовываются внутри созданного окна ImGui. Также реализована функция проверки курсора для корректной работы притягивания.
+
+```lua
+local imgui = require 'mimgui'
+local Particles = require 'Particles'
+
+-- Функция для определения, находится ли курсор внутри окна.
+-- Нужна для правильной работы притягивания частиц к мыши.
+function is_mouse_hovering(win_pos, window_size, mx, my)
+    local rect_max = {x = win_pos.x + window_size.x, y = win_pos.y + window_size.y}
+    return imgui.IsMouseHoveringRect(win_pos, rect_max, true) and (imgui.ImVec2(mx, my) - win_pos) or nil
+end
+
+-- Настройки системы частиц
+local particles_settings = {
+    gravity = 0,
+    boundary_behavior = "bounce", -- отскакивать от стенок
+    infinite_life = true,
+    color_animation = "rainbow",
+    line_color_animation = "rainbow"
+}
+
+-- Создаем систему частиц
+local particles_window = Particles:new(particles_settings)
+
+imgui.OnFrame(function() return true end, function()
+    imgui.SetNextWindowSize(imgui.ImVec2(400, 600), imgui.Cond.FirstUseEver)
+    imgui.Begin("Particles")
+
+    -- 1. Получаем размеры и позицию окна
+    local win_pos = imgui.GetWindowPos()
+    local win_size = imgui.GetWindowSize()
+    
+    -- 2. Обновляем размер области частиц под размер окна
+    particles_window.size = {x = win_size.x, y = win_size.y}
+
+    -- 3. Обновляем логику (передаем позицию мыши) и рисуем
+    local mouse_pos = imgui.GetMousePos()
+    particles_window:update(is_mouse_hovering(win_pos, win_size, mouse_pos.x, mouse_pos.y))
+    particles_window:draw(imgui.GetWindowDrawList(), win_pos)
+
+    imgui.End()
+end)
+
+Пример 2: Частицы на фоне (Background)
+В этом примере частицы рисуются на весь экран под всеми окнами.
+
+local imgui = require 'mimgui'
+local Particles = require 'Particles'
+
+-- Настройки системы частиц
+local scrX, scrY = getScreenResolution()
+local particles_settings = {
+    gravity = 0,
+    max_particles = 300,
+    max_distance = 200,
+    boundary_behavior = "bounce",
+    infinite_life = true,
+    size = imgui.ImVec2(scrX, scrY) -- Размер на весь экран
+}
+
+-- Создаем систему частиц
+local particles_background = Particles:new(particles_settings)
+
+imgui.OnFrame(function() return true end, function(self)
+    self.HideCursor = true -- Скрываем курсор, если нужно
+    
+    local scrX, scrY = getScreenResolution()
+    
+    -- Обновляем размер (на случай смены разрешения)
+    particles_background.size = imgui.ImVec2(scrX, scrY)
+    
+    -- Обновляем и рисуем в BackgroundDrawList
+    particles_background:update(imgui.GetMousePos())
+    particles_background:draw(imgui.GetBackgroundDrawList(), imgui.ImVec2(0,0))
+end)
+
+
+Значения по умолчанию (Defaults)
+Если вы не укажете параметры, применятся эти:
+{
+    max_particles = 100,
+    gravity = 0.1,
+    color = {1,1,1,1},
+    line_color = {1,1,1,0.3},
+    max_distance = 100,
+    boundary_behavior = "respawn",
+    infinite_life = false,
+    magnetism = "none",
+    magnetism_strength = 1000,
+    magnetism_radius = 150,
+    speed_range = { -1.0, 1.0 },
+    min_speed = 0.5,
+    max_speed = 5.0,
+    color_animation = "none",
+    line_color_animation = "none",
+    rainbow_speed = 0.005,
+    line_rainbow_speed = 0.005,
+    line_thickness = 1,
+    particle_size = 2,
+    wind = 0,
+    friction = 0.98,
+    size = imgui.ImVec2(500,500)
+}
+
+?? API (Функции)
+Основные методы Particles
+Particles:new(settings)
+
+Описание: Создает новую систему частиц.
+
+Аргументы: settings (table) — таблица настроек.
+
+Возвращает: Объект системы частиц.
+
+Particles:update(mouse_pos)
+
+Описание: Обновляет физику и логику всех частиц.
+
+Аргументы: mouse_pos (ImVec2 или table {x,y}) — текущая позиция мыши (нужна для магнетизма).
+
+Particles:draw(draw_list, win_pos)
+
+Описание: Отрисовывает частицы и линии.
+
+Аргументы: * draw_list — список отрисовки (GetWindowDrawList или GetBackgroundDrawList).
+
+win_pos (ImVec2) — позиция смещения (позиция окна или {0,0}).
+
+============================================================
+1. ПАРАМЕТРЫ НАСТРОЕК (Settings Table)
+Передаются в функцию Particles:new()
+============================================================
+
+gravity
+  - Тип: number
+  - Описание: Гравитация (вертикальная скорость частиц).
+  - Значения: Любое число (0, 0.1, 0.5).
+
+boundary_behavior
+  - Тип: string
+  - Описание: Поведение частиц при достижении границ экрана.
+  - Значения: "bounce" (отскакивать), "respawn" (исчезать и появляться заново).
+
+infinite_life
+  - Тип: bool
+  - Описание: "Умрёт" ли частица через какое-то время.
+  - Значения: true (бессмертны), false (умирают рандомно).
+
+magnetism
+  - Тип: string
+  - Описание: Тип притяжения.
+  - Значения: 
+      "none" (отключить)
+      "cursor" (к мыши)
+      "particles" (друг к другу)
+      "both" (и к мыши, и к частицам)
+
+magnetism_strength
+  - Тип: number
+  - Описание: Сила притяжения.
+  - Значения: Любое число (10, 100, 1000).
+
+magnetism_radius
+  - Тип: number
+  - Описание: Радиус, в пределах которого работает притяжение.
+  - Значения: Любое число (100, 500).
+
+speed_range
+  - Тип: table
+  - Описание: Диапазон для рандомной скорости при создании.
+  - Значения: {min, max} (например {-1.5, 1.5}).
+
+min_speed
+  - Тип: number
+  - Описание: Минимальная гарантированная скорость.
+  - Значения: Любое число (0.5, 1.0).
+
+max_speed
+  - Тип: number
+  - Описание: Максимальная гарантированная скорость.
+  - Значения: Любое число (10.0, 20.0).
+
+wind
+  - Тип: number
+  - Описание: Ветер (горизонтальная скорость частиц).
+  - Значения: Любое число (0, 0.5, 1).
+
+friction
+  - Тип: number
+  - Описание: Трение (сопротивление воздуха).
+  - Значения: 
+      От 0 до 1. 
+      1 - нет трения. 
+      Рекомендуется ~0.98.
+
+max_particles
+  - Тип: number
+  - Описание: Максимальное количество частиц. СИЛЬНО ВЛИЯЕТ НА FPS.
+  - Значения: Любое целое число (100, 300).
+
+color_animation
+  - Тип: string
+  - Описание: Режим смены цвета самих частиц.
+  - Значения: "none", "rainbow".
+
+line_color_animation
+  - Тип: string
+  - Описание: Режим смены цвета линий.
+  - Значения: "none", "rainbow".
+
+
+============================================================
+2. ВНУТРЕННИЕ ПАРАМЕТРЫ (Internal Params)
+Доступны для чтения из объекта (например particles.size)
+============================================================
+
+particles (table)
+  - Описание: Список всех активных частиц в системе.
+
+size (ImVec2)
+  - Описание: Текущий размер области отрисовки {x, y}.
+
+color_cycle (number)
+  - Описание: Текущая позиция цикла смены цвета (для режима rainbow).
+
+line_thickness (number)
+  - Описание: Толщина соединительных линий.
+
+line_color (table)
+  - Описание: Текущий цвет линии {r, g, b, a}.
+
+
+============================================================
+3. ФУНКЦИИ (API)
+============================================================
+
+Particles:new(settings)
+  - Вход: settings (таблица настроек выше).
+  - Выход: Объект системы частиц.
+  - Описание: Создаёт новую систему.
+
+Particles:update(mouse_pos)
+  - Вход: mouse_pos (ImVec2 или таблица {x,y}).
+  - Описание: Обновляет физику. Позиция мыши нужна для магнетизма.
+
+Particles:draw(draw_list, win_pos)
+  - Вход: 
+      draw_list (обычно imgui.GetWindowDrawList() или GetBackgroundDrawList()).
+      win_pos (ImVec2 позиция окна для смещения, либо {0,0} для фона).
+  - Описание: Рисует частицы на экране.

@@ -1,0 +1,239 @@
+Асинхронные HTTP запросы в MoonLoader
+
+Асинхронные HTTP-запросы, основанные на неблокирующих сокетах, реализуются с помощью библиотеки copas. Запросы выполняются в том же потоке, благодаря чему они не подвержены проблемам многопоточности и значительно проще в использовании.
+
+Для реализации данного метода требуются библиотеки copas, LuaSocket и опционально LuaSec (для поддержки HTTPS-запросов).
+
+Пример реализации функции httpRequest на базе copas.http:
+
+Lua:
+local copas = require 'copas'
+local http = require 'copas.http'
+
+function httpRequest(request, body, handler) -- copas.http
+    -- запуск задачи опроса (polling task)
+    if not copas.running then
+        copas.running = true
+        lua_thread.create(function()
+            wait(0)
+            while not copas.finished() do
+                local ok, err = copas.step(0)
+                if ok == nil then error(err) end
+                wait(0)
+            end
+            copas.running = false
+        end)
+    end
+
+    -- выполнение запроса
+    if handler then
+        return copas.addthread(function(r, b, h)
+            copas.setErrorHandler(function(err) h(nil, err) end)
+            h(http.request(r, b))
+        end, request, body, handler)
+    else
+        local results
+        local thread = copas.addthread(function(r, b)
+            copas.setErrorHandler(function(err) results = {nil, err} end)
+            results = table.pack(http.request(r, b))
+        end, request, body)
+        while coroutine.status(thread) ~= 'dead' do wait(0) end
+        return table.unpack(results)
+    end
+end
+
+Аргументы у этой функции такие же, как у функции request из модуля socket.http (и ssl.https), за исключением дополнительного последнего параметра.
+
+Параметры функции:
+1. request — URL или параметры запроса.
+2. body — тело запроса для метода POST.
+3. handler — функция-обработчик запроса. Если этот параметр задан, запрос выполнится параллельно, не блокируя Lua-поток MoonLoader. Если параметр не задан, Lua-поток будет приостановлен до получения ответа, значения которого будут возвращены вызовом функции (такой запрос можно использовать только изнутри Lua-потока). Системный поток не блокируется в обоих случаях.
+
+Параметры функции-обработчика (handler):
+— Первый: содержимое ответа либо единица (в зависимости от типа первого параметра функции).
+— Второй: код ответа.
+— Третий: заголовок ответа.
+— Четвертый: текст статуса ответа.
+* При возникновении ошибки: первый параметр — nil, второй — текст ошибки.
+
+Возвращаемые значения:
+Если указан handler, функция возвращает сопрограмму, созданную вызовом copas.addthread. Если не указан — возвращаются те же параметры, которые обычно передаются в handler.
+
+Пример использования:
+
+Lua:
+local list = {
+    "http://www.google.com",
+    "http://www.microsoft.com",
+    "http://www.apple.com",
+    "https://www.facebook.com",
+    "https://www.yahoo.com",
+}
+
+-- Параллельные запросы (обработаются одновременно)
+print('parallel')
+for i, url in ipairs(list) do
+    print('request', url)
+    httpRequest(url, nil, function(response, code, headers, status)
+        if response then
+            print(url, 'OK', status)
+        else
+            print(url, 'Error', code)
+        end
+    end)
+end
+
+-- Последовательные запросы (обработаются друг за другом)
+print('sequential')
+for i, url in ipairs(list) do
+    print('request', url)
+    local response, code, headers, status = httpRequest(url)
+    if response then
+        print(url, 'OK', status)
+    else
+        print(url, 'Error', code)
+    end
+end
+
+Альтернативная реализация с применением библиотеки lua-requests. Она удобнее, но требует наличия большего количества сопутствующих библиотек.
+
+Код:
+Lua:
+local copas = require 'copas'
+local http = require 'copas.http'
+local requests = require 'requests'
+
+requests.http_socket, requests.https_socket = http, http
+
+function httpRequest(method, request, args, handler) -- lua-requests
+    if not copas.running then
+        copas.running = true
+        lua_thread.create(function()
+            wait(0)
+            while not copas.finished() do
+                local ok, err = copas.step(0)
+                if ok == nil then error(err) end
+                wait(0)
+            end
+            copas.running = false
+        end)
+    end
+
+    if handler then
+        return copas.addthread(function(m, r, a, h)
+            copas.setErrorHandler(function(err) h(nil, err) end)
+            h(requests.request(m, r, a))
+        end, method, request, args, handler)
+    else
+        local results
+        local thread = copas.addthread(function(m, r, a)
+            copas.setErrorHandler(function(err) results = {nil, err} end)
+            results = table.pack(requests.request(m, r, a))
+        end, method, request, args)
+        while coroutine.status(thread) ~= 'dead' do wait(0) end
+        return table.unpack(results)
+    end
+end
+
+Пример POST-запроса:
+Lua:
+local response, err = httpRequest('POST', 'http://httpbin.org/post', {data='random data'})
+if err then error(err) end
+local json_data = response.json()
+print(json_data.data)
+
+Другие решения:
+1. Решение с системной многопоточностью через библиотеки lua-requests и effil.
+2. Неактуальное решение с системной многопоточностью через lua-requests и Lanes (противопоказано для LuaJIT 2.1-beta и MoonLoader 0.025+).
+
+Простой вариант с Lanes (запускает отдельный поток на каждый вызов):
+Lua:
+local lanes = require('lanes').configure()
+
+function async_http_request(method, url, args, resolve, reject)
+    local request_lane = lanes.gen('*', {package = {path = package.path, cpath = package.cpath}}, function()
+        local requests = require 'requests'
+        local ok, result = pcall(requests.request, method, url, args)
+        if ok then
+            result.json, result.xml = nil, nil -- данные типы нельзя передать через lane
+            return true, result
+        else
+            return false, result -- возврат ошибки
+        end
+    end)
+    
+    if not reject then reject = function() end end
+    
+    lua_thread.create(function()
+        local lh = request_lane()
+        while true do
+            local status = lh.status
+            if status == 'done' then
+                local ok, result = lh[1], lh[2]
+                if ok then resolve(result) else reject(result) end
+                return
+            elseif status == 'error' then
+                return reject(lh[1])
+            elseif status == 'killed' or status == 'cancelled' then
+                return reject(status)
+            end
+            wait(0)
+        end
+    end)
+end
+
+Более сложный вариант с Lanes (один постоянный поток для частых запросов):
+Lua:
+local lanes = require('lanes').configure()
+
+function sequent_async_http_request(method, url, args, resolve, reject)
+    if not _G['lanes.async_http'] then
+        local linda = lanes.linda()
+        local lane_gen = lanes.gen('*', {package = {path = package.path, cpath = package.cpath}}, function()
+            local requests = require 'requests'
+            while true do
+                local key, val = linda:receive(50 / 1000, 'request')
+                if key == 'request' then
+                    local ok, result = pcall(requests.request, val.method, val.url, val.args)
+                    if ok then
+                        result.json, result.xml = nil, nil
+                        linda:send('response', result)
+                    else
+                        linda:send('error', result)
+                    end
+                end
+            end
+        end)
+        _G['lanes.async_http'] = {lane = lane_gen(), linda = linda}
+    end
+    
+    local lanes_http = _G['lanes.async_http']
+    lanes_http.linda:send('request', {method = method, url = url, args = args})
+    
+    lua_thread.create(function(linda)
+        while true do
+            local key, val = linda:receive(0, 'response', 'error')
+            if key == 'response' then
+                return resolve(val)
+            elseif key == 'error' then
+                return reject(val)
+            end
+            wait(0)
+        end
+    end, lanes_http.linda)
+end
+
+Обе реализации на базе Lanes примитивны и служат основой для понимания многопоточности в Lua.
+
+Обсуждение:
+— AnWu (DonHomka): Будет ли разница между downloadUrlToFile и чтением первым способом для JSON? Тащить 10+ библиотек ради этого затратно.
+— FYP: Если скачиваются один-два файла, лучше использовать downloadUrlToFile. Использовать кучу библиотек ради простой проверки версии — плохая идея.
+— Garrus: Как выполнить POST-запрос с передачей данных?
+— FYP: Для lua-requests данные передаются в таблице параметров: async_http_request('POST', 'url', {params = {p1 = 'v1'}}, ...).
+— Garrus: Как загрузить файл через lua-requests?
+— Garrus (UPD): Разобрался. Нужно открыть файл через io.open в режиме 'wb' и записать response.text.
+— Garrus: В MoonLoader 0.26 async_http_request работает некорректно при вызове из нового потока.
+— FYP: В новой версии была проблема с потоками, исправлено в 0.26.2.
+— Garrus: Можно ли вызывать функцию внутри самой себя (рекурсивные запросы для обновления и ченджлога)? Скрипт падает через минуту с ошибкой "cannot resume non-suspended coroutine".
+— FYP: Должно работать, но способ не идеальный. Проблема может быть в том, что библиотеки собраны под LuaJIT 2.0, а в новом муне используется 2.1.
+— Garrus: Проблема воспроизводится, если поместить функцию в скрипт с активным интерфейсом (например, clickwarp или меню ImGui) — игра зависает или скрипт падает.

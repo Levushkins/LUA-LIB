@@ -1,0 +1,23 @@
+Спустя полгода в данной теме наконец-то смогли реализовать поддержку Font Awesome 6, но почему-то это вышло слишком туго и скучно — ничего нового придумать так и не удалось. Непорядок!
+
+Держите «царский подгон» от Police Helper Reborn, который мы (хотя кто «мы»-то, я тут один... привет, @RTD) сделали сразу после выхода шестой версии Font Awesome. Привет также пользователям @SADFI2259X и @chapo.
+
+Принцип применения почти не изменился: просто во время инициализации нужно указать тип шрифта, который вы собираетесь использовать.
+
+Lua:
+faicons.get_font_data_base85('тип') -- например faicons.get_font_data_base85('light')
+
+Ну и вариант для ленивых:
+local config = imgui.ImFontConfig()
+config.MergeMode = true
+config.PixelSnapH = true
+
+-- iconRanges, следуя документации ImGui, ВСЕГДА ДОЛЖЕН БЫТЬ ГЛОБАЛЬНЫМ
+iconRanges = imgui.new.ImWchar[3](faicons.min_range, faicons.max_range, 0)
+imgui.GetIO().Fonts:AddFontFromMemoryCompressedBase85TTF(faicons.get_font_data_base85('light'), 14, config, iconRanges)
+
+Необязательно загружать только один шрифт. Можно подключить несколько одновременно и в зависимости от ситуации использовать конкретный стиль, как это реализовано в Police Helper Reborn.
+
+Используйте на здоровье! Жду mimgui pie — он вообще-то был готов еще в 2020 году.
+
+https://gist.githubusercontent.com/Northn/375ebf7928625e74a2ad3f1e1daffc22/raw/e75ebf7928625e74a2ad3f1e1daffc22/fAwesome6.lua

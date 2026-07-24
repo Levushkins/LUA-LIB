@@ -1,0 +1,276 @@
+Скриптовый язык Lua
+
+Основные свойства и возможности
+
+Lua — популярный мощный скриптовый язык программирования. Lua в переводе с португальского означает 'луна', и это слово не является аббревиатурой или акронимом. Lua разработан подразделением Tecgraf Католического университета Рио-де-Жанейро в Бразилии (Computer Graphics Technology Group of Pontifical Catholic University of Rio de Janeiro), история языка ведёт отсчёт с 1993 года. Lua распространяется свободно, с открытыми исходными текстами на языке Си. Основные особенности языка:
+- это зрелый, стабильный и популярный язык; Lua используется в промышленных приложениях, и в настоящее время это ведущий язык сценариев в играх;
+- это один из самых производительных скриптовых языков в принципе;
+- Lua существует для Linux, Windows и MacOS, а также может быть запущен и на мобильных устройствах;
+- Lua — компактный и легко встраиваемый язык; имеется документированный API, который позволяет осуществить сильную интеграцию с кодом, написанным на других языках; Lua использовался, чтобы расширить программы, написанные на C, C++, Java, C#, Smalltalk, Фортране, Ада, и даже Perl и Ruby; точно так же можно расширить Lua библиотеками, написанными на других языках;
+- хотя Lua — не объектно-ориентированный язык в строгом понимании этого термина, он обеспечивает специальные мета-механизмы для того, чтобы реализовать классы и наследование; эти мета-механизмы экономят сущности и сохраняют язык маленьким, позволяя при этом расширить его семантику;
+- поставка языка компактна; например, поставка Windows x86 Executables имеет размер менее 900 Кб.
+
+Чтобы установить Lua на Windows, просто распакуйте бинарный дистрибутив. Можете ассоциировать расширение .lua с интерпретатором lua5.1.exe, а также прописать путь к интерпретатору в PATH.
+
+Основные возможности языка:
+- есть интерактивный интерпретатор;
+- можно компилировать скрипты в байт-код;
+- модульность; код может быть вынесен в отдельные модули (файлы), которые можно подгружать с помощью оператора 'require';
+- мощный механизм ассоциативных массивов (в терминах Lua — таблиц);
+- мощный механизм расширения языка с помощью так называемых метатаблиц;
+- встроенные функции для работы со строками, регулярными выражениями, математические функции, ввод-вывод.
+
+Hello, World!
+
+Создайте текстовый файл test.lua следующего содержания:
+print 'Привет, Lua!'
+print("Привет, Lua!") -- комментарий
+--[[ многострочный
+комментарий]]
+
+Запустите его на исполнение командой:
+lua5.1.exe test.lua
+
+Вы можете скомпилировать скрипт в байт-код:
+luac5.1.exe test.lua
+В результате вы получите файл luac.out, который вы можете запустить на исполнение точно так же, как обычный скрипт:
+lua5.1.exe luac.out
+
+Интерактивный запуск файла:
+dofile("C:\\Temp\\test.lua")
+Для выхода наберите код: os.exit().
+
+Пример вычисления факториала (рекурсия):
+function f(n)
+    if n == 0 then
+        return 1
+    else 
+        return n * f(n - 1)
+    end
+end
+print(f(170))
+
+Консольная игра 'угадай число':
+function prompt_read(prompt)
+    print(prompt)
+    return tonumber(io.read())
+end
+
+math.randomseed(os.time())
+math.random()
+num = math.random(1, 100)
+tries = 0
+print('Угадайте число от 0 до 100.')
+repeat
+    guess = prompt_read("Попытка: ")
+    if (guess > 100) or (guess < 0) then
+        print("Неверно!")
+    elseif guess > num then
+        print("Нет, нужно меньше!")
+    elseif guess < num then
+        print("Нет, нужно больше!")
+    else
+        print("Вы угадали!")
+    end
+    tries = tries + 1
+until num == guess
+print(string.format("Вам потребовалось %i попыток!", tries))
+
+Особенности языка
+
+Lua — регистрочувствительный (регистрозависимый) язык.
+
+Появление локальной переменной осуществляется с помощью ключевого слова local. Все остальные переменные — глобальные. Область видимости локальной переменной распространяется на всю порцию (chunk) кода, в котором эта переменная была объявлена. Эквивалентом порции кода является блок:
+do
+-- тело блока
+end
+
+Оператор сравнения 'не равно' записывается так:
+a = 1; b = 2
+if a ~= b then
+    print "не равны"
+end
+
+Конкатенация строк:
+print('один ' .. 'два')
+
+Обмен содержимым двух переменных:
+a, b = b, a
+
+Присвоить значение переменной только в том случае, если этой переменной нет (или она равна nil):
+var = var or 0
+
+Цикл с условием:
+while выражение_условия do тело_блока end
+
+Цикл с постусловием:
+repeat тело_блока until выражение_условия
+
+Цикл for:
+for переменная=начальное_значение, конечное_значение, шаг do тело_блока end
+
+Цикл for для обхода итерируемых объектов:
+for переменная_цикла, доп_переменная in итеративное_выражение do тело_блока end
+
+Концепция замыканий:
+function makeaddfunc(x)
+    return function(y) -- анонимная функция
+        return x + y
+    end
+end
+plusThree = makeaddfunc(3)
+print(plusThree(5)) -- выведет 8
+
+В Lua восемь основных типов данных: nil (неопределенный), boolean (логический), number (числовой), string (строковый), function (функция), userdata (пользовательские данные), thread (поток) и table (таблица).
+
+Таблицы, функции, потоки и userdata являются объектами, т.е. переменная содержит не непосредственное значение, а ссылку на объект. Присваивание, передача параметров и возврат результата из функции оперируют только ссылками на значения, и эти операции никогда не ведут к созданию копий.
+
+Автоматическое приведение типов:
+print(type('1' + '2')) -- результат - число
+print(type(1 .. 2)) -- результат - строка
+
+Способы задания строк:
+print(type("String double-quotes styled"))
+print(type('String single-quotes styled'))
+print(type([[ Универсальная строка.
+Здесь возможны любые символы, в т.ч. непечатаемые. ]]))
+
+Последовательности символов типа '[[' называются 'длинными скобками' (long brackets). В 'универсальных' (или 'длинных') строках возможны любые символы, вплоть до символа NULL (конец строки).
+
+Все числа в Lua являются числами с плавающей точкой двойной точности.
+
+При проверках только nil и false являются ложными значениями, всё остальное Lua считает истиной.
+
+Таблицы (динамические ассоциативные массивы):
+tbl = {}
+print(type(tbl))
+tbl[0] = {} -- вложенная таблица
+tbl["str"] = 2
+tbl[1.23] = nil -- это удаление элемента
+for i,j in pairs(tbl) do -- обход таблицы
+    print(i,j)
+end
+print(tbl[2]) -- нет такого элемента, это nil
+
+Синтаксис работы с таблицами:
+tbl = {"one", "two", [234]="yes", word="script"}
+print(tbl[1]) -- "one" 
+print(tbl[234]) -- "yes"
+print(tbl["word"]) -- "script"
+print(tbl.word) -- "script"
+tbl.newfield = 'ещё значение'
+print(tbl.newfield) -- "ещё значение"
+
+Оператор : (двоеточие) позволяет Lua автоматически передать 'self' параметр в функцию:
+t = {}
+function t:sayhello()
+    print ("Привет, " .. self.Name)
+end
+t.Name = "Василий"
+t:sayhello() -- вызов "метода"
+t.sayhello(t) -- равнозначно предыдущему
+t['sayhello'](t) -- равнозначно предыдущему
+
+Тип userdata служит для хранения произвольных данных (структур Си) в переменных Lua. Значения этого типа не могут быть непосредственно созданы в программе на Lua, а должны создаваться только через Си API.
+Тип thread соответствует потоку выполнения.
+Тип function соответствует функциям.
+
+Lua позволяет перегружать операции для таблиц и userdata с помощью метатаблиц. Метатаблица представляет из себя обычную таблицу, в качестве ключей которой используются строки (события), а в качестве значений — методы (обработчики).
+Все глобальные переменные являются полями в специальных таблицах Lua, называемых таблицами окружения (environment tables).
+
+Lua как встроенный язык текстового редактора SciTE
+
+SciTE Lua Scripting Extension в качестве языка сценариев использует Lua 5.1.
+Вы можете объявить новые команды в SciTEGlobal.properties:
+# имя команды №200 в меню "Tools":
+command.name.200.*=Запустить мой скрипт
+# подсистема Lua, не запрашивать сохранение текущего файла перед запуском:
+command.mode.200.*=subsystem:lua,savebefore:no
+# выполнить скрипт Lua из файла:
+command.200.*=dofile $(SciteDefaultHome)\tools\myScript.lua
+
+Обработка событий в SciTEStartup.lua:
+dofile (props["SciteDefaultHome"].."\\tools\\myScript.lua")
+
+Пример в myScript.lua:
+function OnChar(code)
+    print('Вы ввели: ' .. code)
+    return false
+end
+
+Пакет Lua for Windows
+
+Пакет Lua для Windows (LfW) содержит всё, что необходимо для написания, выполнения и отладки самостоятельных сценариев Lua на Windows.
+В пакет включены:
+- интерпретатор и компилятор Lua;
+- скрипт 'Quick Lua Tour';
+- порядка 250 примеров скриптов;
+- свыше 30 дополнительных библиотек (COM, GUI/wxWidgets, Graphics, regex, cURL, Database, .NET, Win32 API).
+
+Интерпретатор wlua.exe предназначен для запуска скриптов с графическим интерфейсом, без отображения окна командного интерпретатора.
+
+Пример работы с COM:
+require "luacom"
+sh = luacom.CreateObject("WScript.Shell")
+res = sh:popup("Текст сообщения", 0, "Текст заголовка", 4+16)
+print(res)
+
+Пример работы с ADO (вывод констант):
+require "luacom"
+conn = luacom.CreateObject("ADODB.Connection")
+typeinfo = luacom.GetTypeInfo(conn)
+typelib = typeinfo:GetTypeLib()
+enums = typelib:ExportEnumerations()
+for key, val in pairs(enums) do
+    print(key)
+    if(type(val)=="table") then
+        for key, val in pairs(val) do
+            print(tostring(key) .. " = " .. tostring(val))
+        end
+    end
+end
+
+Работа с ADSI и WMI:
+require "luacom"
+root = luacom.GetObject("ADs:")
+print(root:Class())
+for index, item in luacomE.pairs(root) do
+    print(index .. ") " .. item:Name())
+end
+
+oWMIService = luacom.GetObject("winmgmts:{impersonationLevel=Impersonate}!\\\\.\\root\\cimv2")
+oDrives = oWMIService:ExecQuery("select Name,DriveType from Win32_LogicalDisk")
+for index, item in luacomE.pairs(oDrives) do
+    print(item:Name())
+end
+
+Работа с Win32 API через alien:
+require "alien"
+f = alien.Kernel32.Beep
+f:types{ret = 'long', abi = 'stdcall', 'long', 'long' }
+print(f(500, 100))
+
+f = alien.User32.MessageBoxA
+f:types{ret = 'long', abi = 'stdcall', 'long', 'string', 'string', 'long' }
+print(f(0, "Привет, MessageBoxA (stdcall)!", "Заголовок", 64))
+
+Использование классов .NET:
+require 'luanet'
+luanet.load_assembly "System"
+Console = luanet.import_type "System.Console"
+Math = luanet.import_type "System.Math"
+Console.WriteLine("sqrt(2) равен {0}", Math.Sqrt(2))
+
+require 'CLRPackage'
+import "System"
+import "System.Windows.Forms"
+f = Form()
+f.Text = 'Привет, Lua!'
+b = Button()
+b.Dock = DockStyle.Fill
+b.Text = DateTime.Now:ToString()
+b.Click:Add(function()
+    b.Text = DateTime.Now:ToString()
+end)
+f.Controls:Add(b)
+f:ShowDialog()

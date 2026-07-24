@@ -1,0 +1,117 @@
+Источник: https://www.blast.hk/threads/19292
+
+Moon ImGui — Dear ImGui для MoonLoader
+
+ImGui — это один из самых функциональных и простых в использовании GUI-фреймворков. Moon ImGui представляет собой Lua-биндинг этой библиотеки для MoonLoader, который позволяет создавать интерфейсы в скриптах. API максимально приближено к оригинальному C++ интерфейсу.
+
+1. Базовый пример использования
+
+В Moon ImGui вся работа с интерфейсом происходит внутри функции-коллбэка imgui.OnDrawFrame().
+
+local imgui = require 'imgui'
+
+-- Функция вызывается каждый кадр, если imgui.Process установлен в true
+function imgui.OnDrawFrame()
+    imgui.Begin('My window')    -- Создание окна с заголовком 'My window'
+    imgui.Text('Hello world')   -- Текст внутри окна
+    imgui.End()                 -- Завершение описания окна
+end
+
+function main()
+    imgui.Process = true -- Активация отрисовки интерфейса
+end
+
+2. Управление состоянием окна и ввод данных
+
+В Lua базовые типы (bool, float, int) нельзя передать по ссылке. Для этого в Moon ImGui используются специальные типы-обертки (ImBool, ImFloat и т.д.). Доступ к значению осуществляется через поле .v.
+
+local imgui = require 'imgui'
+local key = require 'vkeys'
+
+local main_window_state = imgui.ImBool(false) -- Переменная состояния окна
+
+function imgui.OnDrawFrame()
+    if main_window_state.v then
+        -- Установка начального размера окна при первом запуске
+        imgui.SetNextWindowSize(imgui.ImVec2(150, 200), imgui.Cond.FirstUseEver)
+        
+        -- Начало окна. Переменная main_window_state позволяет управлять закрытием через крестик.
+        imgui.Begin('My window', main_window_state)
+        imgui.Text('Hello world')
+        
+        if imgui.Button('Press me') then
+            printStringNow('Button pressed!', 1000)
+        end
+        
+        imgui.End()
+    end
+end
+
+function main()
+    while true do
+        wait(0)
+        if wasKeyPressed(key.VK_X) then
+            main_window_state.v = not main_window_state.v -- Переключение состояния
+        end
+        imgui.Process = main_window_state.v -- Отображение курсора и интерфейса
+    end
+end
+
+3. Основные различия между C++ API и Lua API
+
+- Пространство имен: Все функции, типы и перечисления находятся в таблице, возвращаемой модулем (например, imgui.Text).
+- Перечисления (Enums): Названия лишились префиксов и знаков подчеркивания в конце (imgui.WindowFlags.NoTitleBar).
+- Указатели: Для передачи значений по ссылке используются типы ImBool, ImFloat, ImInt, ImVec2-4.
+- Форматирование: Функции ImGui не поддерживают форматирование строк. Используйте стандартную функцию string.format().
+- Работа со строками: Для ввода текста (InputText) используется тип imgui.ImBuffer.
+- Динамические массивы: В функциях вроде ListBox вместо массивов C++ используются обычные Lua-таблицы.
+
+4. Работа с кодировкой (Русский язык)
+
+ImGui использует кодировку UTF-8. Так как MoonLoader и GTA используют Windows-1251 (CP1251), необходимо конвертировать текст.
+
+local imgui = require 'imgui'
+local encoding = require 'encoding'
+encoding.default = 'CP1251'
+local u8 = encoding.UTF8
+
+local test_text_buffer = imgui.ImBuffer(256)
+
+function imgui.OnDrawFrame()
+    imgui.Begin(u8'Основное окно')
+    
+    if imgui.InputText(u8'Вводить текст сюда', test_text_buffer) then
+        -- Декодирование обратно в CP1251 для вывода в консоль или чат
+        print('Введенный текст:', u8:decode(test_text_buffer.v))
+    end
+    
+    imgui.Text(u8'Введенный текст: ' .. test_text_buffer.v)
+    imgui.End()
+end
+
+5. Дополнительные возможности и параметры
+
+Параметры модуля:
+- imgui.Process (bool): Включает/выключает обработку интерфейса и отображение курсора.
+- imgui.OnDrawFrame (function): Основной коллбэк для рендеринга.
+- imgui.BeforeDrawFrame (function): Вызывается перед NewFrame (для загрузки ресурсов).
+- imgui.RenderInMenu (bool): Позволяет отрисовывать интерфейс в меню паузы (по умолчанию false).
+- imgui.ShowCursor (bool): Управляет отображением курсора (по умолчанию true).
+- imgui.LockPlayer (bool): Блокирует управление персонажем, когда интерфейс активен.
+
+Функции для работы с ресурсами:
+- imgui.CreateTextureFromFile(path): Загрузка текстуры из файла.
+- imgui.ReleaseTexture(texture): Выгрузка текстуры.
+- imgui.RebuildFonts(): Пересборка атласа шрифтов (вызывать вне OnDrawFrame).
+
+6. Идеи для реализации на ImGui
+
+- Scoreboard (таблица игроков).
+- Браузер серверов или менеджер скриптов.
+- Биндеры, редакторы параметров транспорта/оружия.
+- Внутриигровые консоли и редакторы карт.
+- Кастомные диалоги и элементы интерфейса.
+
+Требования:
+- MoonLoader v.026 или выше.
+- Установка: Распаковать файлы библиотеки в папку с игрой.

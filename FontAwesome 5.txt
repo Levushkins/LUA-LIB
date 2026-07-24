@@ -1,0 +1,59 @@
+Использование FontAwesome 5 Solid Free в Moon ImGui
+
+Данный модуль содержит определения для 936 иконок FontAwesome 5 (версия Solid Free). Коды иконок взяты из репозитория juliettef/IconFontCppHeaders и адаптированы для использования в среде MoonLoader.
+
+Инструкция по установке:
+1. Файл fAwesome5.lua необходимо поместить в папку: moonloader/lib
+2. Файл шрифта fa-solid-900.ttf необходимо поместить в папку: moonloader/resource/fonts
+
+Пример реализации на Lua:
+
+local imgui = require 'imgui'
+local vkeys = require 'vkeys'
+local fa = require 'fAwesome5'
+
+local show_main_window = imgui.ImBool(false)
+local fa_font = nil
+local fa_glyph_ranges = imgui.ImGlyphRanges({ fa.min_range, fa.max_range })
+
+function imgui.BeforeDrawFrame()
+    if fa_font == nil then
+        local font_config = imgui.ImFontConfig()
+        -- В случае возникновения ошибки используйте: imgui.ImFontConfig.new()
+        font_config.MergeMode = true
+
+        fa_font = imgui.GetIO().Fonts:AddFontFromFileTTF(
+            'moonloader/resource/fonts/fa-solid-900.ttf',
+            13.0,
+            font_config,
+            fa_glyph_ranges
+        )
+    end
+end
+
+function imgui.OnDrawFrame()
+    if show_main_window.v then
+        local sw, sh = getScreenResolution()
+        imgui.SetNextWindowPos(imgui.ImVec2(sw / 2, sh / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+        imgui.SetNextWindowSize(imgui.ImVec2(200, 200), imgui.Cond.FirstUseEver)
+        
+        imgui.Begin('Test FontAwesome 5', show_main_window, imgui.WindowFlags.NoCollapse)
+        
+        imgui.Button(fa.ICON_FA_TV .. ' TV')
+        imgui.Button(fa.ICON_FA_LAPTOP .. ' Laptop')
+        imgui.Button(fa.ICON_FA_AWARD .. ' Award')
+        
+        imgui.End()
+    end
+end
+
+function main()
+    while true do
+        wait(0)
+        if wasKeyPressed(vkeys.VK_X) then
+            show_main_window.v = not show_main_window.v
+        end
+
+        imgui.Process = show_main_window.v
+    end
+end

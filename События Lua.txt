@@ -1,0 +1,19 @@
+События — это функции, вызывающиеся автоматически при определённых условиях. Обработчик события может быть зарегистрирован путём объявления глобальной функции с соответствующим названием, либо с помощью функции addEventHandler. Все аргументы и возвращаемые значения событий MoonLoader опциональны.
+
+Версия	Lua
+v.015	main()
+v.022	onExitScript(bool quitGame)
+v.015	onQuitGame()
+v.015	onScriptLoad(LuaScript s)
+v.022	onScriptTerminate(LuaScript s, bool quitGame)
+v.015	onSystemInitialized()
+v.015	onScriptMessage(string msg, LuaScript s)
+v.015	onSystemMessage(string msg, int type, LuaScript s)
+v.015	bool process=true, int id, bitstream bitStream = onReceivePacket(int id, bitstream bitStream)
+v.015	bool process=true, int id, bitstream bitStream = onReceiveRpc(int id, bitstream bitStream)
+v.015	bool process=true, int id, bitstream bitStream, int priority, int reliability, int orderingChannel = onSendPacket(int id, bitstream bitStream, int priority, int reliability, int orderingChannel)
+v.015	bool process=true, int id, bitstream bitStream, int priority, int reliability, int orderingChannel, bool shiftTs = onSendRpc(int id, bitstream bitStream, int priority, int reliability, int orderingChannel, bool shiftTs)
+v.022	onWindowMessage(uint msg, uint wparam, int lparam)
+v.023	onStartNewGame(int mpack)
+v.023	onLoadGame(table saveData)
+v.023	table newSaveData = onSaveGame(table saveData)
