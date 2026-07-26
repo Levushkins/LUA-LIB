@@ -42,8 +42,33 @@ local inicfg   = require 'inicfg'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local function fromGame(str) return u8(str) end        -- CP1251 (игра) -> UTF-8
-local function toGame(str)   return u8:decode(str) end -- UTF-8 (код)   -> CP1251
+local function fromGame(str) return u8(str) end -- CP1251 (игра) -> UTF-8
+
+-- ImGui рисует только UTF-8. Если файл скрипта пересохранили в ANSI/CP1251,
+-- кириллические литералы перестают быть валидным UTF-8 и панель показывает «?».
+-- Определяем кодировку исходника один раз и, если нужно, конвертируем строки.
+local function isUtf8(str)
+    local i, len = 1, #str
+    while i <= len do
+        local byte, tail = str:byte(i), 0
+        if     byte < 0x80                   then tail = 0
+        elseif byte >= 0xC2 and byte <= 0xDF then tail = 1
+        elseif byte >= 0xE0 and byte <= 0xEF then tail = 2
+        elseif byte >= 0xF0 and byte <= 0xF4 then tail = 3
+        else return false end
+        for offset = 1, tail do
+            local next = str:byte(i + offset)
+            if not next or next < 0x80 or next > 0xBF then return false end
+        end
+        i = i + tail + 1
+    end
+    return true
+end
+
+local UI_UTF8 = isUtf8('кириллица')
+
+local function ui(str)     return UI_UTF8 and str or u8(str) end        -- литерал -> UTF-8 (панель)
+local function toGame(str) return UI_UTF8 and u8:decode(str) or str end -- литерал -> CP1251 (чат)
 
 local function chat(text)
     sampAddChatMessage(toGame('{FFA62B}[Time HUD]{FFFFFF} ' .. text), -1)
@@ -245,9 +270,10 @@ local function parseTimeDialog(raw)
     if not converted then return false end
     text = text:gsub('{%x%x%x%x%x%x}', '')
 
-    local hour, min, sec = text:match('Текущее время[^%d]*(%d+):(%d+):(%d+)')
+    local currentTime = ui('Текущее время')
+    local hour, min, sec = text:match(currentTime .. '[^%d]*(%d+):(%d+):(%d+)')
     if not hour then
-        hour, min = text:match('Текущее время[^%d]*(%d+):(%d+)')
+        hour, min = text:match(currentTime .. '[^%d]*(%d+):(%d+)')
         sec = 0
     end
     if not hour then return false end
@@ -256,7 +282,7 @@ local function parseTimeDialog(raw)
     if hour > 23 or min > 59 or sec > 59 then return false end
 
     -- дата на разных серверах пишется как 26.07.2026, 26:07:2026 или 26/07/2026
-    local day, month, year = text:match('дата[^%d]*(%d+)%D+(%d+)%D+(%d+)')
+    local day, month, year = text:match(ui('дата') .. '[^%d]*(%d+)%D+(%d+)%D+(%d+)')
     day, month, year = tonumber(day), tonumber(month), tonumber(year)
     if day and (day < 1 or day > 31 or month < 1 or month > 12) then
         day, month, year = nil, nil, nil
@@ -363,13 +389,13 @@ local function buildState()
     local hour, min, sec, date, synced = getDisplayTime()
     return {
         hour = hour, min = min, sec = sec, synced = synced,
-        timeLabel  = 'ВРЕМЯ СЕРВЕРА',
+        timeLabel  = ui('ВРЕМЯ СЕРВЕРА'),
         timeValue  = ('%02d:%02d:%02d'):format(hour, min, sec),
-        dateLabel  = 'ДАТА',
+        dateLabel  = ui('ДАТА'),
         dateValue  = ('%02d.%02d.%04d'):format(date.day, date.month, date.year),
         accent     = synced and COLOR.accentTime or COLOR.accentIdle,
-        pillTop    = synced and 'Точное' or 'Локальное',
-        pillBottom = 'время',
+        pillTop    = ui(synced and 'Точное' or 'Локальное'),
+        pillBottom = ui('время'),
     }
 end
 
@@ -439,7 +465,7 @@ local function drawHud(dl, x, y, w, h, state)
                    state.synced, state.pillTop, state.pillBottom)
 end
 
-local MOVE_HINT = 'Перетащите панель мышью, затем /timehud move'
+local MOVE_HINT = ui('Перетащите панель мышью, затем /timehud move')
 
 local function drawMoveHint(dl, x, y, w)
     local hint = MOVE_HINT
@@ -523,6 +549,7 @@ local function printHelp()
     chat('{FFA62B}/timehud move{FFFFFF} — перенести панель мышью')
     chat('{FFA62B}/timehud date{FFFFFF} — показать/скрыть блок с датой')
     chat('{FFA62B}/timehud scale 1.2{FFFFFF} — масштаб панели (0.7 – 2.0)')
+    chat('{FFA62B}/timehud fonts{FFFFFF} — проверка шрифта и кодировки файла')
 end
 
 local function cmdTimeHud(param)
@@ -545,6 +572,23 @@ local function cmdTimeHud(param)
             saveConfig()
             chat(('Позиция сохранена: {FFA62B}%d, %d'):format(cfg.hud.posX, cfg.hud.posY))
         end
+
+    elseif action == 'fonts' or action == 'debug' then
+        local path = findFontFile()
+        chat(path and ('Шрифт: {2FA84F}' .. path) or ('{FF5C5C}Шрифт не найден{FFFFFF} в ' .. getFolderPath(0x14)))
+
+        local loaded = {}
+        for key, size in pairs(FONT_SIZES) do
+            loaded[#loaded + 1] = key .. '=' .. (fonts[key] and (math.floor(S(size) + 0.5) .. 'px')
+                                                            or '{FF5C5C}не загружен{FFFFFF}')
+        end
+        chat('Размеры шрифта: ' .. table.concat(loaded, ', '))
+
+        -- 'ВРЕМЯ СЕРВЕРА' — 12 букв и пробел: 25 байт в UTF-8, 13 байт в ANSI
+        chat(('Кодировка файла: %s{FFFFFF} (литерал занимает %d байт)')
+            :format(UI_UTF8 and '{2FA84F}UTF-8' or '{FFA62B}ANSI/CP1251 — строки конвертирую на лету',
+                    #'ВРЕМЯ СЕРВЕРА'))
+        chat('Если на панели «?», а здесь всё читаемо — дело в кодировке файла, а не в шрифте.')
 
     elseif action == 'date' then
         cfg.hud.showDate = not cfg.hud.showDate
