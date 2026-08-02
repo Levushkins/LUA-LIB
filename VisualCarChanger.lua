@@ -1231,7 +1231,9 @@ function imgui.OnDrawFrame()
                 local hovering = false
                 for i = 1, #vehs do
                     if f == '' or vehs[i][1]:lower():find(f, 1, true) then
-                        local isCur = r and r.model == vehs[i][2]
+                        -- именно сравнение с nil: r and ... вернуло бы nil,
+                        -- а Selectable ждёт bool и падает на нём
+                        local isCur = (r ~= nil and r.model == vehs[i][2])
                         if imgui.Selectable(u8(vehs[i][1]..'##veh'..i), isCur) then
                             setReplace(selected, i)
                         end
