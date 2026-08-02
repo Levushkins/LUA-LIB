@@ -834,14 +834,7 @@ local function loadReplaces()
         for k, v in pairs(t) do
             local slot = tonumber(k)
             if slot and type(v) == 'table' and tonumber(v.model) then
-                replaces[slot] = {
-                    title    = v.title,
-                    name     = v.name,
-                    model    = tonumber(v.model),
-                    useColor = v.useColor and true or false,
-                    color1   = tonumber(v.color1) or 0,
-                    color2   = tonumber(v.color2) or 0,
-                }
+                replaces[slot] = {title = v.title, name = v.name, model = tonumber(v.model)}
             end
         end
         return
@@ -1002,17 +995,15 @@ local winSize = {x = 720, y = 450}
 
 -- превью рисуется текстдравом, поэтому его нельзя положить внутрь окна imgui -
 -- оно перекроет модель. Ставим панель справа от окна, фон даёт сам текстдрав.
-local preview = {model = 0, clr1 = 0, clr2 = 0, rot = 0.0}
+local preview = {model = 0, rot = 0.0}
 
-local function setPreview(model, c1, c2)
+local function setPreview(model)
     preview.model = tonumber(model) or 0
-    preview.clr1  = tonumber(c1) or 0
-    preview.clr2  = tonumber(c2) or 0
 end
 
 local function drawPreview()
     if preview.model > 0 then
-        sampTextdrawSetModelRotationZoomVehColor(td_Id, preview.model, 340, 0, preview.rot, 1, preview.clr1, preview.clr2)
+        sampTextdrawSetModelRotationZoomVehColor(td_Id, preview.model, 340, 0, preview.rot, 1, 1, 1)
     end
 end
 
@@ -1021,60 +1012,9 @@ local selected     = nil            -- слот выбранной машины
 local hoveredModel = nil            -- модель под курсором в списке замен
 local searchCars   = imgui.ImBuffer(64)
 local searchModels = imgui.ImBuffer(64)
-local useColor     = imgui.ImBool(false)
-local color1       = imgui.ImInt(0)
-local color2       = imgui.ImInt(0)
 local autoRotate   = imgui.ImBool(true)
-local replDirty    = false
 
 --==[ARIZONA]==--
-function arizonaGetServerNumber()
-    local send = 999
-    local ip, port = sampGetCurrentServerAddress()
-    local servers = {
-        {'Chandler',    '185.169.134.44'},
-        {'Tucson',      '185.169.134.4'},
-        {'Space',       '80.66.82.199'},
-        {'Yuma',        '185.169.134.107'},
-        {'Casa-Grande', '80.66.82.188'},
-        {'Bumble Bee',  '80.66.82.87'},
-        {'Love',        '80.66.82.33'},
-        {'Phoenix',     '185.169.134.3'},
-        {'Drake',       '80.66.82.22'},
-        {'Mesa',        '185.169.134.59'},
-        {'Red-Rock',    '185.169.134.61'},
-        {'Scottdale',   '185.169.134.43'},
-        {'Brainburg',   '185.169.134.45'},
-        {'Mirage',      '80.66.82.39'},
-        {'Saint-Rose',  '185.169.134.5'},
-        {'Sedona',      '80.66.82.144'},
-        {'Sun-City',    '80.66.82.159'},
-        {'Winslow',     '185.169.134.173'},
-        {'Payson',      '185.169.134.174'},
-        {'Kingman',     '185.169.134.172'},
-        {'Surprise',    '185.169.134.109'},
-        {'Prescott',    '185.169.134.166'},
-        {'Faraway',     '80.66.82.82'},
-        {'Glendale',    '185.169.134.171'},
-        {'Gilbert',     '80.66.82.191'},
-        {'Show Low',    '80.66.82.190'},
-        {'Holiday',     '80.66.82.132'},
-        {'Queen-Creek', '80.66.82.200'},
-        {'Wednesday',   '80.66.82.128'},
-        {'Yava',        '80.66.82.113'},
-        {'Page',        '80.66.82.168'},
-        {'Christmas',   '80.66.82.54'},
-    }
-    -- сравнение строгое: find() путал 185.169.134.4 и 185.169.134.44
-    for i = 1, #servers do
-        if servers[i][2] == ip then
-            send = i
-            break
-        end
-    end
-    return send
-end
-
 function isArizonaLauncher()
     if doesFileExist(getGameDirectory()..'\\_CoreGame.asi') or doesFileExist(getGameDirectory()..'\\_ci.asi') then
         return true
@@ -1094,11 +1034,6 @@ function main()
     while not isSampAvailable() do wait(200) end
     sampAddChatMessage(tag..'загружен! Автор: {698cc7}chapo{ffffff}, доработал: {698cc7}e11evated{ffffff}. Активация: {698cc7}/vcar', -1)
     while not isCharOnFoot(PLAYER_PED) do wait(0) end
-    if arizonaGetServerNumber() == 999 then
-        sampAddChatMessage(tag..'скрипт предназначен только для Arizona RP! Если это ошибка - сообщите автору скрипта: {698cc7}vk.com/amid24', -1)
-        thisScript():unload()
-    end
-
     -- текстдрав-превью: включаем бокс, он и служит фоном под машиной
     sampTextdrawCreate(td_Id, _, 1000, 1000)
     sampTextdrawSetStyle(td_Id, 5)
@@ -1124,7 +1059,7 @@ function main()
     imgui.Process = false
     window.v = false
 
-    local saveTimer, replTimer = os.clock(), os.clock()
+    local saveTimer = os.clock()
     while true do
         wait(0)
         imgui.Process = window.v
@@ -1142,11 +1077,6 @@ function main()
             carsDirty = false
             saveTimer = os.clock()
             saveCars()
-        end
-        if replDirty and os.clock() - replTimer > 1.5 then
-            replDirty = false
-            replTimer = os.clock()
-            saveReplaces()
         end
     end
 end
@@ -1171,32 +1101,17 @@ end
 local function selectCar(slot)
     selected = slot
     local r = replaces[slot]
-    useColor.v = (r and r.useColor) and true or false
-    color1.v   = (r and r.color1) or 0
-    color2.v   = (r and r.color2) or 0
-    if r then setPreview(r.model, color1.v, color2.v) end
+    if r then setPreview(r.model) end
 end
 
 local function setReplace(slot, idx)
     local r = replaces[slot] or {}
-    r.title    = cars[slot] and cars[slot].title or r.title
-    r.name     = vehs[idx][1]
-    r.model    = vehs[idx][2]
-    r.useColor = useColor.v
-    r.color1   = color1.v
-    r.color2   = color2.v
+    r.title = cars[slot] and cars[slot].title or r.title
+    r.name  = vehs[idx][1]
+    r.model = vehs[idx][2]
     replaces[slot] = r
     saveReplaces()
-    setPreview(r.model, r.color1, r.color2)
-end
-
-local function pushColors(r)
-    if not r then return end
-    r.useColor = useColor.v
-    r.color1   = color1.v
-    r.color2   = color2.v
-    replDirty  = true
-    setPreview(r.model, r.color1, r.color2)
+    setPreview(r.model)
 end
 
 function imgui.OnDrawFrame()
@@ -1275,7 +1190,7 @@ function imgui.OnDrawFrame()
             local r = replaces[selected]
 
             -- карточка выбранной машины
-            imgui.BeginChild('##info', imgui.ImVec2(0, 134), true)
+            imgui.BeginChild('##info', imgui.ImVec2(0, 92), true)
                 imgui.TextColored(CLR_ACCENT, u8(c.title))
                 local txt, clr = carStatus(c)
                 imgui.TextColored(clr, u8(txt))
@@ -1295,19 +1210,11 @@ function imgui.OnDrawFrame()
                     if imgui.Button(u8'Убрать##rm', imgui.ImVec2(90, 18)) then
                         replaces[selected] = nil
                         saveReplaces()
-                        setPreview(0, 0, 0)
+                        setPreview(0)
                     end
                 else
                     imgui.TextDisabled(u8'Замена не выбрана - выбери модель из списка ниже.')
                 end
-                if imgui.Checkbox(u8'Свой цвет', useColor) then pushColors(r) end
-                imgui.SameLine()
-                imgui.TextDisabled(u8'(0-255, превью показывает реальный цвет)')
-                imgui.PushItemWidth(140)
-                if imgui.SliderInt(u8'основной##c1', color1, 0, 255) then pushColors(r) end
-                imgui.SameLine()
-                if imgui.SliderInt(u8'доп.##c2', color2, 0, 255) then pushColors(r) end
-                imgui.PopItemWidth()
             imgui.EndChild()
 
             -- список моделей
@@ -1337,14 +1244,14 @@ function imgui.OnDrawFrame()
                             hovering = true
                             if hoveredModel ~= vehs[i][2] then
                                 hoveredModel = vehs[i][2]
-                                setPreview(vehs[i][2], color1.v, color2.v)
+                                setPreview(vehs[i][2])
                             end
                         end
                     end
                 end
                 if not hovering and hoveredModel then
                     hoveredModel = nil
-                    if r then setPreview(r.model, r.color1 or 0, r.color2 or 0) end
+                    if r then setPreview(r.model) end
                 end
             imgui.EndChild()
         end
@@ -1362,25 +1269,6 @@ function imgui.OnDrawFrame()
 end
 
 --==[ЗАМЕНА МОДЕЛИ]==--
--- пишем поле, только если оно реально есть в структуре (имена отличаются
--- между версиями samp.lua), и не роняем обработчик, если его нет
-local function trySet(data, name, value)
-    local ok, cur = pcall(function() return data[name] end)
-    if not ok or cur == nil then return false end
-    return (pcall(function() data[name] = value end))
-end
-
-local function applyColor(data, c1, c2)
-    if not (trySet(data, 'color1', c1) and trySet(data, 'color2', c2)) then
-        trySet(data, 'colour1', c1)
-        trySet(data, 'colour2', c2)
-    end
-    -- у личного транспорта выставлен кастомный цвет кузова (bodyColor), и он
-    -- перебивает палитру - без сброса в -1 цвет из color1/color2 не применится
-    trySet(data, 'bodyColor1', -1)
-    trySet(data, 'bodyColor2', -1)
-end
-
 function sampev.onVehicleStreamIn(vehId, data)
     for slot, r in pairs(replaces) do
         local c = cars[slot]
@@ -1389,9 +1277,6 @@ function sampev.onVehicleStreamIn(vehId, data)
                 sampAddChatMessage(tag..'модель машины не была заменена! (модель доступна только с лаунчера Arizona RP)', -1)
             else
                 data.type = r.model
-                if r.useColor then
-                    applyColor(data, r.color1 or 0, r.color2 or 0)
-                end
                 return {vehId, data}
             end
         end
