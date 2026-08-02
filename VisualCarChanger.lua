@@ -1328,9 +1328,12 @@ function imgui.OnDrawFrame()
                         if imgui.Selectable(u8(vehs[i][1]..'##veh'..i), isCur) then
                             setReplace(selected, i)
                         end
+                        -- навёл проверяем сразу на строке: после SameLine+Text
+                        -- IsItemHovered() относился бы уже к номеру модели
+                        local hovered = imgui.IsItemHovered()
                         imgui.SameLine(imgui.GetWindowWidth() - 60)
                         imgui.TextDisabled(tostring(vehs[i][2]))
-                        if imgui.IsItemHovered() then
+                        if hovered then
                             hovering = true
                             if hoveredModel ~= vehs[i][2] then
                                 hoveredModel = vehs[i][2]
@@ -1359,19 +1362,23 @@ function imgui.OnDrawFrame()
 end
 
 --==[ЗАМЕНА МОДЕЛИ]==--
--- имя полей цвета в структуре зависит от версии samp.lua - определяем один раз
-local colorFields, colorChecked = nil, false
-local function detectColorFields(data)
-    if colorChecked then return colorFields end
-    colorChecked = true
-    for _, c in ipairs({{'color1', 'color2'}, {'bodyColor1', 'bodyColor2'}, {'colour1', 'colour2'}, {'clr1', 'clr2'}}) do
-        local ok, v = pcall(function() return data[c[1]] end)
-        if ok and v ~= nil then
-            colorFields = c
-            break
-        end
+-- пишем поле, только если оно реально есть в структуре (имена отличаются
+-- между версиями samp.lua), и не роняем обработчик, если его нет
+local function trySet(data, name, value)
+    local ok, cur = pcall(function() return data[name] end)
+    if not ok or cur == nil then return false end
+    return (pcall(function() data[name] = value end))
+end
+
+local function applyColor(data, c1, c2)
+    if not (trySet(data, 'color1', c1) and trySet(data, 'color2', c2)) then
+        trySet(data, 'colour1', c1)
+        trySet(data, 'colour2', c2)
     end
-    return colorFields
+    -- у личного транспорта выставлен кастомный цвет кузова (bodyColor), и он
+    -- перебивает палитру - без сброса в -1 цвет из color1/color2 не применится
+    trySet(data, 'bodyColor1', -1)
+    trySet(data, 'bodyColor2', -1)
 end
 
 function sampev.onVehicleStreamIn(vehId, data)
@@ -1383,13 +1390,7 @@ function sampev.onVehicleStreamIn(vehId, data)
             else
                 data.type = r.model
                 if r.useColor then
-                    local cf = detectColorFields(data)
-                    if cf then
-                        pcall(function()
-                            data[cf[1]] = r.color1 or 0
-                            data[cf[2]] = r.color2 or 0
-                        end)
-                    end
+                    applyColor(data, r.color1 or 0, r.color2 or 0)
                 end
                 return {vehId, data}
             end
