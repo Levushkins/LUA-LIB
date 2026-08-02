@@ -834,7 +834,14 @@ local function loadReplaces()
         for k, v in pairs(t) do
             local slot = tonumber(k)
             if slot and type(v) == 'table' and tonumber(v.model) then
-                replaces[slot] = {title = v.title, name = v.name, model = tonumber(v.model)}
+                replaces[slot] = {
+                    title    = v.title,
+                    name     = v.name,
+                    model    = tonumber(v.model),
+                    useColor = v.useColor and true or false,
+                    color1   = tonumber(v.color1) or 0,
+                    color2   = tonumber(v.color2) or 0,
+                }
             end
         end
         return
@@ -988,52 +995,79 @@ function onSendPacket(id, bs)
     processCefPacket(id, bs)
 end
 
---==[TEXTDRAW CAR PREVIEW]==--
+--==[ПРЕВЬЮ МОДЕЛИ]==--
 local td_Id = 1931
-local winPos = {x = 1000, y = 1000}
-local winSize = {x = 500, y = 200}
+local winPos  = {x = 1000, y = 1000}
+local winSize = {x = 720, y = 450}
+
+-- превью рисуется текстдравом, поэтому его нельзя положить внутрь окна imgui -
+-- оно перекроет модель. Ставим панель справа от окна, фон даёт сам текстдрав.
+local preview = {model = 0, clr1 = 0, clr2 = 0, rot = 0.0}
+
+local function setPreview(model, c1, c2)
+    preview.model = tonumber(model) or 0
+    preview.clr1  = tonumber(c1) or 0
+    preview.clr2  = tonumber(c2) or 0
+end
+
+local function drawPreview()
+    if preview.model > 0 then
+        sampTextdrawSetModelRotationZoomVehColor(td_Id, preview.model, 340, 0, preview.rot, 1, preview.clr1, preview.clr2)
+    end
+end
+
+--==[СОСТОЯНИЕ ОКНА]==--
+local selected     = nil            -- слот выбранной машины
+local hoveredModel = nil            -- модель под курсором в списке замен
+local searchCars   = imgui.ImBuffer(64)
+local searchModels = imgui.ImBuffer(64)
+local useColor     = imgui.ImBool(false)
+local color1       = imgui.ImInt(0)
+local color2       = imgui.ImInt(0)
+local autoRotate   = imgui.ImBool(true)
+local replDirty    = false
 
 --==[ARIZONA]==--
 function arizonaGetServerNumber()
     local send = 999
     local ip, port = sampGetCurrentServerAddress()
     local servers = {
-        {'Chandler',    '185.169.134.44',   'chandler.arizona-rp.com'},
-        {'Tucson',      '185.169.134.4',    'tucson.arizona-rp.com'},
-        {'Space',       '80.66.82.199',     'space.arizona-rp.com'},
-        {'Yuma',        '185.169.134.107',  'yuma.arizona-rp.com'},
-        {'Casa-Grande', '80.66.82.188',     'casagrande.arizona-rp.com'},
-        {'Bumble Bee',  '80.66.82.87',      'bumblebee.arizona-rp.com'},
-        {'Love',        '80.66.82.33',      'love.arizona-rp.com'},
-        {'Phoenix',     '185.169.134.3',    'phoenix.arizona-rp.com'},
-        {'Drake',       '80.66.82.22',      'drake.arizona-rp.com'},
-        {'Mesa',        '185.169.134.59',   'mesa.arizona-rp.com'},
-        {'Red-Rock',    '185.169.134.61',   'redrock.arizona-rp.com'},
-        {'Scottdale',   '185.169.134.43',   'scottdale.arizona-rp.com'},
-        {'Brainburg',   '185.169.134.45',   'brainburg.arizona-rp.com'},
-        {'Mirage',      '80.66.82.39',      'mirage.arizona-rp.com'},
-        {'Saint-Rose',  '185.169.134.5',    'saintrose.arizona-rp.com'},
-        {'Sedona',      '80.66.82.144',     'sedona.arizona-rp.com'},
-        {'Sun-City',    '80.66.82.159',     'suncity.arizona-rp.com'},
-        {'Winslow',     '185.169.134.173',  'winslow.arizona-rp.com'},
-        {'Payson',      '185.169.134.174',  'payson.arizona-rp.com'},
-        {'Kingman',     '185.169.134.172',  'kingman.arizona-rp.com'},
-        {'Surprise',    '185.169.134.109',  'surprise.arizona-rp.com'},
-        {'Prescott',    '185.169.134.166',  'prescott.arizona-rp.com'},
-        {'Faraway',     '80.66.82.82',      'faraway.arizona-rp.com'},
-        {'Glendale',    '185.169.134.171',  'glendale.arizona-rp.com'},
-        {'Gilbert',     '80.66.82.191',     'gilbert.arizona-rp.com'},
-        {'Show Low',    '80.66.82.190',     'showlow.arizona-rp.com'},
-        {'Holiday',     '80.66.82.132',     'holiday.arizona-rp.com'},
-        {'Queen-Creek', '80.66.82.200',     'queencreek.arizona-rp.com'},
-        {'Wednesday',   '80.66.82.128',     'wednesday.arizona-rp.com'},
-        {'Yava',        '80.66.82.113',     'yava.arizona-rp.com'},
-        {'Page',        '80.66.82.168',     'page.arizona-rp.com'},
-        {'Christmas',   '80.66.82.54',      'christmas.arizona-rp.com'},
+        {'Chandler',    '185.169.134.44'},
+        {'Tucson',      '185.169.134.4'},
+        {'Space',       '80.66.82.199'},
+        {'Yuma',        '185.169.134.107'},
+        {'Casa-Grande', '80.66.82.188'},
+        {'Bumble Bee',  '80.66.82.87'},
+        {'Love',        '80.66.82.33'},
+        {'Phoenix',     '185.169.134.3'},
+        {'Drake',       '80.66.82.22'},
+        {'Mesa',        '185.169.134.59'},
+        {'Red-Rock',    '185.169.134.61'},
+        {'Scottdale',   '185.169.134.43'},
+        {'Brainburg',   '185.169.134.45'},
+        {'Mirage',      '80.66.82.39'},
+        {'Saint-Rose',  '185.169.134.5'},
+        {'Sedona',      '80.66.82.144'},
+        {'Sun-City',    '80.66.82.159'},
+        {'Winslow',     '185.169.134.173'},
+        {'Payson',      '185.169.134.174'},
+        {'Kingman',     '185.169.134.172'},
+        {'Surprise',    '185.169.134.109'},
+        {'Prescott',    '185.169.134.166'},
+        {'Faraway',     '80.66.82.82'},
+        {'Glendale',    '185.169.134.171'},
+        {'Gilbert',     '80.66.82.191'},
+        {'Show Low',    '80.66.82.190'},
+        {'Holiday',     '80.66.82.132'},
+        {'Queen-Creek', '80.66.82.200'},
+        {'Wednesday',   '80.66.82.128'},
+        {'Yava',        '80.66.82.113'},
+        {'Page',        '80.66.82.168'},
+        {'Christmas',   '80.66.82.54'},
     }
     -- сравнение строгое: find() путал 185.169.134.4 и 185.169.134.44
     for i = 1, #servers do
-        if servers[i][2] == ip or servers[i][3] == ip then
+        if servers[i][2] == ip then
             send = i
             break
         end
@@ -1058,16 +1092,18 @@ end
 
 function main()
     while not isSampAvailable() do wait(200) end
-    sampAddChatMessage(tag..'загружен! Автор: {698cc7}chapo{ffffff}. Активация: {698cc7}/vcar', -1)
+    sampAddChatMessage(tag..'загружен! Автор: {698cc7}chapo{ffffff}, доработал: {698cc7}e11evated{ffffff}. Активация: {698cc7}/vcar', -1)
     while not isCharOnFoot(PLAYER_PED) do wait(0) end
     if arizonaGetServerNumber() == 999 then
         sampAddChatMessage(tag..'скрипт предназначен только для Arizona RP! Если это ошибка - сообщите автору скрипта: {698cc7}vk.com/amid24', -1)
         thisScript():unload()
     end
+
+    -- текстдрав-превью: включаем бокс, он и служит фоном под машиной
     sampTextdrawCreate(td_Id, _, 1000, 1000)
     sampTextdrawSetStyle(td_Id, 5)
-    sampTextdrawSetBoxColorAndSize(td_Id, 0, 0xFFff004d, 100, 100)
-    sampTextdrawSetModelRotationZoomVehColor(td_Id, 411, 340, 0, 340, 1, 1, 1)
+    sampTextdrawSetBoxColorAndSize(td_Id, 1, 0x14171FE6, 150, 130)
+    sampTextdrawSetModelRotationZoomVehColor(td_Id, 411, 340, 0, 0, 1, 0, 0)
     sampTextdrawSetShadow(td_Id, _, 0x00)
 
     ensureCfgDir()
@@ -1088,133 +1124,254 @@ function main()
     imgui.Process = false
     window.v = false
 
-    local saveTimer = os.clock()
+    local saveTimer, replTimer = os.clock(), os.clock()
     while true do
         wait(0)
         imgui.Process = window.v
-        if window.v then
-            local tx, ty = convertWindowScreenCoordsToGameScreenCoords(winPos.x + winSize.x - 50, winPos.y - 20)
+        if window.v and preview.model > 0 then
+            local tx, ty = convertWindowScreenCoordsToGameScreenCoords(winPos.x + winSize.x + 12, winPos.y + 30)
             sampTextdrawSetPos(td_Id, tx, ty)
+            if autoRotate.v then
+                preview.rot = (preview.rot + 0.5) % 360
+            end
+            drawPreview()
         else
             sampTextdrawSetPos(td_Id, 1000, 1000)
         end
-        -- список пишем на диск не чаще раза в 2 секунды
         if carsDirty and os.clock() - saveTimer > 2 then
             carsDirty = false
             saveTimer = os.clock()
             saveCars()
         end
+        if replDirty and os.clock() - replTimer > 1.5 then
+            replDirty = false
+            replTimer = os.clock()
+            saveReplaces()
+        end
     end
 end
 
-local selected = nil   -- слот выбранной машины
-local new_selected = 0
-local search = imgui.ImBuffer(256)
+--==[ОКНО]==--
+local CLR_ACCENT  = imgui.ImVec4(0.35, 0.60, 1.00, 1.00)
+local CLR_OK      = imgui.ImVec4(0.42, 0.83, 0.47, 1.00)
+local CLR_MUTED   = imgui.ImVec4(0.52, 0.56, 0.64, 1.00)
+local CLR_WARN    = imgui.ImVec4(0.95, 0.68, 0.29, 1.00)
 
-local function statusText(c)
+local function carStatus(c)
     if c.vehid then
-        return 'ID '..c.vehid..(c.plate and (' | '..c.plate) or '')
+        return 'в мире · ID '..c.vehid, CLR_OK
     elseif c.status == 'notLoaded' then
-        return 'не загружена'
+        return 'не загружена', CLR_MUTED
     elseif c.status then
-        return c.status
+        return c.status, CLR_WARN
     end
-    return 'нет данных'
+    return 'нет данных', CLR_MUTED
 end
 
-local function applyReplace(slot, idx)
-    replaces[slot] = {
-        title = cars[slot] and cars[slot].title or nil,
-        name  = vehs[idx][1],
-        model = vehs[idx][2],
-    }
+local function selectCar(slot)
+    selected = slot
+    local r = replaces[slot]
+    useColor.v = (r and r.useColor) and true or false
+    color1.v   = (r and r.color1) or 0
+    color2.v   = (r and r.color2) or 0
+    if r then setPreview(r.model, color1.v, color2.v) end
+end
+
+local function setReplace(slot, idx)
+    local r = replaces[slot] or {}
+    r.title    = cars[slot] and cars[slot].title or r.title
+    r.name     = vehs[idx][1]
+    r.model    = vehs[idx][2]
+    r.useColor = useColor.v
+    r.color1   = color1.v
+    r.color2   = color2.v
+    replaces[slot] = r
     saveReplaces()
+    setPreview(r.model, r.color1, r.color2)
+end
+
+local function pushColors(r)
+    if not r then return end
+    r.useColor = useColor.v
+    r.color1   = color1.v
+    r.color2   = color2.v
+    replDirty  = true
+    setPreview(r.model, r.color1, r.color2)
 end
 
 function imgui.OnDrawFrame()
     if not window.v then return end
 
     local resX, resY = getScreenResolution()
-    local sizeX, sizeY = 560, 260
-    imgui.SetNextWindowPos(imgui.ImVec2(resX / 2 - sizeX / 2, resY / 2 - sizeY / 2), imgui.Cond.FirstUseEver)
-    imgui.SetNextWindowSize(imgui.ImVec2(sizeX, sizeY), imgui.Cond.FirstUseEver)
-    imgui.Begin('Visual Car Changer by chapo', window)
+    imgui.SetNextWindowPos(imgui.ImVec2(resX / 2 - winSize.x / 2, resY / 2 - winSize.y / 2), imgui.Cond.FirstUseEver)
+    imgui.SetNextWindowSize(imgui.ImVec2(winSize.x, winSize.y), imgui.Cond.Always)
+    imgui.Begin(u8'Visual Car Changer', window, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoCollapse)
 
-    local winPoss = imgui.GetWindowPos()
-    winPos.x, winPos.y = winPoss.x, winPoss.y
-    local winSizee = imgui.GetWindowSize()
-    winSize.x, winSize.y = winSizee.x, winSizee.y
+    local wp = imgui.GetWindowPos()
+    winPos.x, winPos.y = wp.x, wp.y
 
-    imgui.Text(u8('Мой транспорт: '..#carsList..(maxSlots > 0 and (' (занято '..usedSlots..'/'..maxSlots..')') or '')))
-    imgui.BeginChild('cars', imgui.ImVec2(300, winSize.y - 80), true)
-        if #carsList == 0 then
-            imgui.TextWrapped(u8'Список пуст.\nОткрой /cars - меню отдаст список само.')
-        end
-        for i, c in ipairs(carsList) do
-            local r = replaces[c.slot]
-            local label = c.title..' >> '..(r and r.name or 'нет замены')
-            if imgui.Selectable(u8(label..'##slot'..c.slot), selected == c.slot) then
-                selected = c.slot
-            end
-            if imgui.IsItemHovered() then
-                imgui.BeginTooltip()
-                imgui.Text(u8('Слот '..c.slot..' | '..statusText(c)))
-                if r and r.title and r.title ~= c.title then
-                    imgui.Text(u8('Замена привязана к: '..r.title..' (слот сместился?)'))
-                end
-                imgui.EndTooltip()
-            end
-        end
-    imgui.EndChild()
-
-    if imgui.Button(u8'Обновить (/cars)', imgui.ImVec2(145, 20)) then
+    -- ===== шапка =====
+    imgui.TextColored(CLR_ACCENT, u8'Мой транспорт')
+    imgui.SameLine()
+    if maxSlots > 0 then
+        imgui.TextDisabled(u8(#carsList..' шт. · слотов занято '..usedSlots..'/'..maxSlots))
+    else
+        imgui.TextDisabled(u8(#carsList..' шт.'))
+    end
+    imgui.SameLine(imgui.GetWindowWidth() - 130)
+    if imgui.Button(u8'Обновить /cars', imgui.ImVec2(120, 20)) then
         sampSendChat('/cars')
     end
-    imgui.SameLine()
-    if imgui.Button(u8'Убрать замену', imgui.ImVec2(145, 20)) then
-        if selected then
-            replaces[selected] = nil
-            saveReplaces()
-        end
-    end
+    imgui.Separator()
 
-    imgui.SameLine()
-    imgui.SetCursorPosY(45)
-    imgui.BeginChild('changeto', imgui.ImVec2(winSize.x - 325, winSize.y - 55), true)
-    if not selected or not cars[selected] then
-        imgui.TextWrapped(u8'Выбери машину слева.\nЕсли список пуст - открой /cars.')
-    else
-        local c = cars[selected]
-        imgui.Text(u8(c.title))
-        imgui.TextDisabled(u8(statusText(c)))
-        if not c.vehid then
-            imgui.TextWrapped(u8'Машина не в мире - замена включится, когда она заспавнится.')
+    local bodyH = imgui.GetWindowHeight() - 92
+
+    -- ===== слева: мои машины =====
+    imgui.BeginChild('##left', imgui.ImVec2(250, bodyH), true)
+        imgui.PushItemWidth(-1)
+        imgui.InputText(u8'##searchcars', searchCars)
+        imgui.PopItemWidth()
+        if searchCars.v == '' then
+            imgui.SameLine(8)
+            imgui.TextDisabled(u8'поиск по моим машинам')
         end
         imgui.Separator()
-        imgui.Text(u8'Поиск: ')
-        imgui.SameLine()
-        imgui.PushItemWidth(-1)
-        imgui.InputText('##search', search)
-        imgui.PopItemWidth()
-        imgui.Separator()
-        local filter = search.v:lower()
-        for i = 1, #vehs do
-            if filter == '' or vehs[i][1]:lower():find(filter, 1, true) then
-                if imgui.Selectable(u8(vehs[i][1]..'##veh'..i), new_selected == i) then
-                    new_selected = i
-                    applyReplace(selected, i)
+        if #carsList == 0 then
+            imgui.TextWrapped(u8'Список пуст.\n\nОткрой /cars - меню само отдаст список, скрипт его прочитает и запомнит.')
+        end
+        local flt = searchCars.v:lower()
+        for _, c in ipairs(carsList) do
+            if flt == '' or c.title:lower():find(flt, 1, true) then
+                local r = replaces[c.slot]
+                local txt, clr = carStatus(c)
+                local label = c.title
+                if r then label = label..'  » '..r.name end
+                imgui.PushStyleColor(imgui.Col.Text, r and CLR_ACCENT or clr)
+                if imgui.Selectable(u8(label..'##slot'..c.slot), selected == c.slot) then
+                    selectCar(c.slot)
                 end
+                imgui.PopStyleColor()
                 if imgui.IsItemHovered() then
-                    local model = sampTextdrawGetModelRotationZoomVehColor(td_Id)
-                    if model ~= vehs[i][2] then
-                        sampTextdrawSetModelRotationZoomVehColor(td_Id, vehs[i][2], 340, 0, 340, 1, 1, 1)
-                    end
+                    imgui.BeginTooltip()
+                    imgui.Text(u8(c.title))
+                    imgui.TextColored(clr, u8('слот '..c.slot..' · '..txt))
+                    if c.plate then imgui.TextDisabled(u8(c.plate)) end
+                    if r then imgui.TextColored(CLR_ACCENT, u8('замена: '..r.name..' ('..r.model..')')) end
+                    imgui.EndTooltip()
                 end
             end
         end
-    end
     imgui.EndChild()
+
+    imgui.SameLine()
+
+    -- ===== справа =====
+    imgui.BeginChild('##right', imgui.ImVec2(0, bodyH), false)
+        if not selected or not cars[selected] then
+            imgui.Dummy(imgui.ImVec2(1, bodyH / 2 - 20))
+            imgui.TextDisabled(u8'   Выбери машину слева, чтобы настроить замену.')
+        else
+            local c = cars[selected]
+            local r = replaces[selected]
+
+            -- карточка выбранной машины
+            imgui.BeginChild('##info', imgui.ImVec2(0, 134), true)
+                imgui.TextColored(CLR_ACCENT, u8(c.title))
+                local txt, clr = carStatus(c)
+                imgui.TextColored(clr, u8(txt))
+                if c.plate then
+                    imgui.SameLine(150)
+                    imgui.TextDisabled(u8('· '..c.plate))
+                end
+                if not c.vehid then
+                    imgui.TextDisabled(u8'Машина не в мире - замена включится, когда она заспавнится.')
+                end
+                imgui.Separator()
+                if r then
+                    imgui.Text(u8'Замена:')
+                    imgui.SameLine(70)
+                    imgui.TextColored(CLR_OK, u8(r.name..' ('..r.model..')'))
+                    imgui.SameLine(imgui.GetWindowWidth() - 100)
+                    if imgui.Button(u8'Убрать##rm', imgui.ImVec2(90, 18)) then
+                        replaces[selected] = nil
+                        saveReplaces()
+                        setPreview(0, 0, 0)
+                    end
+                else
+                    imgui.TextDisabled(u8'Замена не выбрана - выбери модель из списка ниже.')
+                end
+                if imgui.Checkbox(u8'Свой цвет', useColor) then pushColors(r) end
+                imgui.SameLine()
+                imgui.TextDisabled(u8'(0-255, превью показывает реальный цвет)')
+                imgui.PushItemWidth(140)
+                if imgui.SliderInt(u8'основной##c1', color1, 0, 255) then pushColors(r) end
+                imgui.SameLine()
+                if imgui.SliderInt(u8'доп.##c2', color2, 0, 255) then pushColors(r) end
+                imgui.PopItemWidth()
+            imgui.EndChild()
+
+            -- список моделей
+            imgui.BeginChild('##models', imgui.ImVec2(0, 0), true)
+                imgui.PushItemWidth(-1)
+                imgui.InputText(u8'##searchmodels', searchModels)
+                imgui.PopItemWidth()
+                if searchModels.v == '' then
+                    imgui.SameLine(8)
+                    imgui.TextDisabled(u8'поиск модели ('..#vehs..')')
+                end
+                imgui.Separator()
+                local f = searchModels.v:lower()
+                local hovering = false
+                for i = 1, #vehs do
+                    if f == '' or vehs[i][1]:lower():find(f, 1, true) then
+                        local isCur = r and r.model == vehs[i][2]
+                        if imgui.Selectable(u8(vehs[i][1]..'##veh'..i), isCur) then
+                            setReplace(selected, i)
+                        end
+                        imgui.SameLine(imgui.GetWindowWidth() - 60)
+                        imgui.TextDisabled(tostring(vehs[i][2]))
+                        if imgui.IsItemHovered() then
+                            hovering = true
+                            if hoveredModel ~= vehs[i][2] then
+                                hoveredModel = vehs[i][2]
+                                setPreview(vehs[i][2], color1.v, color2.v)
+                            end
+                        end
+                    end
+                end
+                if not hovering and hoveredModel then
+                    hoveredModel = nil
+                    if r then setPreview(r.model, r.color1 or 0, r.color2 or 0) end
+                end
+            imgui.EndChild()
+        end
+    imgui.EndChild()
+
+    -- ===== подвал =====
+    imgui.Separator()
+    imgui.Checkbox(u8'Вращать превью', autoRotate)
+    imgui.SameLine()
+    imgui.TextDisabled(u8'превью справа от окна')
+    imgui.SameLine(imgui.GetWindowWidth() - 250)
+    imgui.TextDisabled(u8'chapo · доработал e11evated')
+
     imgui.End()
+end
+
+--==[ЗАМЕНА МОДЕЛИ]==--
+-- имя полей цвета в структуре зависит от версии samp.lua - определяем один раз
+local colorFields, colorChecked = nil, false
+local function detectColorFields(data)
+    if colorChecked then return colorFields end
+    colorChecked = true
+    for _, c in ipairs({{'color1', 'color2'}, {'bodyColor1', 'bodyColor2'}, {'colour1', 'colour2'}, {'clr1', 'clr2'}}) do
+        local ok, v = pcall(function() return data[c[1]] end)
+        if ok and v ~= nil then
+            colorFields = c
+            break
+        end
+    end
+    return colorFields
 end
 
 function sampev.onVehicleStreamIn(vehId, data)
@@ -1225,40 +1382,23 @@ function sampev.onVehicleStreamIn(vehId, data)
                 sampAddChatMessage(tag..'модель машины не была заменена! (модель доступна только с лаунчера Arizona RP)', -1)
             else
                 data.type = r.model
+                if r.useColor then
+                    local cf = detectColorFields(data)
+                    if cf then
+                        pcall(function()
+                            data[cf[1]] = r.color1 or 0
+                            data[cf[2]] = r.color2 or 0
+                        end)
+                    end
+                end
                 return {vehId, data}
             end
         end
     end
 end
 
--- запасной вариант: старое диалоговое меню /cars (если сервер отдаёт список диалогом)
-function sampev.onShowDialog(id, style, title, button1, button2, text)
-    if not title:find('Мой транспорт') then return end
-    local list = {}
-    for v in string.gmatch(text, '[^\n]+') do
-        local name, vid
-        if v:find('{FFD848}%[Twin Turbo%]{FFFFFF} (.+)%((%d+)%)') then
-            name, vid = v:match('{FFD848}%[Twin Turbo%]{FFFFFF} (.+)%((%d+)%)')
-        elseif v:find('{FF6347}%[Не припарковано%]{FFFFFF} (.+)%((%d+)%)') then
-            name, vid = v:match('{FF6347}%[Не припарковано%]{FFFFFF} (.+)%((%d+)%)')
-        elseif v:find('  (.+)%((%d+)%)') then
-            name, vid = v:match('  (.+)%((%d+)%)')
-        end
-        if name and vid then
-            list[#list + 1] = {name = name, vehid = tonumber(vid)}
-        end
-    end
-    if #list == 0 then return end
-    cars = {}
-    for i, v in ipairs(list) do
-        local slot = i - 1
-        cars[slot] = {slot = slot, title = v.name, vehid = v.vehid, status = 'loaded'}
-    end
-    rebuildCarsList()
-    carsDirty = true
-end
-
-function BH_theme()
+--==[ТЕМА]==--
+function VCC_theme()
     imgui.SwitchContext()
     local style = imgui.GetStyle()
     local colors = style.Colors
@@ -1266,66 +1406,71 @@ function BH_theme()
     local ImVec4 = imgui.ImVec4
     local ImVec2 = imgui.ImVec2
 
-    style.WindowPadding = ImVec2(6, 4)
-    style.WindowRounding = 5.0
-    style.ChildWindowRounding = 5.0
-    style.FramePadding = ImVec2(5, 2)
-    style.FrameRounding = 5.0
-    style.ItemSpacing = ImVec2(7, 5)
-    style.ItemInnerSpacing = ImVec2(1, 1)
-    style.TouchExtraPadding = ImVec2(0, 0)
-    style.IndentSpacing = 6.0
-    style.ScrollbarSize = 12.0
-    style.ScrollbarRounding = 5.0
-    style.GrabMinSize = 20.0
-    style.GrabRounding = 2.0
-    style.WindowTitleAlign = ImVec2(0.5, 0.5)
+    style.WindowPadding     = ImVec2(10, 8)
+    style.WindowRounding    = 8.0
+    style.ChildWindowRounding = 7.0
+    style.FramePadding      = ImVec2(6, 3)
+    style.FrameRounding     = 6.0
+    style.ItemSpacing       = ImVec2(7, 5)
+    style.ItemInnerSpacing  = ImVec2(5, 4)
+    style.IndentSpacing     = 8.0
+    style.ScrollbarSize     = 10.0
+    style.ScrollbarRounding = 6.0
+    style.GrabMinSize       = 12.0
+    style.GrabRounding      = 6.0
+    style.WindowTitleAlign  = ImVec2(0.5, 0.5)
 
-    colors[clr.Text]                   = ImVec4(1.00, 1.00, 1.00, 1.00)
-    colors[clr.TextDisabled]           = ImVec4(0.28, 0.30, 0.35, 1.00)
-    colors[clr.WindowBg]               = ImVec4(0.16, 0.18, 0.22, 1.00)
-    colors[clr.ChildWindowBg]          = ImVec4(0.19, 0.22, 0.26, 1)
-    colors[clr.PopupBg]                = ImVec4(0.05, 0.05, 0.10, 0.90)
-    colors[clr.Border]                 = ImVec4(0.19, 0.22, 0.26, 1.00)
-    colors[clr.BorderShadow]           = ImVec4(0.00, 0.00, 0.00, 0.00)
-    colors[clr.FrameBg]                = ImVec4(0.16, 0.18, 0.22, 1.00)
-    colors[clr.FrameBgHovered]         = ImVec4(0.22, 0.25, 0.30, 1.00)
-    colors[clr.FrameBgActive]          = ImVec4(0.22, 0.25, 0.29, 1.00)
-    colors[clr.TitleBg]                = ImVec4(0.19, 0.22, 0.26, 1.00)
-    colors[clr.TitleBgActive]          = ImVec4(0.19, 0.22, 0.26, 1.00)
-    colors[clr.TitleBgCollapsed]       = ImVec4(0.19, 0.22, 0.26, 0.59)
-    colors[clr.MenuBarBg]              = ImVec4(0.19, 0.22, 0.26, 1.00)
-    colors[clr.ScrollbarBg]            = ImVec4(0.20, 0.25, 0.30, 0.60)
-    colors[clr.ScrollbarGrab]          = ImVec4(0.41, 0.55, 0.78, 1.00)
-    colors[clr.ScrollbarGrabHovered]   = ImVec4(0.49, 0.63, 0.86, 1.00)
-    colors[clr.ScrollbarGrabActive]    = ImVec4(0.49, 0.63, 0.86, 1.00)
-    colors[clr.ComboBg]                = ImVec4(0.20, 0.20, 0.20, 0.99)
-    colors[clr.CheckMark]              = ImVec4(0.90, 0.90, 0.90, 0.50)
-    colors[clr.SliderGrab]             = ImVec4(1.00, 1.00, 1.00, 0.30)
-    colors[clr.SliderGrabActive]       = ImVec4(0.80, 0.50, 0.50, 1.00)
-    colors[clr.Button]                 = ImVec4(0.41, 0.55, 0.78, 1.00)
-    colors[clr.ButtonHovered]          = ImVec4(0.49, 0.62, 0.85, 1.00)
-    colors[clr.ButtonActive]           = ImVec4(0.49, 0.62, 0.85, 1.00)
-    colors[clr.Header]                 = ImVec4(0.41, 0.55, 0.78, 1.00)
-    colors[clr.HeaderHovered]          = ImVec4(0.43, 0.57, 0.80, 1.00)
-    colors[clr.HeaderActive]           = ImVec4(0.43, 0.57, 0.80, 1.00)
-    colors[clr.Separator]              = ImVec4(0.41, 0.55, 0.78, 1.00)
-    colors[clr.SeparatorHovered]       = ImVec4(0.41, 0.55, 0.78, 1.00)
-    colors[clr.SeparatorActive]        = ImVec4(0.41, 0.55, 0.78, 1.00)
-    colors[clr.ResizeGrip]             = ImVec4(0.41, 0.55, 0.78, 1.00)
-    colors[clr.ResizeGripHovered]      = ImVec4(0.49, 0.61, 0.83, 1.00)
-    colors[clr.ResizeGripActive]       = ImVec4(0.49, 0.62, 0.83, 1.00)
-    colors[clr.CloseButton]            = ImVec4(0.41, 0.55, 0.78, 1.00)
-    colors[clr.CloseButtonHovered]     = ImVec4(0.50, 0.63, 0.84, 1.00)
-    colors[clr.CloseButtonActive]      = ImVec4(0.41, 0.55, 0.78, 1.00)
-    colors[clr.PlotLines]              = ImVec4(1.00, 1.00, 1.00, 1.00)
-    colors[clr.PlotLinesHovered]       = ImVec4(0.90, 0.70, 0.00, 1.00)
-    colors[clr.PlotHistogram]          = ImVec4(0.90, 0.70, 0.00, 1.00)
-    colors[clr.PlotHistogramHovered]   = ImVec4(1.00, 0.60, 0.00, 1.00)
-    colors[clr.TextSelectedBg]         = ImVec4(0.41, 0.55, 0.78, 1.00)
-    colors[clr.ModalWindowDarkening]   = ImVec4(0.16, 0.18, 0.22, 0.76)
+    local bg      = ImVec4(0.07, 0.08, 0.10, 0.98)
+    local panel   = ImVec4(0.11, 0.12, 0.15, 1.00)
+    local frame   = ImVec4(0.15, 0.17, 0.21, 1.00)
+    local accent  = ImVec4(0.35, 0.60, 1.00, 1.00)
+    local accentD = ImVec4(0.28, 0.48, 0.85, 1.00)
+
+    colors[clr.Text]                 = ImVec4(0.90, 0.92, 0.96, 1.00)
+    colors[clr.TextDisabled]         = ImVec4(0.45, 0.49, 0.57, 1.00)
+    colors[clr.WindowBg]             = bg
+    colors[clr.ChildWindowBg]        = panel
+    colors[clr.PopupBg]              = panel
+    colors[clr.Border]               = ImVec4(0.18, 0.20, 0.25, 1.00)
+    colors[clr.BorderShadow]         = ImVec4(0.00, 0.00, 0.00, 0.00)
+    colors[clr.FrameBg]              = frame
+    colors[clr.FrameBgHovered]       = ImVec4(0.20, 0.23, 0.29, 1.00)
+    colors[clr.FrameBgActive]        = ImVec4(0.23, 0.27, 0.34, 1.00)
+    colors[clr.TitleBg]              = panel
+    colors[clr.TitleBgActive]        = panel
+    colors[clr.TitleBgCollapsed]     = panel
+    colors[clr.MenuBarBg]            = panel
+    colors[clr.ScrollbarBg]          = ImVec4(0.09, 0.10, 0.13, 1.00)
+    colors[clr.ScrollbarGrab]        = ImVec4(0.24, 0.28, 0.35, 1.00)
+    colors[clr.ScrollbarGrabHovered] = accentD
+    colors[clr.ScrollbarGrabActive]  = accent
+    colors[clr.ComboBg]              = frame
+    colors[clr.CheckMark]            = accent
+    colors[clr.SliderGrab]           = accentD
+    colors[clr.SliderGrabActive]     = accent
+    colors[clr.Button]               = ImVec4(0.19, 0.22, 0.28, 1.00)
+    colors[clr.ButtonHovered]        = accentD
+    colors[clr.ButtonActive]         = accent
+    colors[clr.Header]               = ImVec4(0.22, 0.33, 0.52, 1.00)
+    colors[clr.HeaderHovered]        = ImVec4(0.26, 0.40, 0.63, 1.00)
+    colors[clr.HeaderActive]         = accentD
+    colors[clr.Separator]            = ImVec4(0.18, 0.20, 0.25, 1.00)
+    colors[clr.SeparatorHovered]     = accentD
+    colors[clr.SeparatorActive]      = accent
+    colors[clr.ResizeGrip]           = ImVec4(0.19, 0.22, 0.28, 1.00)
+    colors[clr.ResizeGripHovered]    = accentD
+    colors[clr.ResizeGripActive]     = accent
+    colors[clr.CloseButton]          = ImVec4(0.30, 0.34, 0.42, 1.00)
+    colors[clr.CloseButtonHovered]   = ImVec4(0.85, 0.35, 0.40, 1.00)
+    colors[clr.CloseButtonActive]    = ImVec4(0.95, 0.30, 0.35, 1.00)
+    colors[clr.PlotLines]            = accent
+    colors[clr.PlotLinesHovered]     = accent
+    colors[clr.PlotHistogram]        = accent
+    colors[clr.PlotHistogramHovered] = accent
+    colors[clr.TextSelectedBg]       = accentD
+    colors[clr.ModalWindowDarkening] = ImVec4(0.05, 0.05, 0.07, 0.75)
 end
-BH_theme()
+VCC_theme()
 
 function onScriptTerminate(s, q)
     if s == thisScript() then
