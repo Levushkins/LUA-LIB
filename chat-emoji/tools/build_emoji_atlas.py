@@ -127,8 +127,17 @@ def _draw(text, font, canvas, origin):
 
 def render_glyph(ch, font, box):
     """Рисует символ и возвращает обрезанное по содержимому RGBA-изображение."""
-    canvas = (box * 4, box * 3)
-    origin = (box // 2, box // 2)
+    try:
+        adv = font.getlength(ch)
+    except Exception:
+        adv = 0
+
+    # Холст считаем от ширины самого глифа: серверные баннеры («ВИП ЧАТ»,
+    # «РЕКЛАМА») бывают в 6 раз шире своей высоты, и на холсте фиксированного
+    # размера у них обрезался хвост.
+    origin = (box, box)
+    width = max(box * 4, origin[0] + int(adv) + box * 2)
+    canvas = (width, box * 4)
 
     tmp = _draw(ch, font, canvas, origin)
     if tmp is not None:
@@ -137,14 +146,10 @@ def render_glyph(ch, font, box):
             return tmp.crop(bb)
 
     # путь для цветных шрифтов с пустыми базовыми контурами
+    if adv <= 0:
+        return None
     tmp = _draw(ch + SPACER, font, canvas, origin)
     if tmp is None:
-        return None
-    try:
-        adv = font.getlength(ch)
-    except Exception:
-        return None
-    if adv <= 0:
         return None
     tmp = tmp.crop((0, 0, min(canvas[0], origin[0] + int(round(adv))), canvas[1]))
     bb = tmp.getbbox()
@@ -163,6 +168,25 @@ def fit_into(img, cell, pad):
     out = Image.new("RGBA", (cell, cell), (0, 0, 0, 0))
     out.paste(img, ((cell - nw) // 2, (cell - nh) // 2))
     return out
+
+
+def lua_str(s):
+    """Строка для Lua целиком в ASCII: не-ASCII байты уходят в \\ddd.
+
+    Так сгенерированные файлы невозможно испортить пересохранением в другой
+    кодировке — а именно на этом всё и спотыкается: ImGui ждёт UTF-8, а
+    блокнот по умолчанию пишет cp1251.
+    """
+    out = []
+    for b in s.encode("utf-8"):
+        c = chr(b)
+        if b < 0x20 or b >= 0x7F:
+            out.append("\\%03d" % b)     # ровно три цифры: Lua дальше не читает
+        elif c in ("'", "\\"):
+            out.append("\\" + c)
+        else:
+            out.append(c)
+    return "'" + "".join(out) + "'"
 
 
 LUA_HEADER = """-- Автоматически сгенерировано build_emoji_atlas.py.
@@ -260,8 +284,7 @@ def main():
     with open(lua, "w", encoding="utf-8") as f:
         f.write(LUA_HEADER % (args.name + ".png", args.width, height,
                               args.cell, cols, len(rendered)))
-        def q(s):
-            return "'" + s.replace("\\", "\\\\").replace("'", "\\'") + "'"
+        q = lua_str
 
         for slot, (it, _img) in enumerate(rendered):
             names = it.get("names") or []

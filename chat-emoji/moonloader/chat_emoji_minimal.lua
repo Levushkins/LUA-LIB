@@ -43,7 +43,7 @@ imgui.OnFrame(
     function() return window[0] end,
     function()
         imgui.SetNextWindowSize(imgui.ImVec2(420, 380), imgui.Cond.FirstUseEver)
-        if imgui.Begin('Смайлы', window) then
+        if imgui.Begin('Emoji', window) then
 
             -- 1. просто нарисовать смайл
             emoji.image('smiley', 32)
@@ -54,11 +54,11 @@ imgui.OnFrame(
 
             -- 2. смайл как кнопка
             if emoji.button('fire', 32) then
-                sampAddChatMessage(u8:decode('нажал на огонёк'), 0xFFFFFF)
+                sampAddChatMessage('fire pressed', 0xFFFFFF)
             end
 
             -- 3. текст со смайлами внутри
-            emoji.text('привет :u1f603: как дела :u1f44b:')
+            emoji.text('hello :u1f603: how are you :u1f44b:')
 
             imgui.Separator()
 

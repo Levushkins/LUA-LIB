@@ -62,19 +62,19 @@ imgui.OnFrame(
                                imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
         imgui.SetNextWindowSize(imgui.ImVec2(560, 520), imgui.Cond.FirstUseEver)
 
-        if imgui.Begin('Смайлы чата', window) then
+        if imgui.Begin('Chat emoji', window) then
             if loadError then
                 imgui.TextColored(imgui.ImVec4(1, 0.3, 0.3, 1), tostring(loadError))
-                imgui.TextWrapped('Проверьте, что в moonloader/resource/chat_emoji/ '
-                    .. 'лежат chat_emoji.png и chat_emoji_atlas.lua.')
+                imgui.TextWrapped('Check that moonloader/resource/chat_emoji/ contains '
+                    .. 'chat_emoji.png and chat_emoji_atlas.lua.')
                 imgui.End()
                 return
             end
 
-            imgui.Text('Всего смайлов: ' .. #emoji.list)
+            imgui.Text('Total: ' .. #emoji.list)
             imgui.SameLine()
             imgui.PushItemWidth(120)
-            imgui.SliderInt('размер', iconSize, 16, 64)
+            imgui.SliderInt('size', iconSize, 16, 64)
             imgui.PopItemWidth()
 
             imgui.Separator()
@@ -82,22 +82,22 @@ imgui.OnFrame(
             -- строка сообщения и предпросмотр с подставленными смайлами.
             -- InputText отдаёт UTF-8, поэтому в emoji.text идёт как есть.
             imgui.PushItemWidth(-1)
-            imgui.InputTextWithHint('##msg', 'Текст сообщения...',
+            imgui.InputTextWithHint('##msg', 'Message text...',
                                     message, ffi.sizeof(message))
             imgui.PopItemWidth()
 
             local text = ffi.string(message)
             if #text > 0 then
-                imgui.TextDisabled('Предпросмотр:')
+                imgui.TextDisabled('Preview:')
                 emoji.text(text, imgui.GetFontSize())
             end
 
-            if imgui.Button('Отправить в чат') and #text > 0 then
+            if imgui.Button('Send to chat') and #text > 0 then
                 sampSendChat(u8:decode(text))   -- UTF-8 -> cp1251 для SA-MP
                 message[0] = 0
             end
             imgui.SameLine()
-            if imgui.Button('Очистить') then message[0] = 0 end
+            if imgui.Button('Clear') then message[0] = 0 end
 
             imgui.Separator()
 

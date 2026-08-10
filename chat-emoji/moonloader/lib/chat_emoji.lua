@@ -39,6 +39,18 @@ emoji.categories = {}    -- { { name = 'Смайлы', items = { ... } }, ... }
 -- Токен смайла в тексте чата: :u1f603: (шестнадцатеричная кодовая точка).
 emoji.PATTERN = ':u(%x+):'
 
+-- Подписи панели. Специально латиницей: тогда файл модуля целиком в ASCII,
+-- и его невозможно испортить пересохранением в другой кодировке (блокнот
+-- по умолчанию пишет cp1251, а ImGui ждёт UTF-8 — отсюда «??» вместо текста).
+-- Нужны русские надписи — задайте их у себя, файл при этом сохраните в UTF-8:
+--     emoji.strings.search = 'Поиск...'
+-- Названия категорий приходят из описания атласа и уже экранированы, поэтому
+-- на них кодировка файла не влияет.
+emoji.strings = {
+    search = 'Search...',
+    notLoaded = 'emoji atlas is not loaded',
+}
+
 --------------------------------------------------------------------------
 -- Загрузка текстуры через D3DX
 --------------------------------------------------------------------------
@@ -72,10 +84,10 @@ end
 local function createTexture(pngData)
     local lib = loadD3DX()
     if not lib then
-        return nil, 'не найдена d3dx9_xx.dll (поставьте DirectX 9 runtime)'
+        return nil, 'd3dx9_xx.dll not found (install DirectX 9 runtime)'
     end
     local device = ffi.cast('void*', getD3DDevicePtr())
-    if device == nil then return nil, 'getD3DDevicePtr() вернул 0' end
+    if device == nil then return nil, 'getD3DDevicePtr() returned 0' end
 
     local out = ffi.new('void*[1]')
     local hr = lib.D3DXCreateTextureFromFileInMemoryEx(
@@ -126,7 +138,7 @@ local function checkImgui()
         if not ok or fn == nil then missing[#missing + 1] = name end
     end
     if #missing > 0 then
-        return false, 'в этой сборке mimgui нет: ' .. table.concat(missing, ', ')
+        return false, 'missing in this mimgui build: ' .. table.concat(missing, ', ')
     end
     return true
 end
@@ -141,15 +153,15 @@ function emoji.load(dir)
 
     local descPath = dir .. 'chat_emoji_atlas.lua'
     local chunk, err = loadfile(descPath)
-    if not chunk then return false, 'не читается ' .. descPath .. ': ' .. tostring(err) end
+    if not chunk then return false, 'cannot read ' .. descPath .. ': ' .. tostring(err) end
     local ok, atlas = pcall(chunk)
     if not ok or type(atlas) ~= 'table' then
-        return false, 'повреждён ' .. descPath
+        return false, 'malformed ' .. descPath
     end
 
     local pngPath = dir .. atlas.file
     local f = io.open(pngPath, 'rb')
-    if not f then return false, 'не найден ' .. pngPath end
+    if not f then return false, 'not found: ' .. pngPath end
     local png = f:read('*a')
     f:close()
 
@@ -366,7 +378,7 @@ local searchBuf = imgui.new.char[64]()
 -- @return выбранная запись либо nil
 function emoji.picker(id, size, height)
     if not emoji.loaded then
-        imgui.TextDisabled('Атлас смайлов не загружен')
+        imgui.TextDisabled(emoji.strings.notLoaded)
         return nil
     end
     size = size or 24
@@ -379,7 +391,7 @@ function emoji.picker(id, size, height)
     local pid = tostring(id or 'chat_emoji_picker')
 
     imgui.PushItemWidth(-1)
-    imgui.InputTextWithHint('##search' .. pid, 'Поиск...',
+    imgui.InputTextWithHint('##search' .. pid, emoji.strings.search,
                             searchBuf, ffi.sizeof(searchBuf))
     imgui.PopItemWidth()
 

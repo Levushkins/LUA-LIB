@@ -319,9 +319,43 @@ def extract_panel(pe):
     if not starts:
         raise ValueError("массивы панели не найдены")
 
+    # --- хвост, которого нет в массивах ---
+    # Последняя вкладка добирается прямо в коде: буквы A..Z плагин генерирует
+    # циклом от U+1F1E6 (в .rdata лежат только первые 16, скопированные SSE),
+    # а цифры и логотипы серверов записаны отдельными инструкциями. Поэтому
+    # после последнего обращения к массиву досканируем .text на immediate.
+    tail = []
+    seen_vals = {v for vals in lists.values() for v in vals}
+    scan_from = max(hits[va] for va in starts)
+    p = scan_from
+    stop = min(thi, scan_from + 0x400)
+    while p + 4 <= stop:
+        v = struct.unpack_from("<I", pe.data, p)[0]
+        if 0x1F000 <= v <= 0x1FCFF:
+            if v in seen_vals:
+                # повтор базы уже прочитанного массива = тот самый цикл.
+                # Блок региональных индикаторов фиксирован Unicode (26 букв),
+                # поэтому дочитываем его до конца.
+                last = lists[starts[-1]]
+                if v == last[0] and 0x1F1E6 <= v <= 0x1F1FF:
+                    for cp in range(last[-1] + 1, 0x1F200):
+                        if cp not in seen_vals:
+                            tail.append(cp)
+                            seen_vals.add(cp)
+            else:
+                tail.append(v)
+                seen_vals.add(v)
+            p += 4
+        else:
+            p += 1
+
     # --- порядок категорий = порядок обращения в коде ---
     order = sorted(starts, key=lambda va: hits[va])
-    return [(va, lists[va]) for va in order]
+    out = [(va, lists[va]) for va in order]
+    if tail:
+        va, vals = out[-1]
+        out[-1] = (va, vals + tail)
+    return out
 
 
 def extract_emoji_table(pe):
@@ -383,13 +417,13 @@ PANEL_CATEGORIES = [
     "Еда и растения",
     "Транспорт и места",
     "Символы",
-    "Буквы",
+    "Буквы и логотипы",
 ]
 
 # Смайлы, у которых имя в таблице есть, а в панели их нет (серверные иконки
 # Arizona и подобное). В чат их можно вставить токеном, поэтому в атлас они
 # идут отдельной группой в конец.
-EXTRA_CATEGORY = "Сервер"
+EXTRA_CATEGORY = "Сервер (вне панели чата)"
 
 
 # --------------------------------------------------------------------------
@@ -410,7 +444,22 @@ return {
 
 
 def lua_str(s):
-    return "'" + s.replace("\\", "\\\\").replace("'", "\\'") + "'"
+    """Строка для Lua целиком в ASCII: не-ASCII байты уходят в \\ddd.
+
+    Так сгенерированные файлы невозможно испортить пересохранением в другой
+    кодировке — а именно на этом всё и спотыкается: ImGui ждёт UTF-8, а
+    блокнот по умолчанию пишет cp1251.
+    """
+    out = []
+    for b in s.encode("utf-8"):
+        c = chr(b)
+        if b < 0x20 or b >= 0x7F:
+            out.append("\\%03d" % b)     # ровно три цифры: Lua дальше не читает
+        elif c in ("'", "\\"):
+            out.append("\\" + c)
+        else:
+            out.append(c)
+    return "'" + "".join(out) + "'"
 
 
 def write_lua(items, path):
