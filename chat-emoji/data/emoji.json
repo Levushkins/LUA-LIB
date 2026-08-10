@@ -1,0 +1,5777 @@
+[
+ {
+  "index": 0,
+  "name": ":d",
+  "cp": 128512,
+  "hex": "1F600",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 1,
+  "name": ";)",
+  "cp": 128521,
+  "hex": "1F609",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 2,
+  "name": "^_^",
+  "cp": 128522,
+  "hex": "1F60A",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 3,
+  "name": ":*",
+  "cp": 128536,
+  "hex": "1F618",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 4,
+  "name": ":)",
+  "cp": 128578,
+  "hex": "1F642",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 5,
+  "name": ":|",
+  "cp": 128528,
+  "hex": "1F610",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 6,
+  "name": "-_-",
+  "cp": 128529,
+  "hex": "1F611",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 7,
+  "name": ">_<",
+  "cp": 128547,
+  "hex": "1F623",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 8,
+  "name": ":o",
+  "cp": 128558,
+  "hex": "1F62E",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 9,
+  "name": ":p",
+  "cp": 128539,
+  "hex": "1F61B",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 10,
+  "name": ";p",
+  "cp": 128540,
+  "hex": "1F61C",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 11,
+  "name": ":\\",
+  "cp": 128533,
+  "hex": "1F615",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 12,
+  "name": ":(",
+  "cp": 128577,
+  "hex": "1F641",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 13,
+  "name": ">~<",
+  "cp": 128534,
+  "hex": "1F616",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 14,
+  "name": ":'(",
+  "cp": 128546,
+  "hex": "1F622",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 15,
+  "name": ":')",
+  "cp": 129394,
+  "hex": "1F972",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 16,
+  "name": "0_0",
+  "cp": 128563,
+  "hex": "1F633",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 17,
+  "name": "<3",
+  "cp": 10084,
+  "hex": "02764",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 18,
+  "name": "joy",
+  "cp": 128514,
+  "hex": "1F602",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 19,
+  "name": "rofl",
+  "cp": 129315,
+  "hex": "1F923",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 20,
+  "name": "smiley",
+  "cp": 128515,
+  "hex": "1F603",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 21,
+  "name": "smile",
+  "cp": 128516,
+  "hex": "1F604",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 22,
+  "name": "sweat",
+  "cp": 128517,
+  "hex": "1F605",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 23,
+  "name": "xd",
+  "cp": 128518,
+  "hex": "1F606",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 24,
+  "name": "yum",
+  "cp": 128523,
+  "hex": "1F60B",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 25,
+  "name": "heart_eyes",
+  "cp": 128525,
+  "hex": "1F60D",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 26,
+  "name": "love",
+  "cp": 129392,
+  "hex": "1F970",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 27,
+  "name": "kissing",
+  "cp": 128535,
+  "hex": "1F617",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 28,
+  "name": "hugging",
+  "cp": 129303,
+  "hex": "1F917",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 29,
+  "name": "starstruck",
+  "cp": 129321,
+  "hex": "1F929",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 30,
+  "name": "thinking",
+  "cp": 129300,
+  "hex": "1F914",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 31,
+  "name": "salut",
+  "cp": 129761,
+  "hex": "1FAE1",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 32,
+  "name": "what",
+  "cp": 129320,
+  "hex": "1F928",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 33,
+  "name": "muted",
+  "cp": 128566,
+  "hex": "1F636",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 34,
+  "name": "dotted",
+  "cp": 129765,
+  "hex": "1FAE5",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 35,
+  "name": "rolleye",
+  "cp": 128580,
+  "hex": "1F644",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 36,
+  "name": "smirk",
+  "cp": 128527,
+  "hex": "1F60F",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 37,
+  "name": "sad",
+  "cp": 128549,
+  "hex": "1F625",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 38,
+  "name": "zipper",
+  "cp": 129296,
+  "hex": "1F910",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 39,
+  "name": "hushed",
+  "cp": 128559,
+  "hex": "1F62F",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 40,
+  "name": "sleepy",
+  "cp": 128554,
+  "hex": "1F62A",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 41,
+  "name": "tired",
+  "cp": 128555,
+  "hex": "1F62B",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 42,
+  "name": "yawn",
+  "cp": 129393,
+  "hex": "1F971",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 43,
+  "name": "zzz",
+  "cp": 128564,
+  "hex": "1F634",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 44,
+  "name": "relieved",
+  "cp": 128524,
+  "hex": "1F60C",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 45,
+  "name": "drooling",
+  "cp": 129316,
+  "hex": "1F924",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 46,
+  "name": "bruh",
+  "cp": 128530,
+  "hex": "1F612",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 47,
+  "name": "pensive",
+  "cp": 128532,
+  "hex": "1F614",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 48,
+  "name": "melt",
+  "cp": 129760,
+  "hex": "1FAE0",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 49,
+  "name": "money",
+  "cp": 129297,
+  "hex": "1F911",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 50,
+  "name": "astonished",
+  "cp": 128562,
+  "hex": "1F632",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 51,
+  "name": "pained",
+  "cp": 128542,
+  "hex": "1F61E",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 52,
+  "name": "worried",
+  "cp": 128543,
+  "hex": "1F61F",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 53,
+  "name": "triumph",
+  "cp": 128548,
+  "hex": "1F624",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 54,
+  "name": "sob",
+  "cp": 128557,
+  "hex": "1F62D",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 55,
+  "name": "frowning",
+  "cp": 128550,
+  "hex": "1F626",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 56,
+  "name": "anguished",
+  "cp": 128551,
+  "hex": "1F627",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 57,
+  "name": "fearful",
+  "cp": 128552,
+  "hex": "1F628",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 58,
+  "name": "weary",
+  "cp": 128553,
+  "hex": "1F629",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 59,
+  "name": "fyp",
+  "cp": 129327,
+  "hex": "1F92F",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 60,
+  "name": "grimacing",
+  "cp": 128556,
+  "hex": "1F62C",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 61,
+  "name": "anxious",
+  "cp": 128560,
+  "hex": "1F630",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 62,
+  "name": "scream",
+  "cp": 128561,
+  "hex": "1F631",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 63,
+  "name": "hot",
+  "cp": 129397,
+  "hex": "1F975",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 64,
+  "name": "cold",
+  "cp": 129398,
+  "hex": "1F976",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 65,
+  "name": "zany",
+  "cp": 129322,
+  "hex": "1F92A",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 66,
+  "name": "dizzy",
+  "cp": 128565,
+  "hex": "1F635",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 67,
+  "name": "woozy",
+  "cp": 129396,
+  "hex": "1F974",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 68,
+  "name": "angry",
+  "cp": 128544,
+  "hex": "1F620",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 69,
+  "name": "rage",
+  "cp": 128545,
+  "hex": "1F621",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 70,
+  "name": "swear",
+  "cp": 129324,
+  "hex": "1F92C",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 71,
+  "name": "mask",
+  "cp": 128567,
+  "hex": "1F637",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 72,
+  "name": "bandage",
+  "cp": 129301,
+  "hex": "1F915",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 73,
+  "name": "nauseated",
+  "cp": 129314,
+  "hex": "1F922",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 74,
+  "name": "vomit",
+  "cp": 129326,
+  "hex": "1F92E",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 75,
+  "name": "tissue",
+  "cp": 129319,
+  "hex": "1F927",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 76,
+  "name": "halo",
+  "cp": 128519,
+  "hex": "1F607",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 77,
+  "name": "party",
+  "cp": 129395,
+  "hex": "1F973",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 78,
+  "name": "albert",
+  "cp": 129400,
+  "hex": "1F978",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 79,
+  "name": "cowboy",
+  "cp": 129312,
+  "hex": "1F920",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 80,
+  "name": "clown",
+  "cp": 129313,
+  "hex": "1F921",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 81,
+  "name": "lying",
+  "cp": 129317,
+  "hex": "1F925",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 82,
+  "name": "shush",
+  "cp": 129323,
+  "hex": "1F92B",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 83,
+  "name": "monocle",
+  "cp": 129488,
+  "hex": "1F9D0",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 84,
+  "name": "nerd",
+  "cp": 129299,
+  "hex": "1F913",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 85,
+  "name": "horns",
+  "cp": 128520,
+  "hex": "1F608",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 86,
+  "name": "imp",
+  "cp": 128127,
+  "hex": "1F47F",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 87,
+  "name": "ogre",
+  "cp": 128121,
+  "hex": "1F479",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 88,
+  "name": "goblin",
+  "cp": 128122,
+  "hex": "1F47A",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 89,
+  "name": "skull",
+  "cp": 128128,
+  "hex": "1F480",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 90,
+  "name": "ghost",
+  "cp": 128123,
+  "hex": "1F47B",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 91,
+  "name": "alien",
+  "cp": 128125,
+  "hex": "1F47D",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 92,
+  "name": "alienm",
+  "cp": 128126,
+  "hex": "1F47E",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 93,
+  "name": "robot",
+  "cp": 129302,
+  "hex": "1F916",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 94,
+  "name": "poo",
+  "cp": 128169,
+  "hex": "1F4A9",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 95,
+  "name": "cat",
+  "cp": 128570,
+  "hex": "1F63A",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 96,
+  "name": "smile_cat",
+  "cp": 128568,
+  "hex": "1F638",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 97,
+  "name": "joy_cat",
+  "cp": 128569,
+  "hex": "1F639",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 98,
+  "name": "smirk_cat",
+  "cp": 128572,
+  "hex": "1F63C",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 99,
+  "name": "scream_cat",
+  "cp": 128576,
+  "hex": "1F640",
+  "cat": "Смайлы"
+ },
+ {
+  "index": 100,
+  "name": "monkey",
+  "cp": 128053,
+  "hex": "1F435",
+  "cat": "Животные"
+ },
+ {
+  "index": 101,
+  "name": "dog",
+  "cp": 128054,
+  "hex": "1F436",
+  "cat": "Животные"
+ },
+ {
+  "index": 102,
+  "name": "wolf",
+  "cp": 128058,
+  "hex": "1F43A",
+  "cat": "Животные"
+ },
+ {
+  "index": 103,
+  "name": "lion",
+  "cp": 129409,
+  "hex": "1F981",
+  "cat": "Животные"
+ },
+ {
+  "index": 104,
+  "name": "tiger",
+  "cp": 128047,
+  "hex": "1F42F",
+  "cat": "Животные"
+ },
+ {
+  "index": 105,
+  "name": "giraffe",
+  "cp": 129426,
+  "hex": "1F992",
+  "cat": "Животные"
+ },
+ {
+  "index": 106,
+  "name": "fox",
+  "cp": 129418,
+  "hex": "1F98A",
+  "cat": "Животные"
+ },
+ {
+  "index": 107,
+  "name": "raccoon",
+  "cp": 129437,
+  "hex": "1F99D",
+  "cat": "Животные"
+ },
+ {
+  "index": 108,
+  "name": "cow",
+  "cp": 128046,
+  "hex": "1F42E",
+  "cat": "Животные"
+ },
+ {
+  "index": 109,
+  "name": "pig",
+  "cp": 128055,
+  "hex": "1F437",
+  "cat": "Животные"
+ },
+ {
+  "index": 110,
+  "name": "boar",
+  "cp": 128023,
+  "hex": "1F417",
+  "cat": "Животные"
+ },
+ {
+  "index": 111,
+  "name": "mouse",
+  "cp": 128045,
+  "hex": "1F42D",
+  "cat": "Животные"
+ },
+ {
+  "index": 112,
+  "name": "hamster",
+  "cp": 128057,
+  "hex": "1F439",
+  "cat": "Животные"
+ },
+ {
+  "index": 113,
+  "name": "rabbit",
+  "cp": 128048,
+  "hex": "1F430",
+  "cat": "Животные"
+ },
+ {
+  "index": 114,
+  "name": "bear",
+  "cp": 128059,
+  "hex": "1F43B",
+  "cat": "Животные"
+ },
+ {
+  "index": 115,
+  "name": "koala",
+  "cp": 128040,
+  "hex": "1F428",
+  "cat": "Животные"
+ },
+ {
+  "index": 116,
+  "name": "panda",
+  "cp": 128060,
+  "hex": "1F43C",
+  "cat": "Животные"
+ },
+ {
+  "index": 117,
+  "name": "frog",
+  "cp": 128056,
+  "hex": "1F438",
+  "cat": "Животные"
+ },
+ {
+  "index": 118,
+  "name": "zebra",
+  "cp": 129427,
+  "hex": "1F993",
+  "cat": "Животные"
+ },
+ {
+  "index": 119,
+  "name": "horse",
+  "cp": 128052,
+  "hex": "1F434",
+  "cat": "Животные"
+ },
+ {
+  "index": 120,
+  "name": "unicorn",
+  "cp": 129412,
+  "hex": "1F984",
+  "cat": "Животные"
+ },
+ {
+  "index": 121,
+  "name": "chicken",
+  "cp": 128020,
+  "hex": "1F414",
+  "cat": "Животные"
+ },
+ {
+  "index": 122,
+  "name": "pig_nose",
+  "cp": 128061,
+  "hex": "1F43D",
+  "cat": "Животные"
+ },
+ {
+  "index": 123,
+  "name": "feet",
+  "cp": 128062,
+  "hex": "1F43E",
+  "cat": "Животные"
+ },
+ {
+  "index": 124,
+  "name": "monkey2",
+  "cp": 128018,
+  "hex": "1F412",
+  "cat": "Животные"
+ },
+ {
+  "index": 125,
+  "name": "gorilla",
+  "cp": 129421,
+  "hex": "1F98D",
+  "cat": "Животные"
+ },
+ {
+  "index": 126,
+  "name": "orangutan",
+  "cp": 129447,
+  "hex": "1F9A7",
+  "cat": "Животные"
+ },
+ {
+  "index": 127,
+  "name": "guide_dog",
+  "cp": 129454,
+  "hex": "1F9AE",
+  "cat": "Животные"
+ },
+ {
+  "index": 128,
+  "name": "poodle",
+  "cp": 128041,
+  "hex": "1F429",
+  "cat": "Животные"
+ },
+ {
+  "index": 129,
+  "name": "dog2",
+  "cp": 128021,
+  "hex": "1F415",
+  "cat": "Животные"
+ },
+ {
+  "index": 130,
+  "name": "cat2",
+  "cp": 128008,
+  "hex": "1F408",
+  "cat": "Животные"
+ },
+ {
+  "index": 131,
+  "name": "tiger2",
+  "cp": 128005,
+  "hex": "1F405",
+  "cat": "Животные"
+ },
+ {
+  "index": 132,
+  "name": "leopard",
+  "cp": 128006,
+  "hex": "1F406",
+  "cat": "Животные"
+ },
+ {
+  "index": 133,
+  "name": "racehorse",
+  "cp": 128014,
+  "hex": "1F40E",
+  "cat": "Животные"
+ },
+ {
+  "index": 134,
+  "name": "deer",
+  "cp": 129420,
+  "hex": "1F98C",
+  "cat": "Животные"
+ },
+ {
+  "index": 135,
+  "name": "rhinoceros",
+  "cp": 129423,
+  "hex": "1F98F",
+  "cat": "Животные"
+ },
+ {
+  "index": 136,
+  "name": "ox",
+  "cp": 128002,
+  "hex": "1F402",
+  "cat": "Животные"
+ },
+ {
+  "index": 137,
+  "name": "cow2",
+  "cp": 128004,
+  "hex": "1F404",
+  "cat": "Животные"
+ },
+ {
+  "index": 138,
+  "name": "pig2",
+  "cp": 128022,
+  "hex": "1F416",
+  "cat": "Животные"
+ },
+ {
+  "index": 139,
+  "name": "ram",
+  "cp": 128015,
+  "hex": "1F40F",
+  "cat": "Животные"
+ },
+ {
+  "index": 140,
+  "name": "sheep",
+  "cp": 128017,
+  "hex": "1F411",
+  "cat": "Животные"
+ },
+ {
+  "index": 141,
+  "name": "goat",
+  "cp": 128016,
+  "hex": "1F410",
+  "cat": "Животные"
+ },
+ {
+  "index": 142,
+  "name": "camel",
+  "cp": 128043,
+  "hex": "1F42B",
+  "cat": "Животные"
+ },
+ {
+  "index": 143,
+  "name": "llama",
+  "cp": 129433,
+  "hex": "1F999",
+  "cat": "Животные"
+ },
+ {
+  "index": 144,
+  "name": "kangaroo",
+  "cp": 129432,
+  "hex": "1F998",
+  "cat": "Животные"
+ },
+ {
+  "index": 145,
+  "name": "sloth",
+  "cp": 129445,
+  "hex": "1F9A5",
+  "cat": "Животные"
+ },
+ {
+  "index": 146,
+  "name": "skunk",
+  "cp": 129448,
+  "hex": "1F9A8",
+  "cat": "Животные"
+ },
+ {
+  "index": 147,
+  "name": "badger",
+  "cp": 129441,
+  "hex": "1F9A1",
+  "cat": "Животные"
+ },
+ {
+  "index": 148,
+  "name": "elephant",
+  "cp": 128024,
+  "hex": "1F418",
+  "cat": "Животные"
+ },
+ {
+  "index": 149,
+  "name": "mouse2",
+  "cp": 128001,
+  "hex": "1F401",
+  "cat": "Животные"
+ },
+ {
+  "index": 150,
+  "name": "rat",
+  "cp": 128000,
+  "hex": "1F400",
+  "cat": "Животные"
+ },
+ {
+  "index": 151,
+  "name": "hedgehog",
+  "cp": 129428,
+  "hex": "1F994",
+  "cat": "Животные"
+ },
+ {
+  "index": 152,
+  "name": "rabbit2",
+  "cp": 128007,
+  "hex": "1F407",
+  "cat": "Животные"
+ },
+ {
+  "index": 153,
+  "name": "chipmunk",
+  "cp": 128063,
+  "hex": "1F43F",
+  "cat": "Животные"
+ },
+ {
+  "index": 154,
+  "name": "lizard",
+  "cp": 129422,
+  "hex": "1F98E",
+  "cat": "Животные"
+ },
+ {
+  "index": 155,
+  "name": "crocodile",
+  "cp": 128010,
+  "hex": "1F40A",
+  "cat": "Животные"
+ },
+ {
+  "index": 156,
+  "name": "turtle",
+  "cp": 128034,
+  "hex": "1F422",
+  "cat": "Животные"
+ },
+ {
+  "index": 157,
+  "name": "snake",
+  "cp": 128013,
+  "hex": "1F40D",
+  "cat": "Животные"
+ },
+ {
+  "index": 158,
+  "name": "dragon",
+  "cp": 128009,
+  "hex": "1F409",
+  "cat": "Животные"
+ },
+ {
+  "index": 159,
+  "name": "sauropod",
+  "cp": 129429,
+  "hex": "1F995",
+  "cat": "Животные"
+ },
+ {
+  "index": 160,
+  "name": "trex",
+  "cp": 129430,
+  "hex": "1F996",
+  "cat": "Животные"
+ },
+ {
+  "index": 161,
+  "name": "otter",
+  "cp": 129446,
+  "hex": "1F9A6",
+  "cat": "Животные"
+ },
+ {
+  "index": 162,
+  "name": "shark",
+  "cp": 129416,
+  "hex": "1F988",
+  "cat": "Животные"
+ },
+ {
+  "index": 163,
+  "name": "dolphin",
+  "cp": 128044,
+  "hex": "1F42C",
+  "cat": "Животные"
+ },
+ {
+  "index": 164,
+  "name": "whale",
+  "cp": 128051,
+  "hex": "1F433",
+  "cat": "Животные"
+ },
+ {
+  "index": 165,
+  "name": "whale2",
+  "cp": 128011,
+  "hex": "1F40B",
+  "cat": "Животные"
+ },
+ {
+  "index": 166,
+  "name": "fish",
+  "cp": 128031,
+  "hex": "1F41F",
+  "cat": "Животные"
+ },
+ {
+  "index": 167,
+  "name": "blowfish",
+  "cp": 128033,
+  "hex": "1F421",
+  "cat": "Животные"
+ },
+ {
+  "index": 168,
+  "name": "shrimp",
+  "cp": 129424,
+  "hex": "1F990",
+  "cat": "Животные"
+ },
+ {
+  "index": 169,
+  "name": "squid",
+  "cp": 129425,
+  "hex": "1F991",
+  "cat": "Животные"
+ },
+ {
+  "index": 170,
+  "name": "octopus",
+  "cp": 128025,
+  "hex": "1F419",
+  "cat": "Животные"
+ },
+ {
+  "index": 171,
+  "name": "lobster",
+  "cp": 129438,
+  "hex": "1F99E",
+  "cat": "Животные"
+ },
+ {
+  "index": 172,
+  "name": "crab",
+  "cp": 129408,
+  "hex": "1F980",
+  "cat": "Животные"
+ },
+ {
+  "index": 173,
+  "name": "shell",
+  "cp": 128026,
+  "hex": "1F41A",
+  "cat": "Животные"
+ },
+ {
+  "index": 174,
+  "name": "duck",
+  "cp": 129414,
+  "hex": "1F986",
+  "cat": "Животные"
+ },
+ {
+  "index": 175,
+  "name": "cock",
+  "cp": 128019,
+  "hex": "1F413",
+  "cat": "Животные"
+ },
+ {
+  "index": 176,
+  "name": "turkey",
+  "cp": 129411,
+  "hex": "1F983",
+  "cat": "Животные"
+ },
+ {
+  "index": 177,
+  "name": "eagle",
+  "cp": 129413,
+  "hex": "1F985",
+  "cat": "Животные"
+ },
+ {
+  "index": 178,
+  "name": "dove",
+  "cp": 128330,
+  "hex": "1F54A",
+  "cat": "Животные"
+ },
+ {
+  "index": 179,
+  "name": "swan",
+  "cp": 129442,
+  "hex": "1F9A2",
+  "cat": "Животные"
+ },
+ {
+  "index": 180,
+  "name": "parrot",
+  "cp": 129436,
+  "hex": "1F99C",
+  "cat": "Животные"
+ },
+ {
+  "index": 181,
+  "name": "flamingo",
+  "cp": 129449,
+  "hex": "1F9A9",
+  "cat": "Животные"
+ },
+ {
+  "index": 182,
+  "name": "peacock",
+  "cp": 129434,
+  "hex": "1F99A",
+  "cat": "Животные"
+ },
+ {
+  "index": 183,
+  "name": "owl",
+  "cp": 129417,
+  "hex": "1F989",
+  "cat": "Животные"
+ },
+ {
+  "index": 184,
+  "name": "bird",
+  "cp": 128038,
+  "hex": "1F426",
+  "cat": "Животные"
+ },
+ {
+  "index": 185,
+  "name": "penguin",
+  "cp": 128039,
+  "hex": "1F427",
+  "cat": "Животные"
+ },
+ {
+  "index": 186,
+  "name": "chick",
+  "cp": 128036,
+  "hex": "1F424",
+  "cat": "Животные"
+ },
+ {
+  "index": 187,
+  "name": "bat",
+  "cp": 129415,
+  "hex": "1F987",
+  "cat": "Животные"
+ },
+ {
+  "index": 188,
+  "name": "butterfly",
+  "cp": 129419,
+  "hex": "1F98B",
+  "cat": "Животные"
+ },
+ {
+  "index": 189,
+  "name": "snail",
+  "cp": 128012,
+  "hex": "1F40C",
+  "cat": "Животные"
+ },
+ {
+  "index": 190,
+  "name": "mosquito",
+  "cp": 129439,
+  "hex": "1F99F",
+  "cat": "Животные"
+ },
+ {
+  "index": 191,
+  "name": "fly",
+  "cp": 129712,
+  "hex": "1FAB0",
+  "cat": "Животные"
+ },
+ {
+  "index": 192,
+  "name": "worm",
+  "cp": 129713,
+  "hex": "1FAB1",
+  "cat": "Животные"
+ },
+ {
+  "index": 193,
+  "name": "cricket",
+  "cp": 129431,
+  "hex": "1F997",
+  "cat": "Животные"
+ },
+ {
+  "index": 194,
+  "name": "ant",
+  "cp": 128028,
+  "hex": "1F41C",
+  "cat": "Животные"
+ },
+ {
+  "index": 195,
+  "name": "bee",
+  "cp": 128029,
+  "hex": "1F41D",
+  "cat": "Животные"
+ },
+ {
+  "index": 196,
+  "name": "beetle",
+  "cp": 129714,
+  "hex": "1FAB2",
+  "cat": "Животные"
+ },
+ {
+  "index": 197,
+  "name": "bug",
+  "cp": 128030,
+  "hex": "1F41E",
+  "cat": "Животные"
+ },
+ {
+  "index": 198,
+  "name": "scorpion",
+  "cp": 129410,
+  "hex": "1F982",
+  "cat": "Животные"
+ },
+ {
+  "index": 199,
+  "name": "spider",
+  "cp": 128375,
+  "hex": "1F577",
+  "cat": "Животные"
+ },
+ {
+  "index": 200,
+  "name": "spider_web",
+  "cp": 128376,
+  "hex": "1F578",
+  "cat": "Животные"
+ },
+ {
+  "index": 201,
+  "name": "microbe",
+  "cp": 129440,
+  "hex": "1F9A0",
+  "cat": "Животные"
+ },
+ {
+  "index": 202,
+  "name": "genie",
+  "cp": 129502,
+  "hex": "1F9DE",
+  "cat": "Животные"
+ },
+ {
+  "index": 203,
+  "name": "zombie",
+  "cp": 129503,
+  "hex": "1F9DF",
+  "cat": "Животные"
+ },
+ {
+  "index": 204,
+  "name": "eye",
+  "cp": 128065,
+  "hex": "1F441",
+  "cat": "Животные"
+ },
+ {
+  "index": 205,
+  "name": "eyes",
+  "cp": 128064,
+  "hex": "1F440",
+  "cat": "Животные"
+ },
+ {
+  "index": 206,
+  "name": "bone",
+  "cp": 129460,
+  "hex": "1F9B4",
+  "cat": "Животные"
+ },
+ {
+  "index": 207,
+  "name": "tooth",
+  "cp": 129463,
+  "hex": "1F9B7",
+  "cat": "Животные"
+ },
+ {
+  "index": 208,
+  "name": "tongue",
+  "cp": 128069,
+  "hex": "1F445",
+  "cat": "Животные"
+ },
+ {
+  "index": 209,
+  "name": "lips",
+  "cp": 128068,
+  "hex": "1F444",
+  "cat": "Животные"
+ },
+ {
+  "index": 210,
+  "name": "brain",
+  "cp": 129504,
+  "hex": "1F9E0",
+  "cat": "Животные"
+ },
+ {
+  "index": 211,
+  "name": "footprints",
+  "cp": 128099,
+  "hex": "1F463",
+  "cat": "Животные"
+ },
+ {
+  "index": 212,
+  "name": "skier",
+  "cp": 9975,
+  "hex": "026F7",
+  "cat": "Люди"
+ },
+ {
+  "index": 213,
+  "name": "woman",
+  "cp": 128105,
+  "hex": "1F469",
+  "cat": "Люди"
+ },
+ {
+  "index": 214,
+  "name": "man",
+  "cp": 128104,
+  "hex": "1F468",
+  "cat": "Люди"
+ },
+ {
+  "index": 215,
+  "name": "person",
+  "cp": 129489,
+  "hex": "1F9D1",
+  "cat": "Люди"
+ },
+ {
+  "index": 216,
+  "name": "girl",
+  "cp": 128103,
+  "hex": "1F467",
+  "cat": "Люди"
+ },
+ {
+  "index": 217,
+  "name": "boy",
+  "cp": 128102,
+  "hex": "1F466",
+  "cat": "Люди"
+ },
+ {
+  "index": 218,
+  "name": "child",
+  "cp": 129490,
+  "hex": "1F9D2",
+  "cat": "Люди"
+ },
+ {
+  "index": 219,
+  "name": "baby",
+  "cp": 128118,
+  "hex": "1F476",
+  "cat": "Люди"
+ },
+ {
+  "index": 220,
+  "name": "older_woman",
+  "cp": 128117,
+  "hex": "1F475",
+  "cat": "Люди"
+ },
+ {
+  "index": 221,
+  "name": "older_man",
+  "cp": 128116,
+  "hex": "1F474",
+  "cat": "Люди"
+ },
+ {
+  "index": 222,
+  "name": "princess",
+  "cp": 128120,
+  "hex": "1F478",
+  "cat": "Люди"
+ },
+ {
+  "index": 223,
+  "name": "prince",
+  "cp": 129332,
+  "hex": "1F934",
+  "cat": "Люди"
+ },
+ {
+  "index": 224,
+  "name": "turban",
+  "cp": 128115,
+  "hex": "1F473",
+  "cat": "Люди"
+ },
+ {
+  "index": 225,
+  "name": "beard",
+  "cp": 129492,
+  "hex": "1F9D4",
+  "cat": "Люди"
+ },
+ {
+  "index": 226,
+  "name": "angel",
+  "cp": 128124,
+  "hex": "1F47C",
+  "cat": "Люди"
+ },
+ {
+  "index": 227,
+  "name": "santa",
+  "cp": 127877,
+  "hex": "1F385",
+  "cat": "Люди"
+ },
+ {
+  "index": 228,
+  "name": "cop",
+  "cp": 128110,
+  "hex": "1F46E",
+  "cat": "Люди"
+ },
+ {
+  "index": 229,
+  "name": "detective",
+  "cp": 128373,
+  "hex": "1F575",
+  "cat": "Люди"
+ },
+ {
+  "index": 230,
+  "name": "guardsman",
+  "cp": 128130,
+  "hex": "1F482",
+  "cat": "Люди"
+ },
+ {
+  "index": 231,
+  "name": "superhero",
+  "cp": 129464,
+  "hex": "1F9B8",
+  "cat": "Люди"
+ },
+ {
+  "index": 232,
+  "name": "mage",
+  "cp": 129497,
+  "hex": "1F9D9",
+  "cat": "Люди"
+ },
+ {
+  "index": 233,
+  "name": "fairy",
+  "cp": 129498,
+  "hex": "1F9DA",
+  "cat": "Люди"
+ },
+ {
+  "index": 234,
+  "name": "vampire",
+  "cp": 129499,
+  "hex": "1F9DB",
+  "cat": "Люди"
+ },
+ {
+  "index": 235,
+  "name": "merperson",
+  "cp": 129500,
+  "hex": "1F9DC",
+  "cat": "Люди"
+ },
+ {
+  "index": 236,
+  "name": "elf",
+  "cp": 129501,
+  "hex": "1F9DD",
+  "cat": "Люди"
+ },
+ {
+  "index": 237,
+  "name": "no_good",
+  "cp": 128581,
+  "hex": "1F645",
+  "cat": "Люди"
+ },
+ {
+  "index": 238,
+  "name": "ok1",
+  "cp": 128582,
+  "hex": "1F646",
+  "cat": "Люди"
+ },
+ {
+  "index": 239,
+  "name": "bow",
+  "cp": 128583,
+  "hex": "1F647",
+  "cat": "Люди"
+ },
+ {
+  "index": 240,
+  "name": "massage",
+  "cp": 128134,
+  "hex": "1F486",
+  "cat": "Люди"
+ },
+ {
+  "index": 241,
+  "name": "haircut",
+  "cp": 128135,
+  "hex": "1F487",
+  "cat": "Люди"
+ },
+ {
+  "index": 242,
+  "name": "walking",
+  "cp": 128694,
+  "hex": "1F6B6",
+  "cat": "Люди"
+ },
+ {
+  "index": 243,
+  "name": "runner",
+  "cp": 127939,
+  "hex": "1F3C3",
+  "cat": "Люди"
+ },
+ {
+  "index": 244,
+  "name": "dancer",
+  "cp": 128131,
+  "hex": "1F483",
+  "cat": "Люди"
+ },
+ {
+  "index": 245,
+  "name": "bath",
+  "cp": 128704,
+  "hex": "1F6C0",
+  "cat": "Люди"
+ },
+ {
+  "index": 246,
+  "name": "golfer",
+  "cp": 127948,
+  "hex": "1F3CC",
+  "cat": "Люди"
+ },
+ {
+  "index": 247,
+  "name": "surfer",
+  "cp": 127940,
+  "hex": "1F3C4",
+  "cat": "Люди"
+ },
+ {
+  "index": 248,
+  "name": "rowboat",
+  "cp": 128675,
+  "hex": "1F6A3",
+  "cat": "Люди"
+ },
+ {
+  "index": 249,
+  "name": "swimmer",
+  "cp": 127946,
+  "hex": "1F3CA",
+  "cat": "Люди"
+ },
+ {
+  "index": 250,
+  "name": "bicyclist",
+  "cp": 128692,
+  "hex": "1F6B4",
+  "cat": "Люди"
+ },
+ {
+  "index": 251,
+  "name": "selfie",
+  "cp": 129331,
+  "hex": "1F933",
+  "cat": "Люди"
+ },
+ {
+  "index": 252,
+  "name": "muscle",
+  "cp": 128170,
+  "hex": "1F4AA",
+  "cat": "Люди"
+ },
+ {
+  "index": 253,
+  "name": "leg",
+  "cp": 129461,
+  "hex": "1F9B5",
+  "cat": "Люди"
+ },
+ {
+  "index": 254,
+  "name": "foot",
+  "cp": 129462,
+  "hex": "1F9B6",
+  "cat": "Люди"
+ },
+ {
+  "index": 255,
+  "name": "ear",
+  "cp": 128066,
+  "hex": "1F442",
+  "cat": "Люди"
+ },
+ {
+  "index": 256,
+  "name": "nose",
+  "cp": 128067,
+  "hex": "1F443",
+  "cat": "Люди"
+ },
+ {
+  "index": 257,
+  "name": "left",
+  "cp": 128072,
+  "hex": "1F448",
+  "cat": "Люди"
+ },
+ {
+  "index": 258,
+  "name": "right",
+  "cp": 128073,
+  "hex": "1F449",
+  "cat": "Люди"
+ },
+ {
+  "index": 259,
+  "name": "up1",
+  "cp": 9757,
+  "hex": "0261D",
+  "cat": "Люди"
+ },
+ {
+  "index": 260,
+  "name": "up",
+  "cp": 128070,
+  "hex": "1F446",
+  "cat": "Люди"
+ },
+ {
+  "index": 261,
+  "name": "down",
+  "cp": 128071,
+  "hex": "1F447",
+  "cat": "Люди"
+ },
+ {
+  "index": 262,
+  "name": "v",
+  "cp": 9996,
+  "hex": "0270C",
+  "cat": "Люди"
+ },
+ {
+  "index": 263,
+  "name": "fuck",
+  "cp": 128405,
+  "hex": "1F595",
+  "cat": "Люди"
+ },
+ {
+  "index": 264,
+  "name": "rock",
+  "cp": 129304,
+  "hex": "1F918",
+  "cat": "Люди"
+ },
+ {
+  "index": 265,
+  "name": "call",
+  "cp": 129305,
+  "hex": "1F919",
+  "cat": "Люди"
+ },
+ {
+  "index": 266,
+  "name": "ok",
+  "cp": 128076,
+  "hex": "1F44C",
+  "cat": "Люди"
+ },
+ {
+  "index": 267,
+  "name": "+",
+  "cp": 128077,
+  "hex": "1F44D",
+  "cat": "Люди"
+ },
+ {
+  "index": 268,
+  "name": "-",
+  "cp": 128078,
+  "hex": "1F44E",
+  "cat": "Люди"
+ },
+ {
+  "index": 269,
+  "name": "fist",
+  "cp": 9994,
+  "hex": "0270A",
+  "cat": "Люди"
+ },
+ {
+  "index": 270,
+  "name": "wave",
+  "cp": 128075,
+  "hex": "1F44B",
+  "cat": "Люди"
+ },
+ {
+  "index": 271,
+  "name": "clap",
+  "cp": 128079,
+  "hex": "1F44F",
+  "cat": "Люди"
+ },
+ {
+  "index": 272,
+  "name": "open_hands",
+  "cp": 128080,
+  "hex": "1F450",
+  "cat": "Люди"
+ },
+ {
+  "index": 273,
+  "name": "hheart",
+  "cp": 129782,
+  "hex": "1FAF6",
+  "cat": "Люди"
+ },
+ {
+  "index": 274,
+  "name": "pray",
+  "cp": 128591,
+  "hex": "1F64F",
+  "cat": "Люди"
+ },
+ {
+  "index": 275,
+  "name": "handshake",
+  "cp": 129309,
+  "hex": "1F91D",
+  "cat": "Люди"
+ },
+ {
+  "index": 276,
+  "name": "nails",
+  "cp": 128133,
+  "hex": "1F485",
+  "cat": "Люди"
+ },
+ {
+  "index": 277,
+  "name": "dancers",
+  "cp": 128111,
+  "hex": "1F46F",
+  "cat": "Люди"
+ },
+ {
+  "index": 278,
+  "name": "balloon",
+  "cp": 127880,
+  "hex": "1F388",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 279,
+  "name": "fireworks",
+  "cp": 127878,
+  "hex": "1F386",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 280,
+  "name": "sparkler",
+  "cp": 127879,
+  "hex": "1F387",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 281,
+  "name": "sparkles",
+  "cp": 10024,
+  "hex": "02728",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 282,
+  "name": "tada",
+  "cp": 127881,
+  "hex": "1F389",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 283,
+  "name": "bamboo",
+  "cp": 127885,
+  "hex": "1F38D",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 284,
+  "name": "dolls",
+  "cp": 127886,
+  "hex": "1F38E",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 285,
+  "name": "flags",
+  "cp": 127887,
+  "hex": "1F38F",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 286,
+  "name": "wind_chime",
+  "cp": 127888,
+  "hex": "1F390",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 287,
+  "name": "rice_scene",
+  "cp": 127889,
+  "hex": "1F391",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 288,
+  "name": "ribbon",
+  "cp": 127872,
+  "hex": "1F380",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 289,
+  "name": "gift",
+  "cp": 127873,
+  "hex": "1F381",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 290,
+  "name": "ticket",
+  "cp": 127915,
+  "hex": "1F3AB",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 291,
+  "name": "thread",
+  "cp": 129525,
+  "hex": "1F9F5",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 292,
+  "name": "yarn",
+  "cp": 129526,
+  "hex": "1F9F6",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 293,
+  "name": "eyeglasses",
+  "cp": 128083,
+  "hex": "1F453",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 294,
+  "name": "goggles",
+  "cp": 129405,
+  "hex": "1F97D",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 295,
+  "name": "lab_coat",
+  "cp": 129404,
+  "hex": "1F97C",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 296,
+  "name": "coat",
+  "cp": 129509,
+  "hex": "1F9E5",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 297,
+  "name": "necktie",
+  "cp": 128084,
+  "hex": "1F454",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 298,
+  "name": "shirt",
+  "cp": 128085,
+  "hex": "1F455",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 299,
+  "name": "jeans",
+  "cp": 128086,
+  "hex": "1F456",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 300,
+  "name": "shorts",
+  "cp": 129651,
+  "hex": "1FA73",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 301,
+  "name": "scarf",
+  "cp": 129507,
+  "hex": "1F9E3",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 302,
+  "name": "gloves",
+  "cp": 129508,
+  "hex": "1F9E4",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 303,
+  "name": "socks",
+  "cp": 129510,
+  "hex": "1F9E6",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 304,
+  "name": "dress",
+  "cp": 128087,
+  "hex": "1F457",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 305,
+  "name": "sari",
+  "cp": 129403,
+  "hex": "1F97B",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 306,
+  "name": "kimono",
+  "cp": 128088,
+  "hex": "1F458",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 307,
+  "name": "briefs",
+  "cp": 129650,
+  "hex": "1FA72",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 308,
+  "name": "bikini",
+  "cp": 128089,
+  "hex": "1F459",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 309,
+  "name": "purse",
+  "cp": 128091,
+  "hex": "1F45B",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 310,
+  "name": "handbag",
+  "cp": 128092,
+  "hex": "1F45C",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 311,
+  "name": "pouch",
+  "cp": 128093,
+  "hex": "1F45D",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 312,
+  "name": "mans_shoe",
+  "cp": 128094,
+  "hex": "1F45E",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 313,
+  "name": "flat_shoe",
+  "cp": 129407,
+  "hex": "1F97F",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 314,
+  "name": "high_heel",
+  "cp": 128096,
+  "hex": "1F460",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 315,
+  "name": "sandal",
+  "cp": 128097,
+  "hex": "1F461",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 316,
+  "name": "boot",
+  "cp": 128098,
+  "hex": "1F462",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 317,
+  "name": "crown",
+  "cp": 128081,
+  "hex": "1F451",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 318,
+  "name": "billed_cap",
+  "cp": 129506,
+  "hex": "1F9E2",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 319,
+  "name": "womans_hat",
+  "cp": 128082,
+  "hex": "1F452",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 320,
+  "name": "tophat",
+  "cp": 127913,
+  "hex": "1F3A9",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 321,
+  "name": "kiss",
+  "cp": 128139,
+  "hex": "1F48B",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 322,
+  "name": "lipstick",
+  "cp": 128132,
+  "hex": "1F484",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 323,
+  "name": "ring",
+  "cp": 128141,
+  "hex": "1F48D",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 324,
+  "name": "gem",
+  "cp": 128142,
+  "hex": "1F48E",
+  "cat": "Праздники и одежда"
+ },
+ {
+  "index": 325,
+  "name": "soccer",
+  "cp": 9917,
+  "hex": "026BD",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 326,
+  "name": "baseball",
+  "cp": 9918,
+  "hex": "026BE",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 327,
+  "name": "softball",
+  "cp": 129358,
+  "hex": "1F94E",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 328,
+  "name": "basketball",
+  "cp": 127936,
+  "hex": "1F3C0",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 329,
+  "name": "volleyball",
+  "cp": 127952,
+  "hex": "1F3D0",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 330,
+  "name": "football",
+  "cp": 127944,
+  "hex": "1F3C8",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 331,
+  "name": "8ball",
+  "cp": 127921,
+  "hex": "1F3B1",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 332,
+  "name": "bowling",
+  "cp": 127923,
+  "hex": "1F3B3",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 333,
+  "name": "golf",
+  "cp": 9971,
+  "hex": "026F3",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 334,
+  "name": "ice_skate",
+  "cp": 9976,
+  "hex": "026F8",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 335,
+  "name": "canoe",
+  "cp": 128758,
+  "hex": "1F6F6",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 336,
+  "name": "ski",
+  "cp": 127935,
+  "hex": "1F3BF",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 337,
+  "name": "sled",
+  "cp": 128759,
+  "hex": "1F6F7",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 338,
+  "name": "goal_net",
+  "cp": 129349,
+  "hex": "1F945",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 339,
+  "name": "ice_hockey",
+  "cp": 127954,
+  "hex": "1F3D2",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 340,
+  "name": "lacrosse",
+  "cp": 129357,
+  "hex": "1F94D",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 341,
+  "name": "ping_pong",
+  "cp": 127955,
+  "hex": "1F3D3",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 342,
+  "name": "badminton",
+  "cp": 127992,
+  "hex": "1F3F8",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 343,
+  "name": "tennis",
+  "cp": 127934,
+  "hex": "1F3BE",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 344,
+  "name": "kite",
+  "cp": 129665,
+  "hex": "1FA81",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 345,
+  "name": "dart",
+  "cp": 127919,
+  "hex": "1F3AF",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 346,
+  "name": "medal",
+  "cp": 127941,
+  "hex": "1F3C5",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 347,
+  "name": "trophy",
+  "cp": 127942,
+  "hex": "1F3C6",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 348,
+  "name": "video_game",
+  "cp": 127918,
+  "hex": "1F3AE",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 349,
+  "name": "joystick",
+  "cp": 128377,
+  "hex": "1F579",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 350,
+  "name": "game_die",
+  "cp": 127922,
+  "hex": "1F3B2",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 351,
+  "name": "teddy_bear",
+  "cp": 129528,
+  "hex": "1F9F8",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 352,
+  "name": "yoyo",
+  "cp": 129664,
+  "hex": "1FA80",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 353,
+  "name": "mahjong",
+  "cp": 126980,
+  "hex": "1F004",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 354,
+  "name": "chess_pawn",
+  "cp": 9823,
+  "hex": "0265F",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 355,
+  "name": "spades",
+  "cp": 9824,
+  "hex": "02660",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 356,
+  "name": "clubs",
+  "cp": 9827,
+  "hex": "02663",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 357,
+  "name": "hearts",
+  "cp": 9829,
+  "hex": "02665",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 358,
+  "name": "diamonds",
+  "cp": 9830,
+  "hex": "02666",
+  "cat": "Спорт и игры"
+ },
+ {
+  "index": 359,
+  "name": "speaker",
+  "cp": 128264,
+  "hex": "1F508",
+  "cat": "Предметы"
+ },
+ {
+  "index": 360,
+  "name": "sound",
+  "cp": 128265,
+  "hex": "1F509",
+  "cat": "Предметы"
+ },
+ {
+  "index": 361,
+  "name": "loud_sound",
+  "cp": 128266,
+  "hex": "1F50A",
+  "cat": "Предметы"
+ },
+ {
+  "index": 362,
+  "name": "mega",
+  "cp": 128227,
+  "hex": "1F4E3",
+  "cat": "Предметы"
+ },
+ {
+  "index": 363,
+  "name": "bell",
+  "cp": 128276,
+  "hex": "1F514",
+  "cat": "Предметы"
+ },
+ {
+  "index": 364,
+  "name": "notes",
+  "cp": 127926,
+  "hex": "1F3B6",
+  "cat": "Предметы"
+ },
+ {
+  "index": 365,
+  "name": "microphone",
+  "cp": 127908,
+  "hex": "1F3A4",
+  "cat": "Предметы"
+ },
+ {
+  "index": 366,
+  "name": "headphones",
+  "cp": 127911,
+  "hex": "1F3A7",
+  "cat": "Предметы"
+ },
+ {
+  "index": 367,
+  "name": "drum",
+  "cp": 129345,
+  "hex": "1F941",
+  "cat": "Предметы"
+ },
+ {
+  "index": 368,
+  "name": "saxophone",
+  "cp": 127927,
+  "hex": "1F3B7",
+  "cat": "Предметы"
+ },
+ {
+  "index": 369,
+  "name": "trumpet",
+  "cp": 127930,
+  "hex": "1F3BA",
+  "cat": "Предметы"
+ },
+ {
+  "index": 370,
+  "name": "guitar",
+  "cp": 127928,
+  "hex": "1F3B8",
+  "cat": "Предметы"
+ },
+ {
+  "index": 371,
+  "name": "banjo",
+  "cp": 129685,
+  "hex": "1FA95",
+  "cat": "Предметы"
+ },
+ {
+  "index": 372,
+  "name": "violin",
+  "cp": 127931,
+  "hex": "1F3BB",
+  "cat": "Предметы"
+ },
+ {
+  "index": 373,
+  "name": "radio",
+  "cp": 128251,
+  "hex": "1F4FB",
+  "cat": "Предметы"
+ },
+ {
+  "index": 374,
+  "name": "lock",
+  "cp": 128274,
+  "hex": "1F512",
+  "cat": "Предметы"
+ },
+ {
+  "index": 375,
+  "name": "unlock",
+  "cp": 128275,
+  "hex": "1F513",
+  "cat": "Предметы"
+ },
+ {
+  "index": 376,
+  "name": "key",
+  "cp": 128273,
+  "hex": "1F511",
+  "cat": "Предметы"
+ },
+ {
+  "index": 377,
+  "name": "old_key",
+  "cp": 128477,
+  "hex": "1F5DD",
+  "cat": "Предметы"
+ },
+ {
+  "index": 378,
+  "name": "axe",
+  "cp": 129683,
+  "hex": "1FA93",
+  "cat": "Предметы"
+ },
+ {
+  "index": 379,
+  "name": "hammer",
+  "cp": 128296,
+  "hex": "1F528",
+  "cat": "Предметы"
+ },
+ {
+  "index": 380,
+  "name": "pick",
+  "cp": 9935,
+  "hex": "026CF",
+  "cat": "Предметы"
+ },
+ {
+  "index": 381,
+  "name": "wrench",
+  "cp": 128295,
+  "hex": "1F527",
+  "cat": "Предметы"
+ },
+ {
+  "index": 382,
+  "name": "brick",
+  "cp": 129521,
+  "hex": "1F9F1",
+  "cat": "Предметы"
+ },
+ {
+  "index": 383,
+  "name": "gear",
+  "cp": 9881,
+  "hex": "02699",
+  "cat": "Предметы"
+ },
+ {
+  "index": 384,
+  "name": "oil_drum",
+  "cp": 128738,
+  "hex": "1F6E2",
+  "cat": "Предметы"
+ },
+ {
+  "index": 385,
+  "name": "alembic",
+  "cp": 9879,
+  "hex": "02697",
+  "cat": "Предметы"
+ },
+ {
+  "index": 386,
+  "name": "test_tube",
+  "cp": 129514,
+  "hex": "1F9EA",
+  "cat": "Предметы"
+ },
+ {
+  "index": 387,
+  "name": "petri_dish",
+  "cp": 129515,
+  "hex": "1F9EB",
+  "cat": "Предметы"
+ },
+ {
+  "index": 388,
+  "name": "dna",
+  "cp": 129516,
+  "hex": "1F9EC",
+  "cat": "Предметы"
+ },
+ {
+  "index": 389,
+  "name": "syringe",
+  "cp": 128137,
+  "hex": "1F489",
+  "cat": "Предметы"
+ },
+ {
+  "index": 390,
+  "name": "pill",
+  "cp": 128138,
+  "hex": "1F48A",
+  "cat": "Предметы"
+ },
+ {
+  "index": 391,
+  "name": "microscope",
+  "cp": 128300,
+  "hex": "1F52C",
+  "cat": "Предметы"
+ },
+ {
+  "index": 392,
+  "name": "telescope",
+  "cp": 128301,
+  "hex": "1F52D",
+  "cat": "Предметы"
+ },
+ {
+  "index": 393,
+  "name": "scales",
+  "cp": 9878,
+  "hex": "02696",
+  "cat": "Предметы"
+ },
+ {
+  "index": 394,
+  "name": "link",
+  "cp": 128279,
+  "hex": "1F517",
+  "cat": "Предметы"
+ },
+ {
+  "index": 395,
+  "name": "chains",
+  "cp": 9939,
+  "hex": "026D3",
+  "cat": "Предметы"
+ },
+ {
+  "index": 396,
+  "name": "toolbox",
+  "cp": 129520,
+  "hex": "1F9F0",
+  "cat": "Предметы"
+ },
+ {
+  "index": 397,
+  "name": "magnet",
+  "cp": 129522,
+  "hex": "1F9F2",
+  "cat": "Предметы"
+ },
+ {
+  "index": 398,
+  "name": "shield",
+  "cp": 128737,
+  "hex": "1F6E1",
+  "cat": "Предметы"
+ },
+ {
+  "index": 399,
+  "name": "dagger",
+  "cp": 128481,
+  "hex": "1F5E1",
+  "cat": "Предметы"
+ },
+ {
+  "index": 400,
+  "name": "bomb",
+  "cp": 128163,
+  "hex": "1F4A3",
+  "cat": "Предметы"
+ },
+ {
+  "index": 401,
+  "name": "gun",
+  "cp": 128299,
+  "hex": "1F52B",
+  "cat": "Предметы"
+ },
+ {
+  "index": 402,
+  "name": "telephone",
+  "cp": 9742,
+  "hex": "0260E",
+  "cat": "Предметы"
+ },
+ {
+  "index": 403,
+  "name": "pager",
+  "cp": 128223,
+  "hex": "1F4DF",
+  "cat": "Предметы"
+ },
+ {
+  "index": 404,
+  "name": "fax",
+  "cp": 128224,
+  "hex": "1F4E0",
+  "cat": "Предметы"
+ },
+ {
+  "index": 405,
+  "name": "phone",
+  "cp": 128241,
+  "hex": "1F4F1",
+  "cat": "Предметы"
+ },
+ {
+  "index": 406,
+  "name": "calling",
+  "cp": 128242,
+  "hex": "1F4F2",
+  "cat": "Предметы"
+ },
+ {
+  "index": 407,
+  "name": "female",
+  "cp": 9792,
+  "hex": "02640",
+  "cat": "Предметы"
+ },
+ {
+  "index": 408,
+  "name": "male",
+  "cp": 9794,
+  "hex": "02642",
+  "cat": "Предметы"
+ },
+ {
+  "index": 409,
+  "name": "smoking",
+  "cp": 128684,
+  "hex": "1F6AC",
+  "cat": "Предметы"
+ },
+ {
+  "index": 410,
+  "name": "coffin",
+  "cp": 9904,
+  "hex": "026B0",
+  "cat": "Предметы"
+ },
+ {
+  "index": 411,
+  "name": "moai",
+  "cp": 128511,
+  "hex": "1F5FF",
+  "cat": "Предметы"
+ },
+ {
+  "index": 412,
+  "name": "battery",
+  "cp": 128267,
+  "hex": "1F50B",
+  "cat": "Предметы"
+ },
+ {
+  "index": 413,
+  "name": "computer",
+  "cp": 128187,
+  "hex": "1F4BB",
+  "cat": "Предметы"
+ },
+ {
+  "index": 414,
+  "name": "printer",
+  "cp": 128424,
+  "hex": "1F5A8",
+  "cat": "Предметы"
+ },
+ {
+  "index": 415,
+  "name": "keyboard",
+  "cp": 9000,
+  "hex": "02328",
+  "cat": "Предметы"
+ },
+ {
+  "index": 416,
+  "name": "trackball",
+  "cp": 128434,
+  "hex": "1F5B2",
+  "cat": "Предметы"
+ },
+ {
+  "index": 417,
+  "name": "minidisc",
+  "cp": 128189,
+  "hex": "1F4BD",
+  "cat": "Предметы"
+ },
+ {
+  "index": 418,
+  "name": "cd",
+  "cp": 128191,
+  "hex": "1F4BF",
+  "cat": "Предметы"
+ },
+ {
+  "index": 419,
+  "name": "dvd",
+  "cp": 128192,
+  "hex": "1F4C0",
+  "cat": "Предметы"
+ },
+ {
+  "index": 420,
+  "name": "abacus",
+  "cp": 129518,
+  "hex": "1F9EE",
+  "cat": "Предметы"
+ },
+ {
+  "index": 421,
+  "name": "clapper",
+  "cp": 127916,
+  "hex": "1F3AC",
+  "cat": "Предметы"
+ },
+ {
+  "index": 422,
+  "name": "satellite",
+  "cp": 128225,
+  "hex": "1F4E1",
+  "cat": "Предметы"
+ },
+ {
+  "index": 423,
+  "name": "tv",
+  "cp": 128250,
+  "hex": "1F4FA",
+  "cat": "Предметы"
+ },
+ {
+  "index": 424,
+  "name": "camera",
+  "cp": 128247,
+  "hex": "1F4F7",
+  "cat": "Предметы"
+ },
+ {
+  "index": 425,
+  "name": "vhs",
+  "cp": 128252,
+  "hex": "1F4FC",
+  "cat": "Предметы"
+ },
+ {
+  "index": 426,
+  "name": "mag",
+  "cp": 128269,
+  "hex": "1F50D",
+  "cat": "Предметы"
+ },
+ {
+  "index": 427,
+  "name": "mag_right",
+  "cp": 128270,
+  "hex": "1F50E",
+  "cat": "Предметы"
+ },
+ {
+  "index": 428,
+  "name": "candle",
+  "cp": 128367,
+  "hex": "1F56F",
+  "cat": "Предметы"
+ },
+ {
+  "index": 429,
+  "name": "diya_lamp",
+  "cp": 129684,
+  "hex": "1FA94",
+  "cat": "Предметы"
+ },
+ {
+  "index": 430,
+  "name": "bulb",
+  "cp": 128161,
+  "hex": "1F4A1",
+  "cat": "Предметы"
+ },
+ {
+  "index": 431,
+  "name": "flashlight",
+  "cp": 128294,
+  "hex": "1F526",
+  "cat": "Предметы"
+ },
+ {
+  "index": 432,
+  "name": "book",
+  "cp": 128214,
+  "hex": "1F4D6",
+  "cat": "Предметы"
+ },
+ {
+  "index": 433,
+  "name": "green_book",
+  "cp": 128215,
+  "hex": "1F4D7",
+  "cat": "Предметы"
+ },
+ {
+  "index": 434,
+  "name": "blue_book",
+  "cp": 128216,
+  "hex": "1F4D8",
+  "cat": "Предметы"
+ },
+ {
+  "index": 435,
+  "name": "books",
+  "cp": 128218,
+  "hex": "1F4DA",
+  "cat": "Предметы"
+ },
+ {
+  "index": 436,
+  "name": "notebook",
+  "cp": 128211,
+  "hex": "1F4D3",
+  "cat": "Предметы"
+ },
+ {
+  "index": 437,
+  "name": "ledger",
+  "cp": 128210,
+  "hex": "1F4D2",
+  "cat": "Предметы"
+ },
+ {
+  "index": 438,
+  "name": "scroll",
+  "cp": 128220,
+  "hex": "1F4DC",
+  "cat": "Предметы"
+ },
+ {
+  "index": 439,
+  "name": "newspaper",
+  "cp": 128240,
+  "hex": "1F4F0",
+  "cat": "Предметы"
+ },
+ {
+  "index": 440,
+  "name": "bookmark",
+  "cp": 128278,
+  "hex": "1F516",
+  "cat": "Предметы"
+ },
+ {
+  "index": 441,
+  "name": "label",
+  "cp": 127991,
+  "hex": "1F3F7",
+  "cat": "Предметы"
+ },
+ {
+  "index": 442,
+  "name": "moneybag",
+  "cp": 128176,
+  "hex": "1F4B0",
+  "cat": "Предметы"
+ },
+ {
+  "index": 443,
+  "name": "coin",
+  "cp": 129689,
+  "hex": "1FA99",
+  "cat": "Предметы"
+ },
+ {
+  "index": 444,
+  "name": "yen",
+  "cp": 128180,
+  "hex": "1F4B4",
+  "cat": "Предметы"
+ },
+ {
+  "index": 445,
+  "name": "dollar",
+  "cp": 128181,
+  "hex": "1F4B5",
+  "cat": "Предметы"
+ },
+ {
+  "index": 446,
+  "name": "euro",
+  "cp": 130086,
+  "hex": "1FC26",
+  "cat": "Предметы"
+ },
+ {
+  "index": 447,
+  "name": "pound",
+  "cp": 128183,
+  "hex": "1F4B7",
+  "cat": "Предметы"
+ },
+ {
+  "index": 448,
+  "name": "receipt",
+  "cp": 129534,
+  "hex": "1F9FE",
+  "cat": "Предметы"
+ },
+ {
+  "index": 449,
+  "name": "atm",
+  "cp": 127975,
+  "hex": "1F3E7",
+  "cat": "Предметы"
+ },
+ {
+  "index": 450,
+  "name": "envelope",
+  "cp": 9993,
+  "hex": "02709",
+  "cat": "Предметы"
+ },
+ {
+  "index": 451,
+  "name": "email",
+  "cp": 128231,
+  "hex": "1F4E7",
+  "cat": "Предметы"
+ },
+ {
+  "index": 452,
+  "name": "inbox_tray",
+  "cp": 128229,
+  "hex": "1F4E5",
+  "cat": "Предметы"
+ },
+ {
+  "index": 453,
+  "name": "package",
+  "cp": 128230,
+  "hex": "1F4E6",
+  "cat": "Предметы"
+ },
+ {
+  "index": 454,
+  "name": "mailbox",
+  "cp": 128235,
+  "hex": "1F4EB",
+  "cat": "Предметы"
+ },
+ {
+  "index": 455,
+  "name": "postbox",
+  "cp": 128238,
+  "hex": "1F4EE",
+  "cat": "Предметы"
+ },
+ {
+  "index": 456,
+  "name": "ballot_box",
+  "cp": 128499,
+  "hex": "1F5F3",
+  "cat": "Предметы"
+ },
+ {
+  "index": 457,
+  "name": "pencil2",
+  "cp": 9999,
+  "hex": "0270F",
+  "cat": "Предметы"
+ },
+ {
+  "index": 458,
+  "name": "black_nib",
+  "cp": 10002,
+  "hex": "02712",
+  "cat": "Предметы"
+ },
+ {
+  "index": 459,
+  "name": "pen",
+  "cp": 128394,
+  "hex": "1F58A",
+  "cat": "Предметы"
+ },
+ {
+  "index": 460,
+  "name": "paintbrush",
+  "cp": 128396,
+  "hex": "1F58C",
+  "cat": "Предметы"
+ },
+ {
+  "index": 461,
+  "name": "crayon",
+  "cp": 128397,
+  "hex": "1F58D",
+  "cat": "Предметы"
+ },
+ {
+  "index": 462,
+  "name": "memo",
+  "cp": 128221,
+  "hex": "1F4DD",
+  "cat": "Предметы"
+ },
+ {
+  "index": 463,
+  "name": "briefcase",
+  "cp": 128188,
+  "hex": "1F4BC",
+  "cat": "Предметы"
+ },
+ {
+  "index": 464,
+  "name": "date",
+  "cp": 128197,
+  "hex": "1F4C5",
+  "cat": "Предметы"
+ },
+ {
+  "index": 465,
+  "name": "calendar",
+  "cp": 128198,
+  "hex": "1F4C6",
+  "cat": "Предметы"
+ },
+ {
+  "index": 466,
+  "name": "card_index",
+  "cp": 128199,
+  "hex": "1F4C7",
+  "cat": "Предметы"
+ },
+ {
+  "index": 467,
+  "name": "bar_chart",
+  "cp": 128202,
+  "hex": "1F4CA",
+  "cat": "Предметы"
+ },
+ {
+  "index": 468,
+  "name": "clipboard",
+  "cp": 128203,
+  "hex": "1F4CB",
+  "cat": "Предметы"
+ },
+ {
+  "index": 469,
+  "name": "pushpin",
+  "cp": 128204,
+  "hex": "1F4CC",
+  "cat": "Предметы"
+ },
+ {
+  "index": 470,
+  "name": "paperclip",
+  "cp": 128206,
+  "hex": "1F4CE",
+  "cat": "Предметы"
+ },
+ {
+  "index": 471,
+  "name": "scissors",
+  "cp": 9986,
+  "hex": "02702",
+  "cat": "Предметы"
+ },
+ {
+  "index": 472,
+  "name": "hourglass",
+  "cp": 8987,
+  "hex": "0231B",
+  "cat": "Предметы"
+ },
+ {
+  "index": 473,
+  "name": "watch",
+  "cp": 8986,
+  "hex": "0231A",
+  "cat": "Предметы"
+ },
+ {
+  "index": 474,
+  "name": "stopwatch",
+  "cp": 9201,
+  "hex": "023F1",
+  "cat": "Предметы"
+ },
+ {
+  "index": 475,
+  "name": "pizza",
+  "cp": 127829,
+  "hex": "1F355",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 476,
+  "name": "hamburger",
+  "cp": 127828,
+  "hex": "1F354",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 477,
+  "name": "fries",
+  "cp": 127839,
+  "hex": "1F35F",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 478,
+  "name": "hotdog",
+  "cp": 127789,
+  "hex": "1F32D",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 479,
+  "name": "popcorn",
+  "cp": 127871,
+  "hex": "1F37F",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 480,
+  "name": "salt",
+  "cp": 129474,
+  "hex": "1F9C2",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 481,
+  "name": "bacon",
+  "cp": 129363,
+  "hex": "1F953",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 482,
+  "name": "egg",
+  "cp": 129370,
+  "hex": "1F95A",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 483,
+  "name": "cooking",
+  "cp": 127859,
+  "hex": "1F373",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 484,
+  "name": "waffle",
+  "cp": 129479,
+  "hex": "1F9C7",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 485,
+  "name": "pancakes",
+  "cp": 129374,
+  "hex": "1F95E",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 486,
+  "name": "butter",
+  "cp": 129480,
+  "hex": "1F9C8",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 487,
+  "name": "bread",
+  "cp": 127838,
+  "hex": "1F35E",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 488,
+  "name": "croissant",
+  "cp": 129360,
+  "hex": "1F950",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 489,
+  "name": "pretzel",
+  "cp": 129384,
+  "hex": "1F968",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 490,
+  "name": "bagel",
+  "cp": 129391,
+  "hex": "1F96F",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 491,
+  "name": "sandwich",
+  "cp": 129386,
+  "hex": "1F96A",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 492,
+  "name": "taco",
+  "cp": 127790,
+  "hex": "1F32E",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 493,
+  "name": "burrito",
+  "cp": 127791,
+  "hex": "1F32F",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 494,
+  "name": "dumpling",
+  "cp": 129375,
+  "hex": "1F95F",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 495,
+  "name": "bento",
+  "cp": 127857,
+  "hex": "1F371",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 496,
+  "name": "rice_ball",
+  "cp": 127833,
+  "hex": "1F359",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 497,
+  "name": "rice",
+  "cp": 127834,
+  "hex": "1F35A",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 498,
+  "name": "curry",
+  "cp": 127835,
+  "hex": "1F35B",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 499,
+  "name": "ramen",
+  "cp": 127836,
+  "hex": "1F35C",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 500,
+  "name": "oyster",
+  "cp": 129450,
+  "hex": "1F9AA",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 501,
+  "name": "sushi",
+  "cp": 127843,
+  "hex": "1F363",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 502,
+  "name": "fish_cake",
+  "cp": 127845,
+  "hex": "1F365",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 503,
+  "name": "moon_cake",
+  "cp": 129390,
+  "hex": "1F96E",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 504,
+  "name": "oden",
+  "cp": 127842,
+  "hex": "1F362",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 505,
+  "name": "falafel",
+  "cp": 129478,
+  "hex": "1F9C6",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 506,
+  "name": "stew",
+  "cp": 127858,
+  "hex": "1F372",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 507,
+  "name": "spaghetti",
+  "cp": 127837,
+  "hex": "1F35D",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 508,
+  "name": "pie",
+  "cp": 129383,
+  "hex": "1F967",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 509,
+  "name": "icecream",
+  "cp": 127846,
+  "hex": "1F366",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 510,
+  "name": "shaved_ice",
+  "cp": 127847,
+  "hex": "1F367",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 511,
+  "name": "ice_cream",
+  "cp": 127848,
+  "hex": "1F368",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 512,
+  "name": "doughnut",
+  "cp": 127849,
+  "hex": "1F369",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 513,
+  "name": "cookie",
+  "cp": 127850,
+  "hex": "1F36A",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 514,
+  "name": "birthday",
+  "cp": 127874,
+  "hex": "1F382",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 515,
+  "name": "cake",
+  "cp": 127856,
+  "hex": "1F370",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 516,
+  "name": "cupcake",
+  "cp": 129473,
+  "hex": "1F9C1",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 517,
+  "name": "candy",
+  "cp": 127852,
+  "hex": "1F36C",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 518,
+  "name": "lollipop",
+  "cp": 127853,
+  "hex": "1F36D",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 519,
+  "name": "dango",
+  "cp": 127841,
+  "hex": "1F361",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 520,
+  "name": "custard",
+  "cp": 127854,
+  "hex": "1F36E",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 521,
+  "name": "honey_pot",
+  "cp": 127855,
+  "hex": "1F36F",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 522,
+  "name": "coffee",
+  "cp": 9749,
+  "hex": "02615",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 523,
+  "name": "tea",
+  "cp": 127861,
+  "hex": "1F375",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 524,
+  "name": "mate",
+  "cp": 129481,
+  "hex": "1F9C9",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 525,
+  "name": "sake",
+  "cp": 127862,
+  "hex": "1F376",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 526,
+  "name": "champagne",
+  "cp": 127870,
+  "hex": "1F37E",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 527,
+  "name": "wine_glass",
+  "cp": 127863,
+  "hex": "1F377",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 528,
+  "name": "cocktail",
+  "cp": 127864,
+  "hex": "1F378",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 529,
+  "name": "beer",
+  "cp": 127866,
+  "hex": "1F37A",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 530,
+  "name": "beers",
+  "cp": 127867,
+  "hex": "1F37B",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 531,
+  "name": "ice",
+  "cp": 129482,
+  "hex": "1F9CA",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 532,
+  "name": "chopsticks",
+  "cp": 129378,
+  "hex": "1F962",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 533,
+  "name": "spoon",
+  "cp": 129348,
+  "hex": "1F944",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 534,
+  "name": "amphora",
+  "cp": 127994,
+  "hex": "1F3FA",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 535,
+  "name": "kiwi",
+  "cp": 129373,
+  "hex": "1F95D",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 536,
+  "name": "coconut",
+  "cp": 129381,
+  "hex": "1F965",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 537,
+  "name": "grapes",
+  "cp": 127815,
+  "hex": "1F347",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 538,
+  "name": "melon",
+  "cp": 127816,
+  "hex": "1F348",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 539,
+  "name": "watermelon",
+  "cp": 127817,
+  "hex": "1F349",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 540,
+  "name": "tangerine",
+  "cp": 127818,
+  "hex": "1F34A",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 541,
+  "name": "lemon",
+  "cp": 127819,
+  "hex": "1F34B",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 542,
+  "name": "banana",
+  "cp": 127820,
+  "hex": "1F34C",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 543,
+  "name": "pineapple",
+  "cp": 127821,
+  "hex": "1F34D",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 544,
+  "name": "mango",
+  "cp": 129389,
+  "hex": "1F96D",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 545,
+  "name": "apple",
+  "cp": 127822,
+  "hex": "1F34E",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 546,
+  "name": "pear",
+  "cp": 127824,
+  "hex": "1F350",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 547,
+  "name": "peach",
+  "cp": 127825,
+  "hex": "1F351",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 548,
+  "name": "cherries",
+  "cp": 127826,
+  "hex": "1F352",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 549,
+  "name": "strawberry",
+  "cp": 127827,
+  "hex": "1F353",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 550,
+  "name": "tomato",
+  "cp": 127813,
+  "hex": "1F345",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 551,
+  "name": "eggplant",
+  "cp": 127814,
+  "hex": "1F346",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 552,
+  "name": "corn",
+  "cp": 127805,
+  "hex": "1F33D",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 553,
+  "name": "pepper",
+  "cp": 127798,
+  "hex": "1F336",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 554,
+  "name": "mushroom",
+  "cp": 127812,
+  "hex": "1F344",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 555,
+  "name": "avocado",
+  "cp": 129361,
+  "hex": "1F951",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 556,
+  "name": "cucumber",
+  "cp": 129362,
+  "hex": "1F952",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 557,
+  "name": "broccoli",
+  "cp": 129382,
+  "hex": "1F966",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 558,
+  "name": "potato",
+  "cp": 129364,
+  "hex": "1F954",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 559,
+  "name": "garlic",
+  "cp": 129476,
+  "hex": "1F9C4",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 560,
+  "name": "onion",
+  "cp": 129477,
+  "hex": "1F9C5",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 561,
+  "name": "carrot",
+  "cp": 129365,
+  "hex": "1F955",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 562,
+  "name": "chestnut",
+  "cp": 127792,
+  "hex": "1F330",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 563,
+  "name": "peanuts",
+  "cp": 129372,
+  "hex": "1F95C",
+  "cat": "Еда и напитки"
+ },
+ {
+  "index": 564,
+  "name": "bouquet",
+  "cp": 128144,
+  "hex": "1F490",
+  "cat": "Растения"
+ },
+ {
+  "index": 565,
+  "name": "rosette",
+  "cp": 127989,
+  "hex": "1F3F5",
+  "cat": "Растения"
+ },
+ {
+  "index": 566,
+  "name": "rose",
+  "cp": 127801,
+  "hex": "1F339",
+  "cat": "Растения"
+ },
+ {
+  "index": 567,
+  "name": "hibiscus",
+  "cp": 127802,
+  "hex": "1F33A",
+  "cat": "Растения"
+ },
+ {
+  "index": 568,
+  "name": "sunflower",
+  "cp": 127803,
+  "hex": "1F33B",
+  "cat": "Растения"
+ },
+ {
+  "index": 569,
+  "name": "blossom",
+  "cp": 127804,
+  "hex": "1F33C",
+  "cat": "Растения"
+ },
+ {
+  "index": 570,
+  "name": "tulip",
+  "cp": 127799,
+  "hex": "1F337",
+  "cat": "Растения"
+ },
+ {
+  "index": 571,
+  "name": "shamrock",
+  "cp": 9752,
+  "hex": "02618",
+  "cat": "Растения"
+ },
+ {
+  "index": 572,
+  "name": "seedling",
+  "cp": 127793,
+  "hex": "1F331",
+  "cat": "Растения"
+ },
+ {
+  "index": 573,
+  "name": "palm_tree",
+  "cp": 127796,
+  "hex": "1F334",
+  "cat": "Растения"
+ },
+ {
+  "index": 574,
+  "name": "cactus",
+  "cp": 127797,
+  "hex": "1F335",
+  "cat": "Растения"
+ },
+ {
+  "index": 575,
+  "name": "herb",
+  "cp": 127807,
+  "hex": "1F33F",
+  "cat": "Растения"
+ },
+ {
+  "index": 576,
+  "name": "maple_leaf",
+  "cp": 127809,
+  "hex": "1F341",
+  "cat": "Растения"
+ },
+ {
+  "index": 577,
+  "name": "leaves",
+  "cp": 127811,
+  "hex": "1F343",
+  "cat": "Растения"
+ },
+ {
+  "index": 578,
+  "name": "automobile",
+  "cp": 128663,
+  "hex": "1F697",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 579,
+  "name": "police_car",
+  "cp": 128659,
+  "hex": "1F693",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 580,
+  "name": "taxi",
+  "cp": 128661,
+  "hex": "1F695",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 581,
+  "name": "blue_car",
+  "cp": 128665,
+  "hex": "1F699",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 582,
+  "name": "bus",
+  "cp": 128652,
+  "hex": "1F68C",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 583,
+  "name": "minibus",
+  "cp": 128656,
+  "hex": "1F690",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 584,
+  "name": "trolleybus",
+  "cp": 128654,
+  "hex": "1F68E",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 585,
+  "name": "ambulance",
+  "cp": 128657,
+  "hex": "1F691",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 586,
+  "name": "truck",
+  "cp": 128666,
+  "hex": "1F69A",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 587,
+  "name": "tractor",
+  "cp": 128668,
+  "hex": "1F69C",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 588,
+  "name": "skateboard",
+  "cp": 128761,
+  "hex": "1F6F9",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 589,
+  "name": "bike",
+  "cp": 128690,
+  "hex": "1F6B2",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 590,
+  "name": "motorcycle",
+  "cp": 127949,
+  "hex": "1F3CD",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 591,
+  "name": "racing_car",
+  "cp": 127950,
+  "hex": "1F3CE",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 592,
+  "name": "light_rail",
+  "cp": 128648,
+  "hex": "1F688",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 593,
+  "name": "monorail",
+  "cp": 128669,
+  "hex": "1F69D",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 594,
+  "name": "train",
+  "cp": 128651,
+  "hex": "1F68B",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 595,
+  "name": "train2",
+  "cp": 128646,
+  "hex": "1F686",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 596,
+  "name": "station",
+  "cp": 128649,
+  "hex": "1F689",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 597,
+  "name": "tram",
+  "cp": 128650,
+  "hex": "1F68A",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 598,
+  "name": "metro",
+  "cp": 128647,
+  "hex": "1F687",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 599,
+  "name": "parachute",
+  "cp": 129666,
+  "hex": "1FA82",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 600,
+  "name": "airplane",
+  "cp": 9992,
+  "hex": "02708",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 601,
+  "name": "seat",
+  "cp": 128186,
+  "hex": "1F4BA",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 602,
+  "name": "helicopter",
+  "cp": 128641,
+  "hex": "1F681",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 603,
+  "name": "rocket",
+  "cp": 128640,
+  "hex": "1F680",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 604,
+  "name": "sailboat",
+  "cp": 9973,
+  "hex": "026F5",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 605,
+  "name": "speedboat",
+  "cp": 128676,
+  "hex": "1F6A4",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 606,
+  "name": "motor_boat",
+  "cp": 128741,
+  "hex": "1F6E5",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 607,
+  "name": "ferry",
+  "cp": 9972,
+  "hex": "026F4",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 608,
+  "name": "ship",
+  "cp": 128674,
+  "hex": "1F6A2",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 609,
+  "name": "anchor",
+  "cp": 9875,
+  "hex": "02693",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 610,
+  "name": "busstop",
+  "cp": 128655,
+  "hex": "1F68F",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 611,
+  "name": "fuelpump",
+  "cp": 9981,
+  "hex": "026FD",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 612,
+  "name": "flag_white",
+  "cp": 127987,
+  "hex": "1F3F3",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 613,
+  "name": "flag_black",
+  "cp": 127988,
+  "hex": "1F3F4",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 614,
+  "name": "red_flag",
+  "cp": 128681,
+  "hex": "1F6A9",
+  "cat": "Транспорт"
+ },
+ {
+  "index": 615,
+  "name": "milky_way",
+  "cp": 127756,
+  "hex": "1F30C",
+  "cat": "Места"
+ },
+ {
+  "index": 616,
+  "name": "earth_asia",
+  "cp": 127759,
+  "hex": "1F30F",
+  "cat": "Места"
+ },
+ {
+  "index": 617,
+  "name": "world_map",
+  "cp": 128506,
+  "hex": "1F5FA",
+  "cat": "Места"
+ },
+ {
+  "index": 618,
+  "name": "compass",
+  "cp": 129517,
+  "hex": "1F9ED",
+  "cat": "Места"
+ },
+ {
+  "index": 619,
+  "name": "mountain",
+  "cp": 9968,
+  "hex": "026F0",
+  "cat": "Места"
+ },
+ {
+  "index": 620,
+  "name": "volcano",
+  "cp": 127755,
+  "hex": "1F30B",
+  "cat": "Места"
+ },
+ {
+  "index": 621,
+  "name": "fuji",
+  "cp": 128507,
+  "hex": "1F5FB",
+  "cat": "Места"
+ },
+ {
+  "index": 622,
+  "name": "camping",
+  "cp": 127957,
+  "hex": "1F3D5",
+  "cat": "Места"
+ },
+ {
+  "index": 623,
+  "name": "motorway",
+  "cp": 128739,
+  "hex": "1F6E3",
+  "cat": "Места"
+ },
+ {
+  "index": 624,
+  "name": "desert",
+  "cp": 127964,
+  "hex": "1F3DC",
+  "cat": "Места"
+ },
+ {
+  "index": 625,
+  "name": "stadium",
+  "cp": 127967,
+  "hex": "1F3DF",
+  "cat": "Места"
+ },
+ {
+  "index": 626,
+  "name": "houses",
+  "cp": 127960,
+  "hex": "1F3D8",
+  "cat": "Места"
+ },
+ {
+  "index": 627,
+  "name": "cityscape",
+  "cp": 127961,
+  "hex": "1F3D9",
+  "cat": "Места"
+ },
+ {
+  "index": 628,
+  "name": "house",
+  "cp": 127968,
+  "hex": "1F3E0",
+  "cat": "Места"
+ },
+ {
+  "index": 629,
+  "name": "church",
+  "cp": 9962,
+  "hex": "026EA",
+  "cat": "Места"
+ },
+ {
+  "index": 630,
+  "name": "kaaba",
+  "cp": 128331,
+  "hex": "1F54B",
+  "cat": "Места"
+ },
+ {
+  "index": 631,
+  "name": "mosque",
+  "cp": 128332,
+  "hex": "1F54C",
+  "cat": "Места"
+ },
+ {
+  "index": 632,
+  "name": "synagogue",
+  "cp": 128333,
+  "hex": "1F54D",
+  "cat": "Места"
+ },
+ {
+  "index": 633,
+  "name": "office",
+  "cp": 127970,
+  "hex": "1F3E2",
+  "cat": "Места"
+ },
+ {
+  "index": 634,
+  "name": "hospital",
+  "cp": 127973,
+  "hex": "1F3E5",
+  "cat": "Места"
+ },
+ {
+  "index": 635,
+  "name": "bank",
+  "cp": 127974,
+  "hex": "1F3E6",
+  "cat": "Места"
+ },
+ {
+  "index": 636,
+  "name": "hotel",
+  "cp": 127976,
+  "hex": "1F3E8",
+  "cat": "Места"
+ },
+ {
+  "index": 637,
+  "name": "school",
+  "cp": 127979,
+  "hex": "1F3EB",
+  "cat": "Места"
+ },
+ {
+  "index": 638,
+  "name": "factory",
+  "cp": 127981,
+  "hex": "1F3ED",
+  "cat": "Места"
+ },
+ {
+  "index": 639,
+  "name": "wedding",
+  "cp": 128146,
+  "hex": "1F492",
+  "cat": "Места"
+ },
+ {
+  "index": 640,
+  "name": "japan",
+  "cp": 128510,
+  "hex": "1F5FE",
+  "cat": "Места"
+ },
+ {
+  "index": 641,
+  "name": "fountain",
+  "cp": 9970,
+  "hex": "026F2",
+  "cat": "Места"
+ },
+ {
+  "index": 642,
+  "name": "tent",
+  "cp": 9978,
+  "hex": "026FA",
+  "cat": "Места"
+ },
+ {
+  "index": 643,
+  "name": "foggy",
+  "cp": 127745,
+  "hex": "1F301",
+  "cat": "Места"
+ },
+ {
+  "index": 644,
+  "name": "sunrise",
+  "cp": 127749,
+  "hex": "1F305",
+  "cat": "Места"
+ },
+ {
+  "index": 645,
+  "name": "hotsprings",
+  "cp": 9832,
+  "hex": "02668",
+  "cat": "Места"
+ },
+ {
+  "index": 646,
+  "name": "barber",
+  "cp": 128136,
+  "hex": "1F488",
+  "cat": "Места"
+ },
+ {
+  "index": 647,
+  "name": "luggage",
+  "cp": 129523,
+  "hex": "1F9F3",
+  "cat": "Места"
+ },
+ {
+  "index": 648,
+  "name": "chair",
+  "cp": 129681,
+  "hex": "1FA91",
+  "cat": "Места"
+ },
+ {
+  "index": 649,
+  "name": "door",
+  "cp": 128682,
+  "hex": "1F6AA",
+  "cat": "Места"
+ },
+ {
+  "index": 650,
+  "name": "bed",
+  "cp": 128719,
+  "hex": "1F6CF",
+  "cat": "Места"
+ },
+ {
+  "index": 651,
+  "name": "toilet",
+  "cp": 128701,
+  "hex": "1F6BD",
+  "cat": "Места"
+ },
+ {
+  "index": 652,
+  "name": "shower",
+  "cp": 128703,
+  "hex": "1F6BF",
+  "cat": "Места"
+ },
+ {
+  "index": 653,
+  "name": "bathtub",
+  "cp": 128705,
+  "hex": "1F6C1",
+  "cat": "Места"
+ },
+ {
+  "index": 654,
+  "name": "soap",
+  "cp": 129532,
+  "hex": "1F9FC",
+  "cat": "Места"
+ },
+ {
+  "index": 655,
+  "name": "sponge",
+  "cp": 129533,
+  "hex": "1F9FD",
+  "cat": "Места"
+ },
+ {
+  "index": 656,
+  "name": "razor",
+  "cp": 129682,
+  "hex": "1FA92",
+  "cat": "Места"
+ },
+ {
+  "index": 657,
+  "name": "safety_pin",
+  "cp": 129527,
+  "hex": "1F9F7",
+  "cat": "Места"
+ },
+ {
+  "index": 658,
+  "name": "broom",
+  "cp": 129529,
+  "hex": "1F9F9",
+  "cat": "Места"
+ },
+ {
+  "index": 659,
+  "name": "basket",
+  "cp": 129530,
+  "hex": "1F9FA",
+  "cat": "Места"
+ },
+ {
+  "index": 660,
+  "name": "cloud",
+  "cp": 9729,
+  "hex": "02601",
+  "cat": "Природа"
+ },
+ {
+  "index": 661,
+  "name": "tornado",
+  "cp": 127786,
+  "hex": "1F32A",
+  "cat": "Природа"
+ },
+ {
+  "index": 662,
+  "name": "fog",
+  "cp": 127787,
+  "hex": "1F32B",
+  "cat": "Природа"
+ },
+ {
+  "index": 663,
+  "name": "new_moon",
+  "cp": 127761,
+  "hex": "1F311",
+  "cat": "Природа"
+ },
+ {
+  "index": 664,
+  "name": "full_moon",
+  "cp": 127765,
+  "hex": "1F315",
+  "cat": "Природа"
+ },
+ {
+  "index": 665,
+  "name": "moon_face",
+  "cp": 127770,
+  "hex": "1F31A",
+  "cat": "Природа"
+ },
+ {
+  "index": 666,
+  "name": "sun",
+  "cp": 9728,
+  "hex": "02600",
+  "cat": "Природа"
+ },
+ {
+  "index": 667,
+  "name": "sun_face",
+  "cp": 127774,
+  "hex": "1F31E",
+  "cat": "Природа"
+ },
+ {
+  "index": 668,
+  "name": "star2",
+  "cp": 127775,
+  "hex": "1F31F",
+  "cat": "Природа"
+ },
+ {
+  "index": 669,
+  "name": "stars",
+  "cp": 127776,
+  "hex": "1F320",
+  "cat": "Природа"
+ },
+ {
+  "index": 670,
+  "name": "comet",
+  "cp": 9732,
+  "hex": "02604",
+  "cat": "Природа"
+ },
+ {
+  "index": 671,
+  "name": "cyclone",
+  "cp": 127744,
+  "hex": "1F300",
+  "cat": "Природа"
+ },
+ {
+  "index": 672,
+  "name": "rainbow",
+  "cp": 127752,
+  "hex": "1F308",
+  "cat": "Природа"
+ },
+ {
+  "index": 673,
+  "name": "umbrella",
+  "cp": 9748,
+  "hex": "02614",
+  "cat": "Природа"
+ },
+ {
+  "index": 674,
+  "name": "zap",
+  "cp": 9889,
+  "hex": "026A1",
+  "cat": "Природа"
+ },
+ {
+  "index": 675,
+  "name": "snowflake",
+  "cp": 10052,
+  "hex": "02744",
+  "cat": "Природа"
+ },
+ {
+  "index": 676,
+  "name": "snowman",
+  "cp": 9924,
+  "hex": "026C4",
+  "cat": "Природа"
+ },
+ {
+  "index": 677,
+  "name": "fire",
+  "cp": 128293,
+  "hex": "1F525",
+  "cat": "Природа"
+ },
+ {
+  "index": 678,
+  "name": "droplet",
+  "cp": 128167,
+  "hex": "1F4A7",
+  "cat": "Природа"
+ },
+ {
+  "index": 679,
+  "name": "ocean",
+  "cp": 127754,
+  "hex": "1F30A",
+  "cat": "Природа"
+ },
+ {
+  "index": 680,
+  "name": "two_hearts",
+  "cp": 128149,
+  "hex": "1F495",
+  "cat": "Символы"
+ },
+ {
+  "index": 681,
+  "name": "heartbeat",
+  "cp": 128147,
+  "hex": "1F493",
+  "cat": "Символы"
+ },
+ {
+  "index": 682,
+  "name": "heartpulse",
+  "cp": 128151,
+  "hex": "1F497",
+  "cat": "Символы"
+ },
+ {
+  "index": 683,
+  "name": "cupid",
+  "cp": 128152,
+  "hex": "1F498",
+  "cat": "Символы"
+ },
+ {
+  "index": 684,
+  "name": "gift_heart",
+  "cp": 128157,
+  "hex": "1F49D",
+  "cat": "Символы"
+ },
+ {
+  "index": 685,
+  "name": "anger",
+  "cp": 128162,
+  "hex": "1F4A2",
+  "cat": "Символы"
+ },
+ {
+  "index": 686,
+  "name": "boom",
+  "cp": 128165,
+  "hex": "1F4A5",
+  "cat": "Символы"
+ },
+ {
+  "index": 687,
+  "name": "afk",
+  "cp": 128164,
+  "hex": "1F4A4",
+  "cat": "Символы"
+ },
+ {
+  "index": 688,
+  "name": "dash",
+  "cp": 128168,
+  "hex": "1F4A8",
+  "cat": "Символы"
+ },
+ {
+  "index": 689,
+  "name": "hole",
+  "cp": 128371,
+  "hex": "1F573",
+  "cat": "Символы"
+ },
+ {
+  "index": 690,
+  "name": "peace",
+  "cp": 9774,
+  "hex": "0262E",
+  "cat": "Символы"
+ },
+ {
+  "index": 691,
+  "name": "cross",
+  "cp": 10013,
+  "hex": "0271D",
+  "cat": "Символы"
+ },
+ {
+  "index": 692,
+  "name": "om",
+  "cp": 128329,
+  "hex": "1F549",
+  "cat": "Символы"
+ },
+ {
+  "index": 693,
+  "name": "menorah",
+  "cp": 128334,
+  "hex": "1F54E",
+  "cat": "Символы"
+ },
+ {
+  "index": 694,
+  "name": "yin_yang",
+  "cp": 9775,
+  "hex": "0262F",
+  "cat": "Символы"
+ },
+ {
+  "index": 695,
+  "name": "ophiuchus",
+  "cp": 9934,
+  "hex": "026CE",
+  "cat": "Символы"
+ },
+ {
+  "index": 696,
+  "name": "aries",
+  "cp": 9800,
+  "hex": "02648",
+  "cat": "Символы"
+ },
+ {
+  "index": 697,
+  "name": "taurus",
+  "cp": 9801,
+  "hex": "02649",
+  "cat": "Символы"
+ },
+ {
+  "index": 698,
+  "name": "gemini",
+  "cp": 9802,
+  "hex": "0264A",
+  "cat": "Символы"
+ },
+ {
+  "index": 699,
+  "name": "cancer",
+  "cp": 9803,
+  "hex": "0264B",
+  "cat": "Символы"
+ },
+ {
+  "index": 700,
+  "name": "leo",
+  "cp": 9804,
+  "hex": "0264C",
+  "cat": "Символы"
+ },
+ {
+  "index": 701,
+  "name": "virgo",
+  "cp": 9805,
+  "hex": "0264D",
+  "cat": "Символы"
+ },
+ {
+  "index": 702,
+  "name": "libra",
+  "cp": 9806,
+  "hex": "0264E",
+  "cat": "Символы"
+ },
+ {
+  "index": 703,
+  "name": "scorpius",
+  "cp": 9807,
+  "hex": "0264F",
+  "cat": "Символы"
+ },
+ {
+  "index": 704,
+  "name": "capricorn",
+  "cp": 9809,
+  "hex": "02651",
+  "cat": "Символы"
+ },
+ {
+  "index": 705,
+  "name": "aquarius",
+  "cp": 9810,
+  "hex": "02652",
+  "cat": "Символы"
+ },
+ {
+  "index": 706,
+  "name": "pisces",
+  "cp": 9811,
+  "hex": "02653",
+  "cat": "Символы"
+ },
+ {
+  "index": 707,
+  "name": "id",
+  "cp": 127380,
+  "hex": "1F194",
+  "cat": "Символы"
+ },
+ {
+  "index": 708,
+  "name": "infinity",
+  "cp": 9854,
+  "hex": "0267E",
+  "cat": "Символы"
+ },
+ {
+  "index": 709,
+  "name": "atom",
+  "cp": 9883,
+  "hex": "0269B",
+  "cat": "Символы"
+ },
+ {
+  "index": 710,
+  "name": "vs",
+  "cp": 127386,
+  "hex": "1F19A",
+  "cat": "Символы"
+ },
+ {
+  "index": 711,
+  "name": "cl",
+  "cp": 127377,
+  "hex": "1F191",
+  "cat": "Символы"
+ },
+ {
+  "index": 712,
+  "name": "sos",
+  "cp": 127384,
+  "hex": "1F198",
+  "cat": "Символы"
+ },
+ {
+  "index": 713,
+  "name": "no_entry",
+  "cp": 9940,
+  "hex": "026D4",
+  "cat": "Символы"
+ },
+ {
+  "index": 714,
+  "name": "name_badge",
+  "cp": 128219,
+  "hex": "1F4DB",
+  "cat": "Символы"
+ },
+ {
+  "index": 715,
+  "name": "x",
+  "cp": 10060,
+  "hex": "0274C",
+  "cat": "Символы"
+ },
+ {
+  "index": 716,
+  "name": "mute",
+  "cp": 128263,
+  "hex": "1F507",
+  "cat": "Символы"
+ },
+ {
+  "index": 717,
+  "name": "no_bell",
+  "cp": 128277,
+  "hex": "1F515",
+  "cat": "Символы"
+ },
+ {
+  "index": 718,
+  "name": "trident",
+  "cp": 128305,
+  "hex": "1F531",
+  "cat": "Символы"
+ },
+ {
+  "index": 719,
+  "name": "biohazard",
+  "cp": 9763,
+  "hex": "02623",
+  "cat": "Символы"
+ },
+ {
+  "index": 720,
+  "name": "warning",
+  "cp": 9888,
+  "hex": "026A0",
+  "cat": "Символы"
+ },
+ {
+  "index": 721,
+  "name": "beginner",
+  "cp": 128304,
+  "hex": "1F530",
+  "cat": "Символы"
+ },
+ {
+  "index": 722,
+  "name": "recycle",
+  "cp": 9851,
+  "hex": "0267B",
+  "cat": "Символы"
+ },
+ {
+  "index": 723,
+  "name": "chart",
+  "cp": 128185,
+  "hex": "1F4B9",
+  "cat": "Символы"
+ },
+ {
+  "index": 724,
+  "name": "true",
+  "cp": 9989,
+  "hex": "02705",
+  "cat": "Символы"
+ },
+ {
+  "index": 725,
+  "name": "customs",
+  "cp": 128707,
+  "hex": "1F6C3",
+  "cat": "Символы"
+ },
+ {
+  "index": 726,
+  "name": "lua",
+  "cp": 9855,
+  "hex": "0267F",
+  "cat": "Символы"
+ },
+ {
+  "index": 727,
+  "name": "wc",
+  "cp": 128702,
+  "hex": "1F6BE",
+  "cat": "Символы"
+ },
+ {
+  "index": 728,
+  "name": "mens",
+  "cp": 128697,
+  "hex": "1F6B9",
+  "cat": "Символы"
+ },
+ {
+  "index": 729,
+  "name": "restroom",
+  "cp": 128699,
+  "hex": "1F6BB",
+  "cat": "Символы"
+ },
+ {
+  "index": 730,
+  "name": "ng",
+  "cp": 127382,
+  "hex": "1F196",
+  "cat": "Символы"
+ },
+ {
+  "index": 731,
+  "name": "ok2",
+  "cp": 127383,
+  "hex": "1F197",
+  "cat": "Символы"
+ },
+ {
+  "index": 732,
+  "name": "up2",
+  "cp": 127385,
+  "hex": "1F199",
+  "cat": "Символы"
+ },
+ {
+  "index": 733,
+  "name": "cool",
+  "cp": 127378,
+  "hex": "1F192",
+  "cat": "Символы"
+ },
+ {
+  "index": 734,
+  "name": "new",
+  "cp": 127381,
+  "hex": "1F195",
+  "cat": "Символы"
+ },
+ {
+  "index": 735,
+  "name": "free",
+  "cp": 127379,
+  "hex": "1F193",
+  "cat": "Символы"
+ },
+ {
+  "index": 736,
+  "name": "play_pause",
+  "cp": 9199,
+  "hex": "023EF",
+  "cat": "Символы"
+ },
+ {
+  "index": 737,
+  "name": "track_next",
+  "cp": 9197,
+  "hex": "023ED",
+  "cat": "Символы"
+ },
+ {
+  "index": 738,
+  "name": "rewind",
+  "cp": 9194,
+  "hex": "023EA",
+  "cat": "Символы"
+ },
+ {
+  "index": 739,
+  "name": "repeat",
+  "cp": 128257,
+  "hex": "1F501",
+  "cat": "Символы"
+ },
+ {
+  "index": 740,
+  "name": "repeat_one",
+  "cp": 128258,
+  "hex": "1F502",
+  "cat": "Символы"
+ },
+ {
+  "index": 741,
+  "name": "cinema",
+  "cp": 127910,
+  "hex": "1F3A6",
+  "cat": "Символы"
+ },
+ {
+  "index": 742,
+  "name": "abc",
+  "cp": 128292,
+  "hex": "1F524",
+  "cat": "Символы"
+ },
+ {
+  "index": 743,
+  "name": "abcd",
+  "cp": 128289,
+  "hex": "1F521",
+  "cat": "Символы"
+ },
+ {
+  "index": 744,
+  "name": "symbols",
+  "cp": 128291,
+  "hex": "1F523",
+  "cat": "Символы"
+ },
+ {
+  "index": 745,
+  "name": "on",
+  "cp": 128283,
+  "hex": "1F51B",
+  "cat": "Символы"
+ },
+ {
+  "index": 746,
+  "name": "top",
+  "cp": 128285,
+  "hex": "1F51D",
+  "cat": "Символы"
+ },
+ {
+  "index": 747,
+  "name": "soon",
+  "cp": 128284,
+  "hex": "1F51C",
+  "cat": "Символы"
+ },
+ {
+  "index": 748,
+  "name": "end",
+  "cp": 128282,
+  "hex": "1F51A",
+  "cat": "Символы"
+ },
+ {
+  "index": 749,
+  "name": "back",
+  "cp": 128281,
+  "hex": "1F519",
+  "cat": "Символы"
+ },
+ {
+  "index": 750,
+  "name": "cleo",
+  "cp": 129702,
+  "hex": "1FAA6",
+  "cat": "Символы"
+ },
+ {
+  "index": 751,
+  "name": "redcode",
+  "cp": 130048,
+  "hex": "1FC00",
+  "cat": "Сервер"
+ },
+ {
+  "index": 752,
+  "name": "rc",
+  "cp": 130049,
+  "hex": "1FC01",
+  "cat": "Сервер"
+ },
+ {
+  "index": 753,
+  "name": "arz",
+  "cp": 130056,
+  "hex": "1FC08",
+  "cat": "Сервер"
+ },
+ {
+  "index": 754,
+  "name": "az",
+  "cp": 130057,
+  "hex": "1FC09",
+  "cat": "Сервер"
+ },
+ {
+  "index": 755,
+  "name": "ag",
+  "cp": 130058,
+  "hex": "1FC0A",
+  "cat": "Сервер"
+ },
+ {
+  "index": 756,
+  "name": "rodina",
+  "cp": 130059,
+  "hex": "1FC0B",
+  "cat": "Сервер"
+ },
+ {
+  "index": 757,
+  "name": "buy",
+  "cp": 130074,
+  "hex": "1FC1A",
+  "cat": "Сервер"
+ },
+ {
+  "index": 758,
+  "name": "sell",
+  "cp": 130075,
+  "hex": "1FC1B",
+  "cat": "Сервер"
+ },
+ {
+  "index": 759,
+  "name": "rent",
+  "cp": 130076,
+  "hex": "1FC1C",
+  "cat": "Сервер"
+ },
+ {
+  "index": 760,
+  "name": "trade",
+  "cp": 130077,
+  "hex": "1FC1D",
+  "cat": "Сервер"
+ },
+ {
+  "index": 761,
+  "name": "cash",
+  "cp": 130082,
+  "hex": "1FC22",
+  "cat": "Сервер"
+ },
+ {
+  "index": 762,
+  "name": "cashv",
+  "cp": 130083,
+  "hex": "1FC23",
+  "cat": "Сервер"
+ },
+ {
+  "index": 763,
+  "name": "asc",
+  "cp": 130084,
+  "hex": "1FC24",
+  "cat": "Сервер"
+ },
+ {
+  "index": 764,
+  "name": "btc",
+  "cp": 130085,
+  "hex": "1FC25",
+  "cat": "Сервер"
+ },
+ {
+  "index": 765,
+  "name": "info",
+  "cp": 130087,
+  "hex": "1FC27",
+  "cat": "Сервер"
+ },
+ {
+  "index": 766,
+  "name": "yt",
+  "cp": 130100,
+  "hex": "1FC34",
+  "cat": "Сервер"
+ },
+ {
+  "index": 767,
+  "name": "uf230",
+  "cp": 62000,
+  "hex": "0F230",
+  "cat": "Сервер"
+ },
+ {
+  "index": 768,
+  "name": "uf231",
+  "cp": 62001,
+  "hex": "0F231",
+  "cat": "Сервер"
+ },
+ {
+  "index": 769,
+  "name": "uf232",
+  "cp": 62002,
+  "hex": "0F232",
+  "cat": "Сервер"
+ },
+ {
+  "index": 770,
+  "name": "uf233",
+  "cp": 62003,
+  "hex": "0F233",
+  "cat": "Сервер"
+ },
+ {
+  "index": 771,
+  "name": "uf234",
+  "cp": 62004,
+  "hex": "0F234",
+  "cat": "Сервер"
+ },
+ {
+  "index": 772,
+  "name": "uf235",
+  "cp": 62005,
+  "hex": "0F235",
+  "cat": "Сервер"
+ },
+ {
+  "index": 773,
+  "name": "uf236",
+  "cp": 62006,
+  "hex": "0F236",
+  "cat": "Сервер"
+ },
+ {
+  "index": 774,
+  "name": "uf237",
+  "cp": 62007,
+  "hex": "0F237",
+  "cat": "Сервер"
+ },
+ {
+  "index": 775,
+  "name": "uf238",
+  "cp": 62008,
+  "hex": "0F238",
+  "cat": "Сервер"
+ },
+ {
+  "index": 776,
+  "name": "uf239",
+  "cp": 62009,
+  "hex": "0F239",
+  "cat": "Сервер"
+ },
+ {
+  "index": 777,
+  "name": "uf23a",
+  "cp": 62010,
+  "hex": "0F23A",
+  "cat": "Сервер"
+ },
+ {
+  "index": 778,
+  "name": "uf23b",
+  "cp": 62011,
+  "hex": "0F23B",
+  "cat": "Сервер"
+ },
+ {
+  "index": 779,
+  "name": "uf23c",
+  "cp": 62012,
+  "hex": "0F23C",
+  "cat": "Сервер"
+ },
+ {
+  "index": 780,
+  "name": "vc",
+  "cp": 62052,
+  "hex": "0F264",
+  "cat": "Сервер"
+ },
+ {
+  "index": 781,
+  "name": "k",
+  "cp": 62053,
+  "hex": "0F265",
+  "cat": "Сервер"
+ },
+ {
+  "index": 782,
+  "name": "kk",
+  "cp": 62054,
+  "hex": "0F266",
+  "cat": "Сервер"
+ },
+ {
+  "index": 783,
+  "name": "kkk",
+  "cp": 62055,
+  "hex": "0F267",
+  "cat": "Сервер"
+ },
+ {
+  "index": 784,
+  "name": "m",
+  "cp": 62055,
+  "hex": "0F267",
+  "cat": "Сервер"
+ },
+ {
+  "index": 785,
+  "name": "kv",
+  "cp": 62056,
+  "hex": "0F268",
+  "cat": "Сервер"
+ },
+ {
+  "index": 786,
+  "name": "kkv",
+  "cp": 62057,
+  "hex": "0F269",
+  "cat": "Сервер"
+ },
+ {
+  "index": 787,
+  "name": "kkkv",
+  "cp": 62058,
+  "hex": "0F26A",
+  "cat": "Сервер"
+ },
+ {
+  "index": 788,
+  "name": "mv",
+  "cp": 62058,
+  "hex": "0F26A",
+  "cat": "Сервер"
+ },
+ {
+  "index": 789,
+  "name": "la",
+  "cp": 127462,
+  "hex": "1F1E6",
+  "cat": "Буквы"
+ },
+ {
+  "index": 790,
+  "name": "lb",
+  "cp": 127463,
+  "hex": "1F1E7",
+  "cat": "Буквы"
+ },
+ {
+  "index": 791,
+  "name": "lc",
+  "cp": 127464,
+  "hex": "1F1E8",
+  "cat": "Буквы"
+ },
+ {
+  "index": 792,
+  "name": "ld",
+  "cp": 127465,
+  "hex": "1F1E9",
+  "cat": "Буквы"
+ },
+ {
+  "index": 793,
+  "name": "le",
+  "cp": 127466,
+  "hex": "1F1EA",
+  "cat": "Буквы"
+ },
+ {
+  "index": 794,
+  "name": "lf",
+  "cp": 127467,
+  "hex": "1F1EB",
+  "cat": "Буквы"
+ },
+ {
+  "index": 795,
+  "name": "lg",
+  "cp": 127468,
+  "hex": "1F1EC",
+  "cat": "Буквы"
+ },
+ {
+  "index": 796,
+  "name": "lh",
+  "cp": 127469,
+  "hex": "1F1ED",
+  "cat": "Буквы"
+ },
+ {
+  "index": 797,
+  "name": "li",
+  "cp": 127470,
+  "hex": "1F1EE",
+  "cat": "Буквы"
+ },
+ {
+  "index": 798,
+  "name": "lj",
+  "cp": 127471,
+  "hex": "1F1EF",
+  "cat": "Буквы"
+ },
+ {
+  "index": 799,
+  "name": "lk",
+  "cp": 127472,
+  "hex": "1F1F0",
+  "cat": "Буквы"
+ },
+ {
+  "index": 800,
+  "name": "ll",
+  "cp": 127473,
+  "hex": "1F1F1",
+  "cat": "Буквы"
+ },
+ {
+  "index": 801,
+  "name": "lm",
+  "cp": 127474,
+  "hex": "1F1F2",
+  "cat": "Буквы"
+ },
+ {
+  "index": 802,
+  "name": "ln",
+  "cp": 127475,
+  "hex": "1F1F3",
+  "cat": "Буквы"
+ },
+ {
+  "index": 803,
+  "name": "lo",
+  "cp": 127476,
+  "hex": "1F1F4",
+  "cat": "Буквы"
+ },
+ {
+  "index": 804,
+  "name": "lp",
+  "cp": 127477,
+  "hex": "1F1F5",
+  "cat": "Буквы"
+ },
+ {
+  "index": 805,
+  "name": "lq",
+  "cp": 127478,
+  "hex": "1F1F6",
+  "cat": "Буквы"
+ },
+ {
+  "index": 806,
+  "name": "lr",
+  "cp": 127479,
+  "hex": "1F1F7",
+  "cat": "Буквы"
+ },
+ {
+  "index": 807,
+  "name": "ls",
+  "cp": 127480,
+  "hex": "1F1F8",
+  "cat": "Буквы"
+ },
+ {
+  "index": 808,
+  "name": "lt",
+  "cp": 127481,
+  "hex": "1F1F9",
+  "cat": "Буквы"
+ },
+ {
+  "index": 809,
+  "name": "lu",
+  "cp": 127482,
+  "hex": "1F1FA",
+  "cat": "Буквы"
+ },
+ {
+  "index": 810,
+  "name": "lv",
+  "cp": 127483,
+  "hex": "1F1FB",
+  "cat": "Буквы"
+ },
+ {
+  "index": 811,
+  "name": "lw",
+  "cp": 127484,
+  "hex": "1F1FC",
+  "cat": "Буквы"
+ },
+ {
+  "index": 812,
+  "name": "lx",
+  "cp": 127485,
+  "hex": "1F1FD",
+  "cat": "Буквы"
+ },
+ {
+  "index": 813,
+  "name": "ly",
+  "cp": 127486,
+  "hex": "1F1FE",
+  "cat": "Буквы"
+ },
+ {
+  "index": 814,
+  "name": "lz",
+  "cp": 127487,
+  "hex": "1F1FF",
+  "cat": "Буквы"
+ },
+ {
+  "index": 815,
+  "name": "na",
+  "cp": 130064,
+  "hex": "1FC10",
+  "cat": "Буквы"
+ },
+ {
+  "index": 816,
+  "name": "nb",
+  "cp": 130065,
+  "hex": "1FC11",
+  "cat": "Буквы"
+ },
+ {
+  "index": 817,
+  "name": "nc",
+  "cp": 130066,
+  "hex": "1FC12",
+  "cat": "Буквы"
+ },
+ {
+  "index": 818,
+  "name": "nd",
+  "cp": 130067,
+  "hex": "1FC13",
+  "cat": "Буквы"
+ },
+ {
+  "index": 819,
+  "name": "ne",
+  "cp": 130068,
+  "hex": "1FC14",
+  "cat": "Буквы"
+ },
+ {
+  "index": 820,
+  "name": "nf",
+  "cp": 130069,
+  "hex": "1FC15",
+  "cat": "Буквы"
+ },
+ {
+  "index": 821,
+  "name": "ng",
+  "cp": 130070,
+  "hex": "1FC16",
+  "cat": "Буквы"
+ },
+ {
+  "index": 822,
+  "name": "nh",
+  "cp": 130071,
+  "hex": "1FC17",
+  "cat": "Буквы"
+ },
+ {
+  "index": 823,
+  "name": "ni",
+  "cp": 130072,
+  "hex": "1FC18",
+  "cat": "Буквы"
+ },
+ {
+  "index": 824,
+  "name": "nj",
+  "cp": 130073,
+  "hex": "1FC19",
+  "cat": "Буквы"
+ }
+]

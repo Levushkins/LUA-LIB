@@ -1,0 +1,378 @@
+-- chat_emoji.lua — смайлы из _chat.asi (Arizona Games) для mimgui.
+--
+-- Почему через текстуру, а не через шрифт:
+--   mimgui собран со stb_truetype и 16-битным ImWchar. stb_truetype не умеет
+--   цветные глифы (COLR/CPAL и SVG — а именно так устроены Segoe UI Emoji и
+--   icons.ttf из _chat.asi), а 16-битный ImWchar физически не может хранить
+--   кодовые точки выше U+FFFF, где и живут почти все смайлы (U+1F300+).
+--   Поэтому смайлы заранее растеризуются в один PNG-атлас
+--   (tools/build_emoji_atlas.py), а здесь он грузится как текстура D3D9
+--   и рисуется через imgui.Image с нужными UV.
+--
+-- Установка:
+--   moonloader/lib/chat_emoji.lua
+--   moonloader/resource/chat_emoji/chat_emoji.png
+--   moonloader/resource/chat_emoji/chat_emoji_atlas.lua
+--
+-- Использование:
+--   local emoji = require 'chat_emoji'
+--   imgui.OnInitialize(function() emoji.load() end)
+--   ...
+--   emoji.image('smiley', 24)
+--   emoji.text('привет :u1f603: как дела')
+--   local picked = emoji.picker('emj', 24)
+--   if picked then sampSendChat(emoji.encode(picked)) end
+
+local ffi = require 'ffi'
+local imgui = require 'mimgui'
+
+local emoji = {}
+
+emoji.loaded = false
+emoji.texture = nil
+emoji.atlas = nil
+emoji.list = {}          -- массив записей в порядке из чата
+emoji.byName = {}        -- name -> запись
+emoji.byCp = {}          -- codepoint -> запись
+emoji.categories = {}    -- { { name = 'Смайлы', items = { ... } }, ... }
+
+-- Токен смайла в тексте чата: :u1f603: (шестнадцатеричная кодовая точка).
+emoji.PATTERN = ':u(%x+):'
+
+--------------------------------------------------------------------------
+-- Загрузка текстуры через D3DX
+--------------------------------------------------------------------------
+
+ffi.cdef [[
+    long __stdcall D3DXCreateTextureFromFileInMemoryEx(
+        void* pDevice, const void* pSrcData, unsigned int SrcDataSize,
+        unsigned int Width, unsigned int Height, unsigned int MipLevels,
+        unsigned long Usage, unsigned int Format, unsigned int Pool,
+        unsigned long Filter, unsigned long MipFilter, unsigned long ColorKey,
+        void* pSrcInfo, void* pPalette, void** ppTexture);
+]]
+
+local D3DFMT_A8R8G8B8 = 21
+local D3DPOOL_MANAGED = 1   -- переживает device reset, ничего пересоздавать не надо
+local D3DX_FILTER_NONE = 1
+
+local d3dx = nil
+local function loadD3DX()
+    if d3dx then return d3dx end
+    -- разные системы несут разные версии d3dx9_XX.dll
+    for v = 43, 24, -1 do
+        local ok, lib = pcall(ffi.load, 'd3dx9_' .. v)
+        if ok then d3dx = lib return d3dx end
+    end
+    local ok, lib = pcall(ffi.load, 'd3dx9')
+    if ok then d3dx = lib return d3dx end
+    return nil
+end
+
+local function createTexture(pngData)
+    local lib = loadD3DX()
+    if not lib then
+        return nil, 'не найдена d3dx9_xx.dll (поставьте DirectX 9 runtime)'
+    end
+    local device = ffi.cast('void*', getD3DDevicePtr())
+    if device == nil then return nil, 'getD3DDevicePtr() вернул 0' end
+
+    local out = ffi.new('void*[1]')
+    local hr = lib.D3DXCreateTextureFromFileInMemoryEx(
+        device, pngData, #pngData,
+        0xFFFFFFFE,             -- D3DX_DEFAULT_NONPOW2: не менять размер
+        0xFFFFFFFE,
+        1,                      -- без mip-уровней
+        0,
+        D3DFMT_A8R8G8B8,
+        D3DPOOL_MANAGED,
+        D3DX_FILTER_NONE,
+        D3DX_FILTER_NONE,
+        0,
+        nil, nil, out)
+    if hr ~= 0 or out[0] == nil then
+        return nil, ('D3DXCreateTextureFromFileInMemoryEx: 0x%08X'):format(hr)
+    end
+    return out[0]
+end
+
+--------------------------------------------------------------------------
+-- Загрузка атласа
+--------------------------------------------------------------------------
+
+local function defaultDir()
+    return getWorkingDirectory() .. '\\resource\\chat_emoji\\'
+end
+
+--- Загружает описание атласа и текстуру. Вызывать из imgui.OnInitialize.
+-- @param dir каталог с chat_emoji_atlas.lua и chat_emoji.png (необязательно)
+-- @return true либо false, текст ошибки
+function emoji.load(dir)
+    if emoji.loaded then return true end
+    dir = dir or defaultDir()
+
+    local descPath = dir .. 'chat_emoji_atlas.lua'
+    local chunk, err = loadfile(descPath)
+    if not chunk then return false, 'не читается ' .. descPath .. ': ' .. tostring(err) end
+    local ok, atlas = pcall(chunk)
+    if not ok or type(atlas) ~= 'table' then
+        return false, 'повреждён ' .. descPath
+    end
+
+    local pngPath = dir .. atlas.file
+    local f = io.open(pngPath, 'rb')
+    if not f then return false, 'не найден ' .. pngPath end
+    local png = f:read('*a')
+    f:close()
+
+    local tex, terr = createTexture(png)
+    if not tex then return false, terr end
+
+    emoji.texture = tex
+    emoji.build(atlas)
+    return true
+end
+
+--- Строит таблицы поиска и UV по описанию атласа.
+--- Вынесено отдельно, чтобы это можно было прогнать без игры и без D3D
+--- (см. tools/test_chat_emoji.lua).
+function emoji.build(atlas)
+    emoji.atlas = atlas
+    emoji.list, emoji.byName, emoji.byCp, emoji.categories = {}, {}, {}, {}
+
+    local catIndex = {}
+    for i, row in ipairs(atlas.emoji) do
+        local name, cp, cat, slot = row[1], row[2], row[3], row[4]
+        local col = slot % atlas.cols
+        local line = math.floor(slot / atlas.cols)
+        local e = {
+            name = name,
+            cp = cp,
+            cat = cat,
+            slot = slot,
+            index = i,
+            token = (':u%x:'):format(cp),
+            uv0 = imgui.ImVec2(col * atlas.cell / atlas.width,
+                               line * atlas.cell / atlas.height),
+            uv1 = imgui.ImVec2((col + 1) * atlas.cell / atlas.width,
+                               (line + 1) * atlas.cell / atlas.height),
+        }
+        emoji.list[i] = e
+        -- имена в таблице чата не уникальны (kkk/m, kkkv/mv), первый выигрывает
+        if not emoji.byName[name] then emoji.byName[name] = e end
+        if not emoji.byCp[cp] then emoji.byCp[cp] = e end
+
+        local c = catIndex[cat]
+        if not c then
+            c = { name = cat, items = {} }
+            catIndex[cat] = c
+            emoji.categories[#emoji.categories + 1] = c
+        end
+        c.items[#c.items + 1] = e
+    end
+
+    emoji.loaded = true
+    return true
+end
+
+--- Освобождает текстуру. Вызывать при выгрузке скрипта.
+function emoji.unload()
+    if emoji.texture ~= nil then
+        -- IDirect3DTexture9::Release — третий метод в vtable
+        local vtbl = ffi.cast('void***', emoji.texture)[0]
+        local release = ffi.cast('unsigned long(__stdcall*)(void*)', vtbl[2])
+        release(emoji.texture)
+        emoji.texture = nil
+    end
+    emoji.loaded = false
+end
+
+--------------------------------------------------------------------------
+-- Доступ к записям
+--------------------------------------------------------------------------
+
+--- Находит смайл по имени ('smiley'), кодовой точке (0x1F603),
+--- токену (':u1f603:') или возвращает уже готовую запись.
+function emoji.get(key)
+    if type(key) == 'table' then return key end
+    if type(key) == 'number' then return emoji.byCp[key] end
+    if type(key) == 'string' then
+        local hex = key:match('^' .. emoji.PATTERN .. '$')
+        if hex then return emoji.byCp[tonumber(hex, 16)] end
+        return emoji.byName[key]
+    end
+    return nil
+end
+
+--- Токен для вставки в чат: emoji.encode('smiley') -> ':u1f603:'
+function emoji.encode(key)
+    local e = emoji.get(key)
+    return e and e.token or ''
+end
+
+--------------------------------------------------------------------------
+-- Отрисовка
+--------------------------------------------------------------------------
+
+local WHITE = 0xFFFFFFFF
+
+local function styleColor(col)
+    return imgui.ColorConvertFloat4ToU32(imgui.GetStyle().Colors[col])
+end
+
+--- Рисует смайл как картинку.
+-- @return true, если смайл найден и нарисован
+function emoji.image(key, size)
+    local e = emoji.get(key)
+    size = size or imgui.GetFontSize()
+    if not e or not emoji.loaded then
+        imgui.Dummy(imgui.ImVec2(size, size))
+        return false
+    end
+    imgui.Image(emoji.texture, imgui.ImVec2(size, size), e.uv0, e.uv1)
+    return true
+end
+
+--- Кнопка со смайлом.
+--- Сделана на InvisibleButton + draw list, а не на ImageButton: у всех кнопок
+--- одна и та же текстура, а ImageButton берёт ID именно из неё, поэтому вся
+--- сетка слиплась бы в один элемент. Заодно код не зависит от того, какая
+--- сигнатура ImageButton в конкретной сборке mimgui.
+function emoji.button(key, size, id)
+    local e = emoji.get(key)
+    size = size or imgui.GetFontSize()
+    if not e or not emoji.loaded then
+        imgui.Dummy(imgui.ImVec2(size, size))
+        return false
+    end
+
+    local pad = 2
+    local box = size + pad * 2
+    local p = imgui.GetCursorScreenPos()
+    local pressed = imgui.InvisibleButton(tostring(id or e.slot),
+                                          imgui.ImVec2(box, box))
+    local dl = imgui.GetWindowDrawList()
+    if imgui.IsItemHovered() then
+        local col = imgui.IsMouseDown(0) and imgui.Col.ButtonActive
+                                          or imgui.Col.ButtonHovered
+        dl:AddRectFilled(p, imgui.ImVec2(p.x + box, p.y + box),
+                         styleColor(col), 4.0)
+    end
+    dl:AddImage(emoji.texture,
+                imgui.ImVec2(p.x + pad, p.y + pad),
+                imgui.ImVec2(p.x + pad + size, p.y + pad + size),
+                e.uv0, e.uv1, WHITE)
+    return pressed
+end
+
+--- Разбирает строку на куски текста и смайлы.
+-- @return массив { { text = '...' } | { emoji = <запись> } }
+function emoji.parse(str)
+    -- pos  — откуда искать следующий токен
+    -- from — откуда начинается ещё не выданный кусок текста; двигается
+    --        только когда токен реально распознан, иначе текст перед
+    --        нераспознанным токеном потерялся бы
+    local out, pos, from = {}, 1, 1
+    while true do
+        local s, e2, hex = str:find(emoji.PATTERN, pos)
+        if not s then break end
+        local rec = emoji.byCp[tonumber(hex, 16)]
+        if rec then
+            if s > from then out[#out + 1] = { text = str:sub(from, s - 1) } end
+            out[#out + 1] = { emoji = rec }
+            pos = e2 + 1
+            from = pos
+        else
+            -- неизвестный токен оставляем как обычный текст
+            pos = s + 1
+        end
+    end
+    if from <= #str then out[#out + 1] = { text = str:sub(from) } end
+    return out
+end
+
+--- Рисует строку, подставляя смайлы вместо токенов :uXXXX:.
+--- Строка должна быть в UTF-8 (оберните в u8, если она в cp1251).
+function emoji.text(str, size)
+    size = size or imgui.GetFontSize()
+    local parts = emoji.parse(str)
+    local first = true
+    for _, p in ipairs(parts) do
+        if not first then imgui.SameLine(0, 0) end
+        first = false
+        if p.emoji then
+            -- Dummy держит место в раскладке (высотой со строку текста),
+            -- а сам смайл рисуется через draw list с центровкой по вертикали
+            local line = imgui.GetTextLineHeight()
+            local pos = imgui.GetCursorScreenPos()
+            local dy = (line - size) / 2
+            imgui.GetWindowDrawList():AddImage(
+                emoji.texture,
+                imgui.ImVec2(pos.x, pos.y + dy),
+                imgui.ImVec2(pos.x + size, pos.y + dy + size),
+                p.emoji.uv0, p.emoji.uv1, WHITE)
+            imgui.Dummy(imgui.ImVec2(size, line))
+        else
+            imgui.TextUnformatted(p.text)
+        end
+    end
+end
+
+--------------------------------------------------------------------------
+-- Панель выбора
+--------------------------------------------------------------------------
+
+local searchBuf = imgui.new.char[64]()
+
+--- Панель выбора смайла: поиск + сетка по категориям.
+-- @param id     уникальный идентификатор панели
+-- @param size   размер смайла в сетке (по умолчанию 24)
+-- @param height высота области прокрутки (по умолчанию 320)
+-- @return выбранная запись либо nil
+function emoji.picker(id, size, height)
+    if not emoji.loaded then
+        imgui.TextDisabled(u8'Атлас смайлов не загружен')
+        return nil
+    end
+    size = size or 24
+    height = height or 320
+    local picked = nil
+
+    imgui.PushID(id or 'chat_emoji_picker')
+    imgui.PushItemWidth(-1)
+    imgui.InputTextWithHint('##search', u8'Поиск...', searchBuf, ffi.sizeof(searchBuf))
+    imgui.PopItemWidth()
+
+    local query = ffi.string(searchBuf):lower()
+    local step = size + imgui.GetStyle().ItemSpacing.x + 4
+
+    imgui.BeginChild('##grid', imgui.ImVec2(0, height), true)
+    local avail = imgui.GetContentRegionAvail().x
+    local perRow = math.max(1, math.floor(avail / step))
+
+    for _, cat in ipairs(emoji.categories) do
+        local shown = {}
+        for _, e in ipairs(cat.items) do
+            if query == '' or e.name:lower():find(query, 1, true) then
+                shown[#shown + 1] = e
+            end
+        end
+        if #shown > 0 then
+            imgui.TextDisabled(u8(cat.name))
+            for i, e in ipairs(shown) do
+                if (i - 1) % perRow ~= 0 then imgui.SameLine() end
+                if emoji.button(e, size) then picked = e end
+                if imgui.IsItemHovered() then
+                    imgui.SetTooltip((':%s:  %s'):format(e.name, e.token))
+                end
+            end
+            imgui.Spacing()
+        end
+    end
+    imgui.EndChild()
+    imgui.PopID()
+
+    return picked
+end
+
+return emoji
