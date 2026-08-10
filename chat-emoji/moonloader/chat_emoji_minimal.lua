@@ -6,11 +6,21 @@
 --   moonloader/lib/chat_emoji.lua
 --   moonloader/resource/chat_emoji/chat_emoji.png
 --   moonloader/resource/chat_emoji/chat_emoji_atlas.lua
+--
+-- ВАЖНО про кодировку: этот файл сохранён в UTF-8, а ImGui как раз ждёт
+-- UTF-8, поэтому русские строки передаются в него как есть, без u8().
+-- Оборачивать в u8() надо наоборот — файлы в cp1251. А вот SA-MP работает
+-- в cp1251, поэтому текст для sampSendChat / sampAddChatMessage переводим
+-- обратно через u8:decode().
 
 script_name('Emoji Minimal')
 
 local imgui = require 'mimgui'
 local emoji = require 'chat_emoji'
+
+local encoding = require 'encoding'
+encoding.default = 'CP1251'
+local u8 = encoding.UTF8
 
 local window = imgui.new.bool(false)
 
@@ -33,7 +43,7 @@ imgui.OnFrame(
     function() return window[0] end,
     function()
         imgui.SetNextWindowSize(imgui.ImVec2(420, 380), imgui.Cond.FirstUseEver)
-        if imgui.Begin(u8'Смайлы', window) then
+        if imgui.Begin('Смайлы', window) then
 
             -- 1. просто нарисовать смайл
             emoji.image('smiley', 32)
@@ -44,15 +54,17 @@ imgui.OnFrame(
 
             -- 2. смайл как кнопка
             if emoji.button('fire', 32) then
-                sampAddChatMessage('нажал на огонёк', 0xFFFFFF)
+                sampAddChatMessage(u8:decode('нажал на огонёк'), 0xFFFFFF)
             end
 
             -- 3. текст со смайлами внутри
-            emoji.text(u8'привет :u1f603: как дела :u1f44b:')
+            emoji.text('привет :u1f603: как дела :u1f44b:')
 
             imgui.Separator()
 
-            -- 4. панель выбора: клик отправляет смайл в чат
+            -- 4. панель выбора: клик отправляет смайл в чат.
+            --    Токен :uXXXX: состоит из цифр и латиницы, так что
+            --    перекодировать его не нужно.
             local picked = emoji.picker('grid', 24, 220)
             if picked then
                 sampSendChat(emoji.encode(picked))

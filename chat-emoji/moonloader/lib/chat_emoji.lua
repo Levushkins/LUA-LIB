@@ -292,7 +292,8 @@ function emoji.parse(str)
 end
 
 --- Рисует строку, подставляя смайлы вместо токенов :uXXXX:.
---- Строка должна быть в UTF-8 (оберните в u8, если она в cp1251).
+--- Строка должна быть в UTF-8. Литералы из файла, сохранённого в UTF-8,
+--- подходят как есть; строку из игры (cp1251) сперва пропустите через u8().
 function emoji.text(str, size)
     size = size or imgui.GetFontSize()
     local parts = emoji.parse(str)
@@ -331,7 +332,7 @@ local searchBuf = imgui.new.char[64]()
 -- @return выбранная запись либо nil
 function emoji.picker(id, size, height)
     if not emoji.loaded then
-        imgui.TextDisabled(u8'Атлас смайлов не загружен')
+        imgui.TextDisabled('Атлас смайлов не загружен')
         return nil
     end
     size = size or 24
@@ -340,7 +341,7 @@ function emoji.picker(id, size, height)
 
     imgui.PushID(id or 'chat_emoji_picker')
     imgui.PushItemWidth(-1)
-    imgui.InputTextWithHint('##search', u8'Поиск...', searchBuf, ffi.sizeof(searchBuf))
+    imgui.InputTextWithHint('##search', 'Поиск...', searchBuf, ffi.sizeof(searchBuf))
     imgui.PopItemWidth()
 
     local query = ffi.string(searchBuf):lower()
@@ -358,7 +359,7 @@ function emoji.picker(id, size, height)
             end
         end
         if #shown > 0 then
-            imgui.TextDisabled(u8(cat.name))
+            imgui.TextDisabled(cat.name)
             for i, e in ipairs(shown) do
                 if (i - 1) % perRow ~= 0 then imgui.SameLine() end
                 if emoji.button(e, size) then picked = e end

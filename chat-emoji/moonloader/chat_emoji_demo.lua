@@ -8,6 +8,12 @@
 --   moonloader/lib/chat_emoji.lua
 --   moonloader/resource/chat_emoji/chat_emoji.png
 --   moonloader/resource/chat_emoji/chat_emoji_atlas.lua
+--
+-- ВАЖНО про кодировку: этот файл сохранён в UTF-8, а ImGui как раз ждёт
+-- UTF-8, поэтому русские строки передаются в него как есть, без u8().
+-- Оборачивать в u8() надо наоборот — файлы в cp1251. А вот SA-MP работает
+-- в cp1251, поэтому текст для sampSendChat / sampAddChatMessage переводим
+-- обратно через u8:decode().
 
 script_name('Chat Emoji Demo')
 script_author('extracted from _chat.asi')
@@ -15,6 +21,10 @@ script_author('extracted from _chat.asi')
 local ffi = require 'ffi'
 local imgui = require 'mimgui'
 local emoji = require 'chat_emoji'
+
+local encoding = require 'encoding'
+encoding.default = 'CP1251'
+local u8 = encoding.UTF8
 
 local window = imgui.new.bool(false)
 local message = imgui.new.char[144]()
@@ -52,41 +62,42 @@ imgui.OnFrame(
                                imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
         imgui.SetNextWindowSize(imgui.ImVec2(560, 520), imgui.Cond.FirstUseEver)
 
-        if imgui.Begin(u8'Смайлы чата', window) then
+        if imgui.Begin('Смайлы чата', window) then
             if loadError then
-                imgui.TextColored(imgui.ImVec4(1, 0.3, 0.3, 1), u8(loadError))
-                imgui.TextWrapped(u8'Проверьте, что в moonloader/resource/chat_emoji/ '
-                    .. u8'лежат chat_emoji.png и chat_emoji_atlas.lua.')
+                imgui.TextColored(imgui.ImVec4(1, 0.3, 0.3, 1), tostring(loadError))
+                imgui.TextWrapped('Проверьте, что в moonloader/resource/chat_emoji/ '
+                    .. 'лежат chat_emoji.png и chat_emoji_atlas.lua.')
                 imgui.End()
                 return
             end
 
-            imgui.Text(u8('Всего смайлов: ' .. #emoji.list))
+            imgui.Text('Всего смайлов: ' .. #emoji.list)
             imgui.SameLine()
             imgui.PushItemWidth(120)
-            imgui.SliderInt(u8'размер', iconSize, 16, 64)
+            imgui.SliderInt('размер', iconSize, 16, 64)
             imgui.PopItemWidth()
 
             imgui.Separator()
 
-            -- строка сообщения и предпросмотр с подставленными смайлами
+            -- строка сообщения и предпросмотр с подставленными смайлами.
+            -- InputText отдаёт UTF-8, поэтому в emoji.text идёт как есть.
             imgui.PushItemWidth(-1)
-            imgui.InputTextWithHint('##msg', u8'Текст сообщения...',
+            imgui.InputTextWithHint('##msg', 'Текст сообщения...',
                                     message, ffi.sizeof(message))
             imgui.PopItemWidth()
 
             local text = ffi.string(message)
             if #text > 0 then
-                imgui.TextDisabled(u8'Предпросмотр:')
-                emoji.text(u8(text), imgui.GetFontSize())
+                imgui.TextDisabled('Предпросмотр:')
+                emoji.text(text, imgui.GetFontSize())
             end
 
-            if imgui.Button(u8'Отправить в чат') and #text > 0 then
-                sampSendChat(text)
+            if imgui.Button('Отправить в чат') and #text > 0 then
+                sampSendChat(u8:decode(text))   -- UTF-8 -> cp1251 для SA-MP
                 message[0] = 0
             end
             imgui.SameLine()
-            if imgui.Button(u8'Очистить') then message[0] = 0 end
+            if imgui.Button('Очистить') then message[0] = 0 end
 
             imgui.Separator()
 
