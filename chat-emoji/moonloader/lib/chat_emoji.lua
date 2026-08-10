@@ -182,7 +182,17 @@ function emoji.build(atlas)
 
     local catIndex = {}
     for i, row in ipairs(atlas.emoji) do
-        local name, cp, cat, slot, aliases = row[1], row[2], row[3], row[4], row[5]
+        local name, cp, cat, slot = row[1], row[2], row[3], row[4]
+
+        -- Пятое поле: в описании версии 2 это число ячеек, в первой версии
+        -- сразу шли синонимы таблицей. Различаем по типу, чтобы старое
+        -- описание тоже читалось.
+        local cells, aliases = row[5], row[6]
+        if type(cells) == 'table' then
+            aliases, cells = cells, 1
+        end
+        cells = cells or 1
+
         local col = slot % atlas.cols
         local line = math.floor(slot / atlas.cols)
         local e = {
@@ -191,10 +201,14 @@ function emoji.build(atlas)
             cat = cat,
             slot = slot,
             index = i,
+            -- Ширина глифа в высотах: у обычного смайла 1, у серверного
+            -- баннера («ВИП ЧАТ», ленты) до 8. Рисуем с этим соотношением,
+            -- иначе широкие иконки сплющивались бы в полоску.
+            cells = cells,
             token = (':u%x:'):format(cp),
             uv0 = imgui.ImVec2(col * atlas.cell / atlas.width,
                                line * atlas.cell / atlas.height),
-            uv1 = imgui.ImVec2((col + 1) * atlas.cell / atlas.width,
+            uv1 = imgui.ImVec2((col + cells) * atlas.cell / atlas.width,
                                (line + 1) * atlas.cell / atlas.height),
         }
         emoji.list[i] = e
@@ -275,8 +289,16 @@ function emoji.image(key, size)
         imgui.Dummy(imgui.ImVec2(size, size))
         return false
     end
-    imgui.Image(emoji.texture, imgui.ImVec2(size, size), e.uv0, e.uv1)
+    imgui.Image(emoji.texture, imgui.ImVec2(size * e.cells, size), e.uv0, e.uv1)
     return true
+end
+
+--- Ширина смайла при заданной высоте. У широких серверных баннеров она
+--- больше высоты в e.cells раз.
+function emoji.width(key, size)
+    local e = emoji.get(key)
+    size = size or imgui.GetFontSize()
+    return e and size * e.cells or size
 end
 
 --- Кнопка со смайлом.
@@ -293,20 +315,21 @@ function emoji.button(key, size, id)
     end
 
     local pad = 2
-    local box = size + pad * 2
+    local w = size * e.cells + pad * 2
+    local h = size + pad * 2
     local p = imgui.GetCursorScreenPos()
     local pressed = imgui.InvisibleButton(tostring(id or e.slot),
-                                          imgui.ImVec2(box, box))
+                                          imgui.ImVec2(w, h))
     local dl = imgui.GetWindowDrawList()
     if imgui.IsItemHovered() then
         local col = imgui.IsMouseDown(0) and imgui.Col.ButtonActive
                                           or imgui.Col.ButtonHovered
-        dl:AddRectFilled(p, imgui.ImVec2(p.x + box, p.y + box),
+        dl:AddRectFilled(p, imgui.ImVec2(p.x + w, p.y + h),
                          styleColor(col), 4.0)
     end
     dl:AddImage(emoji.texture,
                 imgui.ImVec2(p.x + pad, p.y + pad),
-                imgui.ImVec2(p.x + pad + size, p.y + pad + size),
+                imgui.ImVec2(p.x + w - pad, p.y + h - pad),
                 e.uv0, e.uv1, WHITE)
     return pressed
 end
@@ -353,12 +376,13 @@ function emoji.text(str, size)
             local line = imgui.GetTextLineHeight()
             local pos = imgui.GetCursorScreenPos()
             local dy = (line - size) / 2
+            local w = size * p.emoji.cells
             imgui.GetWindowDrawList():AddImage(
                 emoji.texture,
                 imgui.ImVec2(pos.x, pos.y + dy),
-                imgui.ImVec2(pos.x + size, pos.y + dy + size),
+                imgui.ImVec2(pos.x + w, pos.y + dy + size),
                 p.emoji.uv0, p.emoji.uv1, WHITE)
-            imgui.Dummy(imgui.ImVec2(size, line))
+            imgui.Dummy(imgui.ImVec2(w, line))
         else
             imgui.TextUnformatted(p.text)
         end
@@ -396,11 +420,10 @@ function emoji.picker(id, size, height)
     imgui.PopItemWidth()
 
     local query = ffi.string(searchBuf):lower()
-    local step = size + imgui.GetStyle().ItemSpacing.x + 4
+    local spacing = imgui.GetStyle().ItemSpacing.x
 
     imgui.BeginChild('##grid' .. pid, imgui.ImVec2(0, height), true)
     local avail = imgui.GetContentRegionAvail().x
-    local perRow = math.max(1, math.floor(avail / step))
 
     local function matches(e)
         if query == '' then return true end
@@ -420,12 +443,24 @@ function emoji.picker(id, size, height)
         end
         if #shown > 0 then
             imgui.TextDisabled(cat.name)
-            for i, e in ipairs(shown) do
-                if (i - 1) % perRow ~= 0 then imgui.SameLine() end
+            -- кнопки разной ширины: широкий баннер занимает несколько мест,
+            -- поэтому перенос строки считаем вручную, а не по числу в ряду
+            local x = 0
+            for _, e in ipairs(shown) do
+                local w = size * e.cells + 4
+                if x > 0 then
+                    if x + spacing + w <= avail then
+                        imgui.SameLine()
+                        x = x + spacing
+                    else
+                        x = 0           -- не зовём SameLine — будет перенос
+                    end
+                end
                 if emoji.button(e, size, pid .. '_' .. e.slot) then picked = e end
                 if imgui.IsItemHovered() then
                     imgui.SetTooltip((':%s:  %s'):format(e.name, e.token))
                 end
+                x = x + w
             end
             imgui.Spacing()
         end

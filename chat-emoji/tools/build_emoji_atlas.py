@@ -167,15 +167,29 @@ def render_glyph(ch, font, box):
     return tmp.crop(bb)
 
 
-def fit_into(img, cell, pad):
-    """Вписывает глиф в квадратную ячейку, сохраняя пропорции."""
-    target = cell - pad * 2
+def cells_for(img, cap):
+    """Сколько ячеек по горизонтали занимает глиф.
+
+    Серверные баннеры («ВИП ЧАТ», ленты под ники) бывают до 8.6 раза шире
+    своей высоты. В одной квадратной ячейке от них оставалась полоска в
+    несколько пикселей — нечитаемая. Поэтому широкие глифы занимают
+    несколько ячеек подряд и сохраняют исходные пропорции.
+    """
     w, h = img.size
-    scale = float(target) / max(w, h)
+    if h <= 0:
+        return 1
+    return max(1, min(cap, int(round(w / float(h)))))
+
+
+def fit_into_rect(img, box_w, box_h, pad):
+    """Вписывает глиф в прямоугольник box_w x box_h, сохраняя пропорции."""
+    tw, th = box_w - pad * 2, box_h - pad * 2
+    w, h = img.size
+    scale = min(float(tw) / w, float(th) / h)
     nw, nh = max(1, int(round(w * scale))), max(1, int(round(h * scale)))
     img = img.resize((nw, nh), Image.LANCZOS)
-    out = Image.new("RGBA", (cell, cell), (0, 0, 0, 0))
-    out.paste(img, ((cell - nw) // 2, (cell - nh) // 2))
+    out = Image.new("RGBA", (box_w, box_h), (0, 0, 0, 0))
+    out.paste(img, ((box_w - nw) // 2, (box_h - nh) // 2))
     return out
 
 
@@ -201,11 +215,19 @@ def lua_str(s):
 LUA_HEADER = """-- Автоматически сгенерировано build_emoji_atlas.py.
 -- Не редактировать вручную.
 --
--- slot — номер ячейки в атласе, отсчёт слева направо, сверху вниз.
+-- Запись: { name, cp, cat, slot, cells, aliases }
+--   slot  — номер ячейки, отсчёт слева направо, сверху вниз
+--   cells — сколько ячеек по горизонтали занимает глиф. Широкие серверные
+--           баннеры («ВИП ЧАТ», ленты) занимают несколько, иначе от них
+--           оставалась бы нечитаемая полоска. Он же задаёт пропорции при
+--           отрисовке: ширина = высота * cells.
+--
 -- UV-координаты считаются в chat_emoji.lua как:
 --   u0 = (slot %% cols) * cell / width,  v0 = floor(slot / cols) * cell / height
+--   u1 = u0 + cells * cell / width,      v1 = v0 + cell / height
 
 return {
+  version = 2,
   file   = '%s',
   width  = %d,
   height = %d,
@@ -224,7 +246,9 @@ def main():
     ap.add_argument("--icons", required=True, help="icons.ttf из _chat.asi")
     ap.add_argument("--emoji", help="цветной эмодзи-шрифт (seguiemj.ttf)")
     ap.add_argument("-o", "--out", default=".", help="каталог результата")
-    ap.add_argument("--cell", type=int, default=64, help="размер ячейки, px")
+    ap.add_argument("--cell", type=int, default=40, help="размер ячейки, px")
+    ap.add_argument("--max-cells", type=int, default=8,
+                    help="сколько ячеек максимум занимает широкий глиф")
     ap.add_argument("--pad", type=int, default=2, help="отступ внутри ячейки")
     ap.add_argument("--width", type=int, default=2048, help="ширина атласа")
     ap.add_argument("--name", default="chat_emoji", help="имя выходных файлов")
@@ -269,22 +293,35 @@ def main():
         if img is None:
             missing.append(it)
             continue
-        rendered.append((it, fit_into(img, args.cell, args.pad)))
+        n = min(cells_for(img, args.max_cells), cols)
+        rendered.append((it, fit_into_rect(img, n * args.cell,
+                                           args.cell, args.pad), n))
 
-    rows = (len(rendered) + cols - 1) // cols
+    # раскладка: широкий глиф занимает несколько ячеек подряд и переносится
+    # на следующий ряд целиком, не разрываясь на границе
+    placed = []
+    col = row = 0
+    for it, img, n in rendered:
+        if col + n > cols:
+            col, row = 0, row + 1
+        placed.append((it, img, n, row * cols + col))
+        col += n
+    rows = row + 1
+
     height = 1
     while height < rows * args.cell:
         height *= 2
     atlas = Image.new("RGBA", (args.width, height), (0, 0, 0, 0))
-    for slot, (_it, img) in enumerate(rendered):
+    for _it, img, _n, slot in placed:
         x = (slot % cols) * args.cell
         y = (slot // cols) * args.cell
         atlas.paste(img, (x, y))
 
     png = os.path.join(args.out, args.name + ".png")
     atlas.save(png, optimize=True)
-    print("атлас: %s  %dx%d, ячейка %d, %d смайлов" %
-          (png, args.width, height, args.cell, len(rendered)))
+    wide = sum(1 for _i, _g, n, _s in placed if n > 1)
+    print("атлас: %s  %dx%d, ячейка %d, %d смайлов (широких %d)" %
+          (png, args.width, height, args.cell, len(placed), wide))
     if missing:
         print("не найдено в шрифтах (%d): %s" %
               (len(missing), ", ".join(m["name"] for m in missing[:20])))
@@ -292,13 +329,13 @@ def main():
     lua = os.path.join(args.out, args.name + "_atlas.lua")
     with open(lua, "w", encoding="utf-8") as f:
         f.write(LUA_HEADER % (args.name + ".png", args.width, height,
-                              args.cell, cols, len(rendered)))
+                              args.cell, cols, len(placed)))
         q = lua_str
 
-        for slot, (it, _img) in enumerate(rendered):
+        for it, _img, n, slot in placed:
             names = it.get("names") or []
-            row = "    { %s, 0x%05X, %s, %d" % (
-                q(it["name"]), it["cp"], q(it["cat"]), slot)
+            row = "    { %s, 0x%05X, %s, %d, %d" % (
+                q(it["name"]), it["cp"], q(it["cat"]), slot, n)
             if len(names) > 1:      # синонимы: ':)', '<3' и подобные
                 row += ", { %s }" % ", ".join(q(a) for a in names[1:])
             f.write(row + " },\n")

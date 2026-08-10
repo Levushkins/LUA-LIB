@@ -50,6 +50,8 @@ local rows = math.ceil(#atlas.emoji / atlas.cols)
 check(rows * atlas.cell <= atlas.height,
       'атлас ниже, чем нужно: ' .. rows * atlas.cell .. ' > ' .. atlas.height)
 
+local function slotColumn(e) return e.slot % atlas.cols end
+
 -- строим таблицы тем же кодом, что и в игре
 emoji.build(atlas)
 emoji.texture = 'FAKE'
@@ -60,12 +62,25 @@ for _, c in ipairs(emoji.categories) do
 end
 
 -- --------------------------------------------------------------------------
--- UV не выходят за текстуру и не пересекают соседние ячейки
+-- UV не выходят за текстуру и соответствуют числу занятых ячеек
+local wide = 0
 for _, e in ipairs(emoji.list) do
     check(e.uv0.x >= 0 and e.uv1.x <= 1 and e.uv0.y >= 0 and e.uv1.y <= 1,
           'UV вне диапазона у ' .. e.name)
     check(e.uv1.x > e.uv0.x and e.uv1.y > e.uv0.y, 'вырожденный UV у ' .. e.name)
+    check(e.cells and e.cells >= 1, 'нет cells у ' .. e.name)
+    if e.cells > 1 then wide = wide + 1 end
+    -- ширина UV обязана равняться cells ячейкам
+    local uvw = (e.uv1.x - e.uv0.x) * atlas.width
+    check(math.abs(uvw - e.cells * atlas.cell) < 0.01,
+          ('UV шире/уже cells у %s: %.2f вместо %d'):format(
+              e.name, uvw, e.cells * atlas.cell))
+    -- глиф не должен вылезать за правый край атласа
+    check(slotColumn(e) + e.cells <= atlas.cols,
+          'глиф вылезает за край ряда: ' .. e.name)
 end
+check(wide > 100, 'широких глифов подозрительно мало: ' .. wide)
+print('широких (несколько ячеек):', wide)
 
 -- поиск по имени, коду и токену
 local s = emoji.get('smiley')

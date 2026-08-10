@@ -81,7 +81,7 @@ echo [4/4] Собираю атлас...
     --icons data\icons.ttf ^
     --emoji "%FONT%" ^
     -o moonloader\resource\chat_emoji ^
-    --cell 48 --width 2048
+    --cell 40 --width 2048
 if errorlevel 1 (
     echo [!] Сборка не удалась.
     pause
