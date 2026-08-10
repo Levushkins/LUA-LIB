@@ -104,15 +104,19 @@ def open_font(path, px):
 
 
 # У цветных шрифтов (COLR/CPAL — Segoe UI Emoji, icons.ttf) базовый контур
-# глифа часто пустой: всё изображение лежит в слоях COLR. Pillow вычисляет
-# размер маски по контурам, поэтому строка из одного такого символа даёт
-# маску нулевой высоты и на холст не попадает ничего.
+# глифа часто пустой: всё изображение лежит в слоях COLR. Pillow берёт размер
+# маски из контуров, поэтому строка из одного такого символа даёт маску
+# нулевой высоты и на холст не попадает ничего.
 #
-# Обход: дорисовываем справа «распорку» — символ, которого в шрифте заведомо
-# нет. Он рисуется как .notdef (прямоугольник с непустым контуром), маска
-# получает нормальную высоту, а сам .notdef отрезается по ширине аванса
-# нужного символа.
-SPACER = "\uE123"   # приватная область, в эмодзи-шрифтах не занята
+# Обход: дорисовываем слева «распорку» — символ с непустым контуром. Он задаёт
+# размер маски, а потом отрезается по своему авансу.
+#
+# Важно: маску задаёт именно КОНТУР распорки, а не картинка нужного символа.
+# У .notdef в icons.ttf высота всего 0.62 em, а серверные баннеры («ВИП ЧАТ»,
+# BUY/SELL) занимают целый em — из-за этого у них срезало низ. Поэтому
+# распорка подбирается под конкретный шрифт: берутся самый «высокий» и самый
+# «низкий» глифы, их объединённый контур накрывает любую картинку.
+FALLBACK_SPACER = "\uE123"   # приватная область: почти всегда даёт .notdef
 
 
 def _draw(text, font, canvas, origin):
@@ -125,38 +129,92 @@ def _draw(text, font, canvas, origin):
     return tmp
 
 
-def render_glyph(ch, font, box):
+def _measure(font, cp, box):
+    """Чернильная рамка одиночного символа относительно точки вставки."""
+    canvas = (box * 8, box * 8)
+    origin = (box * 2, box * 4)
+    im = Image.new("RGBA", canvas, (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    try:
+        d.text(origin, chr(cp), font=font, embedded_color=True)
+        adv = font.getlength(chr(cp))
+    except Exception:
+        return None
+    bb = im.getbbox()
+    if bb is None:
+        return None
+    return {"cp": cp, "adv": adv,
+            "top": bb[1] - origin[1], "bottom": bb[3] - origin[1],
+            "right": bb[2] - origin[0]}
+
+
+def pick_spacer(font, cps, box, limit=400):
+    """Подбирает распорку под шрифт: строку, контур которой перекрывает по
+    вертикали всё, что этот шрифт умеет рисовать.
+
+    Возвращает (строка, суммарный аванс). Крайние по высоте глифы часто имеют
+    чернила шире аванса, поэтому при необходимости в конец добавляется
+    «прокладка» — чтобы линия обрезки прошла правее чернил распорки.
+    """
+    sample = sorted(c for c in cps if 0x20 < c <= 0x10FFFF)[:limit]
+    stats = [s for s in (_measure(font, c, box) for c in sample) if s]
+    if not stats:
+        return FALLBACK_SPACER, font.getlength(FALLBACK_SPACER)
+
+    highest = min(stats, key=lambda s: s["top"])
+    deepest = max(stats, key=lambda s: s["bottom"])
+    pads = [s for s in stats if s["adv"] > 0 and s["right"] <= s["adv"] + 1]
+    pad = max(pads, key=lambda s: s["adv"] - s["right"]) if pads else None
+
+    chosen = []
+    for s in (highest, deepest):
+        if all(c["cp"] != s["cp"] for c in chosen):
+            chosen.append(s)
+
+    for _ in range(8):
+        adv = sum(s["adv"] for s in chosen)
+        ink = max(s["right"] for s in chosen)
+        if ink <= adv:
+            break
+        if pad is None:
+            return FALLBACK_SPACER, font.getlength(FALLBACK_SPACER)
+        chosen.append(pad)
+
+    return ("".join(chr(s["cp"]) for s in chosen),
+            sum(s["adv"] for s in chosen))
+
+
+def render_glyph(ch, font, box, spacer=FALLBACK_SPACER, adv_spacer=None):
     """Рисует символ и возвращает обрезанное по содержимому RGBA-изображение."""
     try:
         adv = font.getlength(ch)
     except Exception:
         adv = 0
-
-    try:
-        adv_spacer = font.getlength(SPACER)
-    except Exception:
-        adv_spacer = 0
+    if adv_spacer is None:
+        try:
+            adv_spacer = font.getlength(spacer)
+        except Exception:
+            adv_spacer = 0
 
     # Холст считаем от ширины самого глифа: серверные баннеры («ВИП ЧАТ»,
-    # «РЕКЛАМА») бывают в шесть раз шире своей высоты, и на холсте
-    # фиксированного размера у них обрезался хвост.
-    origin = (box, box)
+    # «РЕКЛАМА») бывают в шесть раз шире своей высоты.
+    origin = (box, box * 2)
     width = int(adv_spacer + max(adv, box * 2)) + box * 4
-    canvas = (width, box * 4)
+    canvas = (width, box * 6)
 
     tmp = _draw(ch, font, canvas, origin)
     if tmp is not None:
         bb = tmp.getbbox()
-        if bb is not None:
+        if bb is not None and bb[3] - bb[1] >= box * 0.9:
+            # маска нормальной высоты — символ нарисовался целиком
             return tmp.crop(bb)
 
-    # Путь для цветных шрифтов с пустыми базовыми контурами.
-    # Распорка идёт ПЕРЕД символом, а не после: у части глифов чернила шире
-    # аванса (у U+F2FF аванс вообще нулевой), и обрезка по авансу справа их
-    # калечила. Слева же граница известна точно — это аванс распорки.
+    # Путь для цветных шрифтов: распорка ПЕРЕД символом. Справа глиф ничем не
+    # ограничен (у части иконок чернила шире аванса, у U+F2FF аванс нулевой),
+    # а слева граница известна точно — это суммарный аванс распорки.
     if adv_spacer <= 0:
-        return None
-    tmp = _draw(SPACER + ch, font, canvas, origin)
+        return tmp.crop(tmp.getbbox()) if (tmp and tmp.getbbox()) else None
+    tmp = _draw(spacer + ch, font, canvas, origin)
     if tmp is None:
         return None
     left = origin[0] + int(round(adv_spacer))
@@ -274,6 +332,16 @@ def main():
     f_icons, s_icons = open_font(args.icons, args.cell)
     f_emoji, s_emoji = open_font(args.emoji, args.cell)
 
+    # распорка подбирается под каждый шрифт отдельно: её контур задаёт высоту
+    # маски, а значит и то, не срежет ли низ у крупных цветных картинок
+    box_icons = int(args.cell / s_icons) if s_icons != 1.0 else args.cell
+    box_emoji = int(args.cell / s_emoji) if s_emoji != 1.0 else args.cell
+    sp_icons, spadv_icons = pick_spacer(f_icons, icons_cps, box_icons)
+    sp_emoji, spadv_emoji = pick_spacer(f_emoji, emoji_cps, box_emoji)
+    print("распорка: icons %s, эмодзи %s" % (
+        " ".join("U+%04X" % ord(c) for c in sp_icons) or "нет",
+        " ".join("U+%04X" % ord(c) for c in sp_emoji) or "нет"))
+
     cols = args.width // args.cell
     rendered = []
     missing = []
@@ -283,13 +351,15 @@ def main():
         # серверные иконки есть только в icons.ttf, поэтому он в приоритете
         if cp in icons_cps:
             font, scale = f_icons, s_icons
+            spacer, spadv = sp_icons, spadv_icons
         elif cp in emoji_cps:
             font, scale = f_emoji, s_emoji
+            spacer, spadv = sp_emoji, spadv_emoji
         else:
             missing.append(it)
             continue
         box = int(args.cell / scale) if scale != 1.0 else args.cell
-        img = render_glyph(ch, font, box)
+        img = render_glyph(ch, font, box, spacer, spadv)
         if img is None:
             missing.append(it)
             continue
