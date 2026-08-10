@@ -1,0 +1,67 @@
+-- chat_emoji_minimal.lua — самый короткий рабочий пример.
+-- Команда /sm открывает окно mimgui со смайлами.
+--
+-- Файлы:
+--   moonloader/chat_emoji_minimal.lua              <- этот файл
+--   moonloader/lib/chat_emoji.lua
+--   moonloader/resource/chat_emoji/chat_emoji.png
+--   moonloader/resource/chat_emoji/chat_emoji_atlas.lua
+
+script_name('Emoji Minimal')
+
+local imgui = require 'mimgui'
+local emoji = require 'chat_emoji'
+
+local window = imgui.new.bool(false)
+
+function main()
+    while not isSampAvailable() do wait(0) end
+    sampRegisterChatCommand('sm', function() window[0] = not window[0] end)
+    sampAddChatMessage('Emoji: /sm', 0x8ACC47)
+    wait(-1)
+end
+
+imgui.OnInitialize(function()
+    imgui.GetIO().IniFilename = nil
+
+    -- грузим атлас смайлов; если что-то не так — напишет в чат
+    local ok, err = emoji.load()
+    if not ok then sampAddChatMessage('Emoji: ' .. tostring(err), 0xFF4444) end
+end)
+
+imgui.OnFrame(
+    function() return window[0] end,
+    function()
+        imgui.SetNextWindowSize(imgui.ImVec2(420, 380), imgui.Cond.FirstUseEver)
+        if imgui.Begin(u8'Смайлы', window) then
+
+            -- 1. просто нарисовать смайл
+            emoji.image('smiley', 32)
+            imgui.SameLine()
+            emoji.image('joy', 32)
+            imgui.SameLine()
+            emoji.image('arz', 32)          -- серверная иконка Arizona
+
+            -- 2. смайл как кнопка
+            if emoji.button('fire', 32) then
+                sampAddChatMessage('нажал на огонёк', 0xFFFFFF)
+            end
+
+            -- 3. текст со смайлами внутри
+            emoji.text(u8'привет :u1f603: как дела :u1f44b:')
+
+            imgui.Separator()
+
+            -- 4. панель выбора: клик отправляет смайл в чат
+            local picked = emoji.picker('grid', 24, 220)
+            if picked then
+                sampSendChat(emoji.encode(picked))
+            end
+        end
+        imgui.End()
+    end
+)
+
+function onScriptTerminate(scr, quitGame)
+    if scr == thisScript() and not quitGame then emoji.unload() end
+end
