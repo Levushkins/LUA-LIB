@@ -1,7 +1,7 @@
 -- chat_emoji_demo.lua — пример работы со смайлами из _chat.asi в mimgui.
 --
 -- Команда /emj открывает панель: сетка смайлов с поиском, предпросмотр
--- сообщения и отправка в чат.
+-- выбранной иконки в разных размерах и отправка сообщения в чат.
 --
 -- Установка:
 --   moonloader/chat_emoji_demo.lua
@@ -9,11 +9,10 @@
 --   moonloader/resource/chat_emoji/chat_emoji.png
 --   moonloader/resource/chat_emoji/chat_emoji_atlas.lua
 --
--- ВАЖНО про кодировку: этот файл сохранён в UTF-8, а ImGui как раз ждёт
--- UTF-8, поэтому русские строки передаются в него как есть, без u8().
--- Оборачивать в u8() надо наоборот — файлы в cp1251. А вот SA-MP работает
--- в cp1251, поэтому текст для sampSendChat / sampAddChatMessage переводим
--- обратно через u8:decode().
+-- Про кодировку: в литералах здесь только латиница, поэтому файл можно
+-- пересохранять в любой кодировке — ничего не сломается. Русский текст
+-- в ImGui передавайте в UTF-8 (файл сохраняйте в UTF-8, без u8()), а для
+-- SA-MP переводите обратно в cp1251 через u8:decode().
 
 script_name('Chat Emoji Demo')
 script_author('extracted from _chat.asi')
@@ -28,17 +27,18 @@ local u8 = encoding.UTF8
 
 local window = imgui.new.bool(false)
 local message = imgui.new.char[144]()
-local iconSize = imgui.new.int(24)
+local gridSize = imgui.new.int(24)
+local customSize = imgui.new.int(48)
 local loadError = nil
+local selected = nil
+
+-- размеры для витрины: одна и та же иконка рисуется каждым из них
+local SIZES = { 12, 16, 24, 32, 48, 64, 96 }
 
 function main()
     while not isSampAvailable() do wait(0) end
-
-    sampRegisterChatCommand('emj', function()
-        window[0] = not window[0]
-    end)
-
-    sampAddChatMessage('Chat Emoji: /emj - panel of emojis', 0x8ACC47)
+    sampRegisterChatCommand('emj', function() window[0] = not window[0] end)
+    sampAddChatMessage('Chat Emoji: /emj - emoji panel', 0x8ACC47)
     wait(-1)
 end
 
@@ -49,8 +49,43 @@ imgui.OnInitialize(function()
     if not ok then
         loadError = err
         sampAddChatMessage('Chat Emoji: ' .. tostring(err), 0xFF4444)
+    else
+        selected = emoji.get('arz') or emoji.list[1]
     end
 end)
+
+--- Витрина: выбранная иконка в разных размерах.
+-- Размер задаётся в пикселях по высоте и меняется на лету — это обычная
+-- текстура, а не шрифт, так что фиксированного размера у неё нет.
+local function drawShowcase()
+    if not selected then
+        imgui.TextDisabled('Click any emoji below')
+        return
+    end
+
+    imgui.Text(('%s   %s   cells=%d')
+        :format(selected.name, selected.token, selected.cells))
+
+    imgui.BeginChild('##sizes', imgui.ImVec2(0, 130), true,
+                     imgui.WindowFlags.HorizontalScrollbar)
+    for i, sz in ipairs(SIZES) do
+        if i > 1 then imgui.SameLine() end
+        imgui.BeginGroup()
+        -- подпись сверху, под ней сама иконка нужной высоты
+        imgui.Text(tostring(sz))
+        emoji.image(selected, sz)
+        imgui.EndGroup()
+    end
+    imgui.EndChild()
+
+    imgui.PushItemWidth(200)
+    imgui.SliderInt('custom size', customSize, 8, 128)
+    imgui.PopItemWidth()
+    imgui.SameLine()
+    imgui.TextDisabled(('%dx%d px')
+        :format(emoji.width(selected, customSize[0]), customSize[0]))
+    emoji.image(selected, customSize[0])
+end
 
 imgui.OnFrame(
     function() return window[0] end,
@@ -60,7 +95,7 @@ imgui.OnFrame(
         local resX, resY = getScreenResolution()
         imgui.SetNextWindowPos(imgui.ImVec2(resX / 2, resY / 2),
                                imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
-        imgui.SetNextWindowSize(imgui.ImVec2(560, 520), imgui.Cond.FirstUseEver)
+        imgui.SetNextWindowSize(imgui.ImVec2(720, 640), imgui.Cond.FirstUseEver)
 
         if imgui.Begin('Chat emoji', window) then
             if loadError then
@@ -73,10 +108,12 @@ imgui.OnFrame(
 
             imgui.Text('Total: ' .. #emoji.list)
             imgui.SameLine()
-            imgui.PushItemWidth(120)
-            imgui.SliderInt('size', iconSize, 16, 64)
+            imgui.PushItemWidth(140)
+            imgui.SliderInt('grid size', gridSize, 12, 64)
             imgui.PopItemWidth()
 
+            imgui.Separator()
+            drawShowcase()
             imgui.Separator()
 
             -- строка сообщения и предпросмотр с подставленными смайлами.
@@ -88,7 +125,6 @@ imgui.OnFrame(
 
             local text = ffi.string(message)
             if #text > 0 then
-                imgui.TextDisabled('Preview:')
                 emoji.text(text, imgui.GetFontSize())
             end
 
@@ -98,18 +134,19 @@ imgui.OnFrame(
             end
             imgui.SameLine()
             if imgui.Button('Clear') then message[0] = 0 end
+            imgui.SameLine()
+            if imgui.Button('Append selected') and selected then
+                local cur = ffi.string(message)
+                if #cur + #selected.token < ffi.sizeof(message) then
+                    ffi.copy(message, cur .. selected.token)
+                end
+            end
 
             imgui.Separator()
 
-            -- сетка выбора; клик дописывает токен :uXXXX: в конец строки
-            local picked = emoji.picker('grid', iconSize[0], 300)
-            if picked then
-                local cur = ffi.string(message)
-                local add = picked.token
-                if #cur + #add < ffi.sizeof(message) then
-                    ffi.copy(message, cur .. add)
-                end
-            end
+            -- клик по сетке выбирает иконку для витрины
+            local picked = emoji.picker('grid', gridSize[0], 240)
+            if picked then selected = picked end
         end
         imgui.End()
     end

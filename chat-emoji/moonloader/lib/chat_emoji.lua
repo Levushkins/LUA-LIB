@@ -393,7 +393,17 @@ end
 -- Панель выбора
 --------------------------------------------------------------------------
 
-local searchBuf = imgui.new.char[64]()
+-- Буфер поиска свой у каждой панели: иначе две панели в одном скрипте
+-- делили бы одну строку поиска.
+local searchBufs = {}
+local function searchBuffer(pid)
+    local b = searchBufs[pid]
+    if not b then
+        b = imgui.new.char[64]()
+        searchBufs[pid] = b
+    end
+    return b
+end
 
 --- Панель выбора смайла: поиск + сетка по категориям.
 -- @param id     уникальный идентификатор панели
@@ -414,6 +424,7 @@ function emoji.picker(id, size, height)
     -- коротким именем — imgui.PushID там nil.
     local pid = tostring(id or 'chat_emoji_picker')
 
+    local searchBuf = searchBuffer(pid)
     imgui.PushItemWidth(-1)
     imgui.InputTextWithHint('##search' .. pid, emoji.strings.search,
                             searchBuf, ffi.sizeof(searchBuf))
