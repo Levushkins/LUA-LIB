@@ -128,8 +128,9 @@ struct { const char* name; uint32_t codepoint; };
 
 ```
 chat-emoji/
-├── rebuild.bat                 пересборка атласа на своём Segoe UI Emoji
+├── rebuild.bat                 сборка в один клик (обёртка над rebuild.py)
 ├── tools/
+│   ├── rebuild.py              весь цикл: распаковка _chat.asi + сборка атласа
 │   ├── extract_chat_emoji.py   распаковка ресурсов и таблицы из _chat.asi
 │   ├── build_emoji_atlas.py    растеризация смайлов в PNG-атлас
 │   └── test_chat_emoji.lua     самопроверка модуля (luajit, без игры)
@@ -370,8 +371,14 @@ PE, распаковывает `stb_compress` и находит таблицу �
 `seguiemj.ttf` и собирает атлас. Пути можно задать и вручную:
 
 ```
-rebuild.bat "C:\...\bin\arizona\_chat.asi" "C:\Windows\Fonts\seguiemj.ttf"
+rebuild.bat --asi "C:\...\bin\arizona\_chat.asi"
+rebuild.bat --emoji "C:\Windows\Fonts\seguiemj.ttf"
 ```
+
+Сам `.bat` — тонкая обёртка на латинице: он только находит Python и ставит
+Pillow, а всё остальное делает `tools/rebuild.py`. Так сделано намеренно —
+cmd.exe читает батник в кодировке консоли, и любой не-ASCII символ внутри
+ломает разбор команд.
 
 Это же и способ распространять библиотеку, ничего чужого не выкладывая:
 достаточно отдать код и `tools/`, а атлас каждый соберёт себе сам — заодно
