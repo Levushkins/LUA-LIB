@@ -24,6 +24,7 @@ build_emoji_atlas.py — рендерит смайлы из emoji.json в оди
 """
 
 import argparse
+import math
 import json
 import os
 import struct
@@ -239,26 +240,14 @@ def render_glyph(ch, font, box, spacer=FALLBACK_SPACER, adv_spacer=None):
     return tmp.crop(bb) if bb else None
 
 
-def cells_for(img, cap):
-    """Сколько ячеек по горизонтали занимает глиф.
-
-    Серверные баннеры («ВИП ЧАТ», ленты под ники) бывают до 8.6 раза шире
-    своей высоты. В одной квадратной ячейке от них оставалась полоска в
-    несколько пикселей — нечитаемая. Поэтому широкие глифы занимают
-    несколько ячеек подряд и сохраняют исходные пропорции.
-    """
-    w, h = img.size
-    if h <= 0:
-        return 1
-    return max(1, min(cap, int(round(w / float(h)))))
+def cells_for(width, cell, pad, cap):
+    """Сколько ячеек по горизонтали занимает глиф такой ширины."""
+    return max(1, min(cap, int(math.ceil((width + pad * 2) / float(cell)))))
 
 
-def fit_into_rect(img, box_w, box_h, pad):
-    """Вписывает глиф в прямоугольник box_w x box_h, сохраняя пропорции."""
-    tw, th = box_w - pad * 2, box_h - pad * 2
-    w, h = img.size
-    scale = min(float(tw) / w, float(th) / h)
-    nw, nh = max(1, int(round(w * scale))), max(1, int(round(h * scale)))
+def place(img, size, box_w, box_h):
+    """Кладёт глиф размера size в прямоугольник box_w x box_h по центру."""
+    nw, nh = max(1, int(round(size[0]))), max(1, int(round(size[1])))
     img = img.resize((nw, nh), Image.LANCZOS)
     out = Image.new("RGBA", (box_w, box_h), (0, 0, 0, 0))
     out.paste(img, ((box_w - nw) // 2, (box_h - nh) // 2))
@@ -364,7 +353,7 @@ def main():
         " ".join("U+%04X" % ord(c) for c in sp_emoji) or "нет"))
 
     cols = args.width // args.cell
-    rendered = []
+    raw = []
     missing = []
     for it in items:
         cp = it["cp"]
@@ -387,9 +376,29 @@ def main():
         if img is None:
             missing.append(it)
             continue
-        n = min(cells_for(img, args.max_cells), cols)
-        rendered.append((it, fit_into_rect(img, n * args.cell,
-                                           args.cell, args.pad), n))
+        # приводим к «пикселям ячейки»: шрифты открыты в разном масштабе
+        raw.append((it, img, img.size[0] * scale, img.size[1] * scale))
+
+    if not raw:
+        sys.exit("не удалось отрисовать ни одного смайла")
+
+    # Общий множитель на всех. Раньше каждый глиф растягивался на всю ячейку,
+    # и мелкий значок выходил одного размера с крупным баннером — пропорции
+    # между иконками терялись. Сам чат рисует их одним кеглем, поэтому и здесь
+    # масштаб один: по самому высокому глифу, чтобы никто не вылез за ячейку.
+    tallest = max(h for _it, _im, _w, h in raw)
+    k = float(args.cell - args.pad * 2) / tallest
+    print("общий масштаб %.3f (самый высокий глиф %.1f px)" % (k, tallest))
+
+    rendered = []
+    for it, img, w, h in raw:
+        tw, th = w * k, h * k
+        n = cells_for(tw, args.cell, args.pad, args.max_cells)
+        n = min(n, cols)
+        # если упёрлись в лимит ячеек — ужимаем только этот глиф
+        fit = min(1.0, (n * args.cell - args.pad * 2) / tw) if tw > 0 else 1.0
+        rendered.append((it, place(img, (tw * fit, th * fit),
+                                   n * args.cell, args.cell), n))
 
     # раскладка: широкий глиф занимает несколько ячеек подряд и переносится
     # на следующий ряд целиком, не разрываясь на границе
