@@ -260,10 +260,16 @@ def main():
     with open(lua, "w", encoding="utf-8") as f:
         f.write(LUA_HEADER % (args.name + ".png", args.width, height,
                               args.cell, cols, len(rendered)))
+        def q(s):
+            return "'" + s.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
         for slot, (it, _img) in enumerate(rendered):
-            name = it["name"].replace("\\", "\\\\").replace("'", "\\'")
-            f.write("    { '%s', 0x%05X, '%s', %d },\n" %
-                    (name, it["cp"], it["cat"], slot))
+            names = it.get("names") or []
+            row = "    { %s, 0x%05X, %s, %d" % (
+                q(it["name"]), it["cp"], q(it["cat"]), slot)
+            if len(names) > 1:      # синонимы: ':)', '<3' и подобные
+                row += ", { %s }" % ", ".join(q(a) for a in names[1:])
+            f.write(row + " },\n")
         f.write("  },\n}\n")
     print("описание: %s" % lua)
 

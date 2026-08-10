@@ -80,6 +80,23 @@ for _, n in ipairs({ 'arz', 'redcode', 'buy', 'sell', 'cash', 'btc', 'yt', 'vc' 
     check(emoji.get(n) ~= nil, 'нет серверной иконки ' .. n)
 end
 
+-- синонимы из таблицы шорткатов тоже должны находиться
+check(emoji.get(':)') ~= nil and emoji.get(':)').cp == 0x1F642, 'синоним :)')
+check(emoji.get('<3') ~= nil and emoji.get('<3').cp == 0x2764, 'синоним <3')
+
+-- порядок обязан совпадать с панелью чата: первые шесть — как в Arizona
+local head = { 0x1F600, 0x1F601, 0x1F602, 0x1F923, 0x1F603, 0x1F604 }
+for i, cp in ipairs(head) do
+    check(emoji.list[i] and emoji.list[i].cp == cp,
+          ('порядок: #%d ожидался U+%05X, получен %s')
+              :format(i, cp, emoji.list[i] and ('U+%05X'):format(emoji.list[i].cp) or 'nil'))
+end
+
+-- смайлы, которых не было в старой выборке из таблицы имён
+for _, cp in ipairs({ 0x1F60E, 0x1F494, 0x1F49B, 0x1F648, 0x1F649, 0x1F64A, 0x1FAC1 }) do
+    check(emoji.get(cp) ~= nil, ('нет U+%05X'):format(cp))
+end
+
 -- --------------------------------------------------------------------------
 -- разбор строки
 local function render(str)

@@ -170,7 +170,7 @@ function emoji.build(atlas)
 
     local catIndex = {}
     for i, row in ipairs(atlas.emoji) do
-        local name, cp, cat, slot = row[1], row[2], row[3], row[4]
+        local name, cp, cat, slot, aliases = row[1], row[2], row[3], row[4], row[5]
         local col = slot % atlas.cols
         local line = math.floor(slot / atlas.cols)
         local e = {
@@ -189,6 +189,12 @@ function emoji.build(atlas)
         -- имена в таблице чата не уникальны (kkk/m, kkkv/mv), первый выигрывает
         if not emoji.byName[name] then emoji.byName[name] = e end
         if not emoji.byCp[cp] then emoji.byCp[cp] = e end
+        if aliases then
+            e.aliases = aliases
+            for _, a in ipairs(aliases) do
+                if not emoji.byName[a] then emoji.byName[a] = e end
+            end
+        end
 
         local c = catIndex[cat]
         if not c then
@@ -384,12 +390,21 @@ function emoji.picker(id, size, height)
     local avail = imgui.GetContentRegionAvail().x
     local perRow = math.max(1, math.floor(avail / step))
 
+    local function matches(e)
+        if query == '' then return true end
+        if e.name:lower():find(query, 1, true) then return true end
+        if e.aliases then
+            for _, a in ipairs(e.aliases) do
+                if a:lower():find(query, 1, true) then return true end
+            end
+        end
+        return false
+    end
+
     for _, cat in ipairs(emoji.categories) do
         local shown = {}
         for _, e in ipairs(cat.items) do
-            if query == '' or e.name:lower():find(query, 1, true) then
-                shown[#shown + 1] = e
-            end
+            if matches(e) then shown[#shown + 1] = e end
         end
         if #shown > 0 then
             imgui.TextDisabled(cat.name)

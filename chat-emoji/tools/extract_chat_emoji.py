@@ -223,9 +223,112 @@ def read_cstring(pe, va, maxlen=48):
     return s.decode("ascii")
 
 
+def extract_panel(pe):
+    """
+    Достаёт списки панели смайлов.
+
+    Панель строится не из именованной таблицы, а из семи отдельных массивов
+    uint32 в .rdata — по одному на вкладку. Каждый массив адресуется прямо
+    из кода константой, поэтому:
+
+      * стартовые адреса ищем среди 4-байтовых immediate в .text,
+        проверяя, что по адресу лежит правдоподобный массив кодовых точек;
+      * порядок категорий = порядок первого обращения в .text (именно в нём
+        панель их и рисует);
+      * длина массива = расстояние до следующего старта минус хвостовые нули;
+        последний массив читаем, пока значения похожи на кодовые точки.
+
+    Компилятор разворачивает копирование коротких массивов в несколько
+    16-байтовых кусков, поэтому адреса, отстоящие от предыдущего меньше
+    чем на 64 байта, считаем продолжением того же массива, а не новой
+    категорией.
+    """
+    rdata = None
+    text = None
+    for s in pe.sections:
+        if s["name"] == ".rdata":
+            rdata = s
+        elif s["name"] == ".text":
+            text = s
+    if rdata is None or text is None:
+        raise ValueError("нет секции .rdata или .text")
+
+    def u32(off):
+        return struct.unpack_from("<I", pe.data, off)[0]
+
+    def looks_like_list(off, need=8):
+        """Первые need значений похожи на кодовые точки эмодзи."""
+        end = rdata["rawptr"] + rdata["rawsize"]
+        if off + need * 4 > end:
+            return False
+        for k in range(need):
+            v = u32(off + k * 4)
+            if not (0x2000 <= v <= 0x1FFFF):
+                return False
+        return True
+
+    # --- собираем кандидатов из .text ---
+    lo_va = pe.image_base + rdata["vaddr"]
+    hi_va = lo_va + rdata["rawsize"]
+    hits = {}                       # va -> самое раннее смещение в .text
+    tlo = text["rawptr"]
+    thi = tlo + text["rawsize"]
+    for p in range(tlo, thi - 4):
+        v = struct.unpack_from("<I", pe.data, p)[0]
+        if v & 3 or not (lo_va <= v < hi_va):
+            continue
+        off = pe.va_to_off(v)
+        if off is None or not looks_like_list(off):
+            continue
+        if v not in hits:
+            hits[v] = p
+
+    if not hits:
+        raise ValueError("массивы панели не найдены")
+
+    # --- схлопываем развёрнутые копии одного массива ---
+    starts = []
+    for va in sorted(hits):
+        if starts and va - starts[-1] < 64:
+            continue                # продолжение предыдущего массива
+        starts.append(va)
+
+    # --- читаем содержимое ---
+    # Массив кончается там, где начинается следующий, либо там, где значения
+    # перестают быть похожими на кодовые точки (нули между массивами —
+    # выравнивание, их пропускаем и обрезаем в конце).
+    lists = {}
+    for i, va in enumerate(starts):
+        off = pe.va_to_off(va)
+        limit = rdata["rawptr"] + rdata["rawsize"]
+        if i + 1 < len(starts):
+            limit = min(limit, pe.va_to_off(starts[i + 1]))
+        end = off
+        while end + 4 <= limit:
+            v = u32(end)
+            if v != 0 and not (0x20 <= v <= 0x1FFFF):
+                break
+            end += 4
+        vals = [u32(o) for o in range(off, end, 4)]
+        while vals and vals[-1] == 0:
+            vals.pop()
+        if len(vals) >= 16:         # короткие совпадения — случайные
+            lists[va] = vals
+
+    starts = [va for va in starts if va in lists]
+    if not starts:
+        raise ValueError("массивы панели не найдены")
+
+    # --- порядок категорий = порядок обращения в коде ---
+    order = sorted(starts, key=lambda va: hits[va])
+    return [(va, lists[va]) for va in order]
+
+
 def extract_emoji_table(pe):
     """
     Ищет массив структур { const char* name; uint32_t codepoint; }.
+    Это словарь для текстовых шорткатов, а не список панели: часть смайлов
+    панели имён не имеет, а часть имён (серверные иконки) в панель не попала.
     Якорь — указатель на строку "smiley"; дальше массив разворачивается
     в обе стороны по признаку «валидная пара».
     """
@@ -270,32 +373,23 @@ def extract_emoji_table(pe):
 # в панели смайлов чата)
 # --------------------------------------------------------------------------
 
-CATEGORIES = [
-    (0,   "Смайлы"),
-    (100, "Животные"),
-    (212, "Люди"),
-    (278, "Праздники и одежда"),
-    (325, "Спорт и игры"),
-    (359, "Предметы"),
-    (475, "Еда и напитки"),
-    (564, "Растения"),
-    (578, "Транспорт"),
-    (615, "Места"),
-    (660, "Природа"),
-    (680, "Символы"),
-    (751, "Сервер"),
-    (789, "Буквы"),
+# Названия вкладок панели. Порядок — как в чате; группировка у Arizona своя,
+# не по CLDR: животные лежат вместе со смайлами, растения — с едой, а часы —
+# с сердцами. Имена подобраны по фактическому содержимому массивов.
+PANEL_CATEGORIES = [
+    "Смайлы и животные",
+    "Люди и жесты",
+    "Праздники и предметы",
+    "Еда и растения",
+    "Транспорт и места",
+    "Символы",
+    "Буквы",
 ]
 
-
-def category_of(index):
-    name = CATEGORIES[0][1]
-    for start, cat in CATEGORIES:
-        if index >= start:
-            name = cat
-        else:
-            break
-    return name
+# Смайлы, у которых имя в таблице есть, а в панели их нет (серверные иконки
+# Arizona и подобное). В чат их можно вставить токеном, поэтому в атлас они
+# идут отдельной группой в конец.
+EXTRA_CATEGORY = "Сервер"
 
 
 # --------------------------------------------------------------------------
@@ -303,25 +397,64 @@ def category_of(index):
 LUA_HEADER = """-- Автоматически сгенерировано extract_chat_emoji.py из _chat.asi.
 -- Не редактировать вручную.
 --
--- Формат записи: { name = 'smiley', cp = 0x1F603, cat = 'Смайлы' }
---   name — имя смайла в чате
---   cp   — кодовая точка Unicode; в текст чата вставляется как ':u%x:'
---          (например :u1f603:)
---   cat  — категория для панели выбора
+-- Порядок записей повторяет порядок панели смайлов в чате Arizona.
+--
+-- Формат: { cp = 0x1F603, cat = 'Смайлы и животные', names = { 'smiley' } }
+--   cp    — кодовая точка Unicode; в текст чата вставляется как ':u%x:'
+--           (например :u1f603:)
+--   cat   — вкладка панели
+--   names — имена из таблицы шорткатов чата; у части смайлов имён нет
 
 return {
 """
 
 
+def lua_str(s):
+    return "'" + s.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
 def write_lua(items, path):
     with open(path, "w", encoding="utf-8") as f:
         f.write(LUA_HEADER)
-        for i, (name, cp) in enumerate(items):
-            f.write("  { name = %-16s cp = 0x%05X, cat = %s },\n" % (
-                "'" + name.replace("\\", "\\\\").replace("'", "\\'") + "',",
-                cp,
-                "'" + category_of(i) + "'"))
+        for it in items:
+            names = ", ".join(lua_str(n) for n in it["names"])
+            f.write("  { cp = 0x%05X, cat = %s, names = { %s } },\n" % (
+                it["cp"], lua_str(it["cat"]), names))
         f.write("}\n")
+
+
+def build_items(panel, table):
+    """Сводит списки панели с таблицей имён в один упорядоченный список."""
+    names_by_cp = {}
+    for name, cp in table:
+        names_by_cp.setdefault(cp, []).append(name)
+
+    items = []
+    seen = set()
+    for idx, (_va, cps) in enumerate(panel):
+        cat = (PANEL_CATEGORIES[idx] if idx < len(PANEL_CATEGORIES)
+               else "Группа %d" % (idx + 1))
+        for cp in cps:
+            if cp in seen:
+                continue
+            seen.add(cp)
+            items.append({"cp": cp, "cat": cat,
+                          "names": names_by_cp.get(cp, [])})
+
+    # именованные, но не попавшие в панель — в конец отдельной группой,
+    # порядок сохраняем как в таблице шорткатов
+    for name, cp in table:
+        if cp in seen:
+            continue
+        seen.add(cp)
+        items.append({"cp": cp, "cat": EXTRA_CATEGORY,
+                      "names": names_by_cp.get(cp, [])})
+
+    for i, it in enumerate(items):
+        it["index"] = i
+        it["hex"] = "%05X" % it["cp"]
+        it["name"] = it["names"][0] if it["names"] else "u%x" % it["cp"]
+    return items
 
 
 def main():
@@ -355,15 +488,25 @@ def main():
     if not fonts:
         print("  ВНИМАНИЕ: шрифты не найдены", file=sys.stderr)
 
-    # --- таблица смайлов --------------------------------------------------
-    items = extract_emoji_table(pe)
-    print("  смайлов: %d" % len(items))
+    # --- списки панели ----------------------------------------------------
+    panel = extract_panel(pe)
+    print("  массивов панели: %d" % len(panel))
+    for idx, (va, cps) in enumerate(panel):
+        cat = (PANEL_CATEGORIES[idx] if idx < len(PANEL_CATEGORIES)
+               else "группа %d" % (idx + 1))
+        print("    0x%08X  %4d  %s" % (va, len(cps), cat))
 
-    js = [{"index": i, "name": n, "cp": cp,
-           "hex": "%05X" % cp, "cat": category_of(i)}
-          for i, (n, cp) in enumerate(items)]
+    # --- таблица имён -----------------------------------------------------
+    table = extract_emoji_table(pe)
+    print("  имён в таблице шорткатов: %d" % len(table))
+
+    items = build_items(panel, table)
+    named = sum(1 for it in items if it["names"])
+    print("  всего смайлов: %d (с именем %d, без имени %d)"
+          % (len(items), named, len(items) - named))
+
     with open(os.path.join(args.out, "emoji.json"), "w", encoding="utf-8") as f:
-        json.dump(js, f, ensure_ascii=False, indent=1)
+        json.dump(items, f, ensure_ascii=False, indent=1)
     write_lua(items, os.path.join(args.out, "emoji_list.lua"))
     print("  записано: emoji.json, emoji_list.lua")
 
