@@ -97,6 +97,26 @@ for _, cp in ipairs({ 0x1F60E, 0x1F494, 0x1F49B, 0x1F648, 0x1F649, 0x1F64A, 0x1F
     check(emoji.get(cp) ~= nil, ('нет U+%05X'):format(cp))
 end
 
+-- скрытые иконки Arizona: интерфейс, VIP-короны, крылья-уровни, оружие,
+-- недвижимость. В панели чата их нет, но токеном они работают.
+for _, cp in ipairs({ 0xF013, 0xF241, 0xF24E, 0xF250, 0xF259, 0xF260,
+                      0xF300, 0xF341, 0x1FC1E, 0x1FC1F, 0x1FC21 }) do
+    check(emoji.get(cp) ~= nil, ('нет скрытой иконки U+%05X'):format(cp))
+end
+
+-- вкладки панели чата обязаны идти первыми, скрытые — после них
+local firstHidden, lastPanel = nil, nil
+for i, c in ipairs(emoji.categories) do
+    if c.name:find('^\208\161\208\186\209\128\209\139') then
+        firstHidden = firstHidden or i
+    elseif firstHidden == nil then
+        lastPanel = i
+    end
+end
+check(firstHidden ~= nil, 'нет ни одной скрытой группы')
+check(lastPanel ~= nil and firstHidden > lastPanel,
+      'скрытые группы перемешались с панельными')
+
 -- --------------------------------------------------------------------------
 -- разбор строки
 local function render(str)

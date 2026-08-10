@@ -420,10 +420,75 @@ PANEL_CATEGORIES = [
     "Буквы и логотипы",
 ]
 
-# Смайлы, у которых имя в таблице есть, а в панели их нет (серверные иконки
-# Arizona и подобное). В чат их можно вставить токеном, поэтому в атлас они
-# идут отдельной группой в конец.
-EXTRA_CATEGORY = "Сервер (вне панели чата)"
+# Всё, что в панель чата не попало, но в игре работает: часть есть в таблице
+# шорткатов, часть вообще нигде не объявлена и живёт только глифами в
+# icons.ttf. Раскладываем по диапазонам — они у Arizona осмысленные.
+HIDDEN_RANGES = [
+    (0xF000, 0xF1FF, "Скрытые: интерфейс"),
+    (0xF200, 0xF23F, "Скрытые: ленты и плашки"),
+    (0xF240, 0xF25C, "Скрытые: VIP и уровни"),
+    (0xF25D, 0xF26F, "Скрытые: значки сервера"),
+    (0xF270, 0xF2FF, "Скрытые: цифры и метки"),
+    (0xF300, 0xF3FF, "Скрытые: оружие"),
+    (0x1FC00, 0x1FCFF, "Скрытые: недвижимость и чат"),
+]
+HIDDEN_OTHER = "Скрытые: прочее"
+
+
+def hidden_category(cp):
+    for lo, hi, name in HIDDEN_RANGES:
+        if lo <= cp <= hi:
+            return name
+    return HIDDEN_OTHER
+
+
+def hidden_order(cp):
+    """Порядок группы — как в HIDDEN_RANGES, а не по алфавиту."""
+    for i, (lo, hi, _name) in enumerate(HIDDEN_RANGES):
+        if lo <= cp <= hi:
+            return i
+    return len(HIDDEN_RANGES)
+
+
+def font_codepoints(ttf):
+    """Кодовые точки из cmap шрифта (форматы 4 и 12)."""
+    try:
+        num_tables, = struct.unpack_from(">H", ttf, 4)
+        cmap = None
+        for i in range(num_tables):
+            tag, _, off, ln = struct.unpack_from(">4sIII", ttf, 12 + i * 16)
+            if tag == b"cmap":
+                cmap = off
+                break
+        if cmap is None:
+            return set()
+        n, = struct.unpack_from(">H", ttf, cmap + 2)
+        subs = []
+        for i in range(n):
+            pid, eid, sub = struct.unpack_from(">HHI", ttf, cmap + 4 + i * 8)
+            subs.append((0 if (pid, eid) == (3, 10) else 1, cmap + sub))
+        subs.sort()
+        out = set()
+        for _, sub in subs:
+            fmt, = struct.unpack_from(">H", ttf, sub)
+            if fmt == 12:
+                ngroups, = struct.unpack_from(">I", ttf, sub + 12)
+                for g in range(ngroups):
+                    a, b, _ = struct.unpack_from(">III", ttf, sub + 16 + g * 12)
+                    out.update(range(a, min(b, a + 0x10000) + 1))
+            elif fmt == 4:
+                segx2, = struct.unpack_from(">H", ttf, sub + 6)
+                seg = segx2 // 2
+                ends = struct.unpack_from(">%dH" % seg, ttf, sub + 14)
+                starts = struct.unpack_from(">%dH" % seg, ttf, sub + 16 + segx2)
+                for a, b in zip(starts, ends):
+                    if a != 0xFFFF:
+                        out.update(range(a, b + 1))
+            if out:
+                break
+        return out
+    except Exception:
+        return set()
 
 
 # --------------------------------------------------------------------------
@@ -472,8 +537,14 @@ def write_lua(items, path):
         f.write("}\n")
 
 
-def build_items(panel, table):
-    """Сводит списки панели с таблицей имён в один упорядоченный список."""
+def build_items(panel, table, icon_cps=()):
+    """Сводит списки панели, таблицу имён и глифы icons.ttf в один список.
+
+    Порядок: сначала вкладки панели чата как есть, затем всё остальное —
+    сперва то, у чего есть имя в таблице шорткатов, потом безымянные глифы
+    из icons.ttf. Всё «остальное» помечено как скрытое: в панели чата этого
+    нет, но токеном :uXXXX: оно работает.
+    """
     names_by_cp = {}
     for name, cp in table:
         names_by_cp.setdefault(cp, []).append(name)
@@ -490,13 +561,25 @@ def build_items(panel, table):
             items.append({"cp": cp, "cat": cat,
                           "names": names_by_cp.get(cp, [])})
 
-    # именованные, но не попавшие в панель — в конец отдельной группой,
-    # порядок сохраняем как в таблице шорткатов
+    # именованные, но не попавшие в панель
+    hidden = []
     for name, cp in table:
         if cp in seen:
             continue
         seen.add(cp)
-        items.append({"cp": cp, "cat": EXTRA_CATEGORY,
+        hidden.append(cp)
+
+    # глифы icons.ttf, которых нет вообще нигде: ни в панели, ни в шорткатах
+    for cp in sorted(icon_cps):
+        if cp in seen or cp <= 0x20 or cp == 0xFFFD:
+            continue
+        seen.add(cp)
+        hidden.append(cp)
+
+    # раскладываем скрытые по группам, внутри группы — по коду
+    hidden.sort(key=lambda cp: (hidden_order(cp), cp))
+    for cp in hidden:
+        items.append({"cp": cp, "cat": hidden_category(cp),
                       "names": names_by_cp.get(cp, [])})
 
     for i, it in enumerate(items):
@@ -521,6 +604,7 @@ def main():
 
     # --- шрифты -----------------------------------------------------------
     fonts = 0
+    fonts_by_name = {}
     for path, blob in pe.resources():
         if not is_stb_compressed(blob):
             continue
@@ -531,6 +615,7 @@ def main():
         dst = os.path.join(args.out, name + ".ttf")
         with open(dst, "wb") as f:
             f.write(ttf)
+        fonts_by_name[name] = ttf
         print("  шрифт: %-16s %8d байт  (сжат %d)" % (
             name + ".ttf", len(ttf), len(blob)))
         fonts += 1
@@ -549,7 +634,11 @@ def main():
     table = extract_emoji_table(pe)
     print("  имён в таблице шорткатов: %d" % len(table))
 
-    items = build_items(panel, table)
+    icons_ttf = fonts_by_name.get("icons")
+    icon_cps = font_codepoints(icons_ttf) if icons_ttf else set()
+    print("  глифов в icons.ttf: %d" % len(icon_cps))
+
+    items = build_items(panel, table, icon_cps)
     named = sum(1 for it in items if it["names"])
     print("  всего смайлов: %d (с именем %d, без имени %d)"
           % (len(items), named, len(items) - named))

@@ -132,11 +132,16 @@ def render_glyph(ch, font, box):
     except Exception:
         adv = 0
 
+    try:
+        adv_spacer = font.getlength(SPACER)
+    except Exception:
+        adv_spacer = 0
+
     # Холст считаем от ширины самого глифа: серверные баннеры («ВИП ЧАТ»,
-    # «РЕКЛАМА») бывают в 6 раз шире своей высоты, и на холсте фиксированного
-    # размера у них обрезался хвост.
+    # «РЕКЛАМА») бывают в шесть раз шире своей высоты, и на холсте
+    # фиксированного размера у них обрезался хвост.
     origin = (box, box)
-    width = max(box * 4, origin[0] + int(adv) + box * 2)
+    width = int(adv_spacer + max(adv, box * 2)) + box * 4
     canvas = (width, box * 4)
 
     tmp = _draw(ch, font, canvas, origin)
@@ -145,13 +150,17 @@ def render_glyph(ch, font, box):
         if bb is not None:
             return tmp.crop(bb)
 
-    # путь для цветных шрифтов с пустыми базовыми контурами
-    if adv <= 0:
+    # Путь для цветных шрифтов с пустыми базовыми контурами.
+    # Распорка идёт ПЕРЕД символом, а не после: у части глифов чернила шире
+    # аванса (у U+F2FF аванс вообще нулевой), и обрезка по авансу справа их
+    # калечила. Слева же граница известна точно — это аванс распорки.
+    if adv_spacer <= 0:
         return None
-    tmp = _draw(ch + SPACER, font, canvas, origin)
+    tmp = _draw(SPACER + ch, font, canvas, origin)
     if tmp is None:
         return None
-    tmp = tmp.crop((0, 0, min(canvas[0], origin[0] + int(round(adv))), canvas[1]))
+    left = origin[0] + int(round(adv_spacer))
+    tmp = tmp.crop((left, 0, canvas[0], canvas[1]))
     bb = tmp.getbbox()
     if bb is None:
         return None
