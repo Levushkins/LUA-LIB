@@ -14238,5 +14238,85 @@
   "index": 1573,
   "hex": "1FC38",
   "name": "u1fc38"
+ },
+ {
+  "cp": 61440,
+  "cat": "Скрытые: интерфейс (big_icons)",
+  "names": [],
+  "index": 1574,
+  "hex": "0F000",
+  "name": "uf000"
+ },
+ {
+  "cp": 61441,
+  "cat": "Скрытые: интерфейс (big_icons)",
+  "names": [],
+  "index": 1575,
+  "hex": "0F001",
+  "name": "uf001"
+ },
+ {
+  "cp": 61442,
+  "cat": "Скрытые: интерфейс (big_icons)",
+  "names": [],
+  "index": 1576,
+  "hex": "0F002",
+  "name": "uf002"
+ },
+ {
+  "cp": 61452,
+  "cat": "Скрытые: интерфейс (big_icons)",
+  "names": [],
+  "index": 1577,
+  "hex": "0F00C",
+  "name": "uf00c"
+ },
+ {
+  "cp": 61453,
+  "cat": "Скрытые: интерфейс (big_icons)",
+  "names": [],
+  "index": 1578,
+  "hex": "0F00D",
+  "name": "uf00d"
+ },
+ {
+  "cp": 61454,
+  "cat": "Скрытые: интерфейс (big_icons)",
+  "names": [],
+  "index": 1579,
+  "hex": "0F00E",
+  "name": "uf00e"
+ },
+ {
+  "cp": 61455,
+  "cat": "Скрытые: интерфейс (big_icons)",
+  "names": [],
+  "index": 1580,
+  "hex": "0F00F",
+  "name": "uf00f"
+ },
+ {
+  "cp": 61456,
+  "cat": "Скрытые: интерфейс (big_icons)",
+  "names": [],
+  "index": 1581,
+  "hex": "0F010",
+  "name": "uf010"
+ },
+ {
+  "cp": 61469,
+  "cat": "Скрытые: интерфейс (big_icons)",
+  "names": [],
+  "index": 1582,
+  "hex": "0F01D",
+  "name": "uf01d"
+ },
+ {
+  "cp": 61470,
+  "cat": "Скрытые: интерфейс (big_icons)",
+  "names": [],
+  "index": 1583,
+  "hex": "0F01E",
+  "name": "uf01e"
  }
 ]

@@ -196,10 +196,8 @@ def render_glyph(ch, font, box, spacer=FALLBACK_SPACER, adv_spacer=None):
         except Exception:
             adv_spacer = 0
 
-    # Холст считаем от ширины самого глифа: серверные баннеры («ВИП ЧАТ»,
-    # «РЕКЛАМА») бывают в шесть раз шире своей высоты.
-    origin = (box, box * 2)
-    width = int(adv_spacer + max(adv, box * 2)) + box * 4
+    origin = (box * 2, box * 2)
+    width = int(max(adv, box * 2) + adv_spacer) + box * 8
     canvas = (width, box * 6)
 
     tmp = _draw(ch, font, canvas, origin)
@@ -209,20 +207,36 @@ def render_glyph(ch, font, box, spacer=FALLBACK_SPACER, adv_spacer=None):
             # маска нормальной высоты — символ нарисовался целиком
             return tmp.crop(bb)
 
-    # Путь для цветных шрифтов: распорка ПЕРЕД символом. Справа глиф ничем не
-    # ограничен (у части иконок чернила шире аванса, у U+F2FF аванс нулевой),
-    # а слева граница известна точно — это суммарный аванс распорки.
-    if adv_spacer <= 0:
+    if not spacer:
         return tmp.crop(tmp.getbbox()) if (tmp and tmp.getbbox()) else None
+
+    # Распорку отодвигаем вправо пробелами и режем по ним. Так символ не
+    # ограничен ни справа (у части иконок чернила шире аванса), ни слева
+    # (у иконок big_icons аванс нулевой, и рисуются они левее точки вставки).
+    try:
+        space_adv = font.getlength(" ")
+    except Exception:
+        space_adv = 0
+    if space_adv > 0:
+        gap = max(adv * 1.5, box * 2) + box
+        n = int(gap / space_adv) + 1
+        tmp = _draw(ch + " " * n + spacer, font, canvas, origin)
+        if tmp is not None:
+            cut = min(canvas[0], origin[0] + int(n * space_adv))
+            tmp = tmp.crop((0, 0, cut, canvas[1]))
+            bb = tmp.getbbox()
+            if bb is not None:
+                return tmp.crop(bb)
+
+    # запасной путь: распорка перед символом, режем по её авансу
+    if adv_spacer <= 0:
+        return None
     tmp = _draw(spacer + ch, font, canvas, origin)
     if tmp is None:
         return None
-    left = origin[0] + int(round(adv_spacer))
-    tmp = tmp.crop((left, 0, canvas[0], canvas[1]))
+    tmp = tmp.crop((origin[0] + int(round(adv_spacer)), 0, canvas[0], canvas[1]))
     bb = tmp.getbbox()
-    if bb is None:
-        return None
-    return tmp.crop(bb)
+    return tmp.crop(bb) if bb else None
 
 
 def cells_for(img, cap):
@@ -302,6 +316,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("json", help="emoji.json от extract_chat_emoji.py")
     ap.add_argument("--icons", required=True, help="icons.ttf из _chat.asi")
+    ap.add_argument("--big-icons", help="big_icons.ttf из _chat.asi")
     ap.add_argument("--emoji", help="цветной эмодзи-шрифт (seguiemj.ttf)")
     ap.add_argument("-o", "--out", default=".", help="каталог результата")
     ap.add_argument("--cell", type=int, default=40, help="размер ячейки, px")
@@ -325,18 +340,24 @@ def main():
     os.makedirs(args.out, exist_ok=True)
 
     icons_cps = font_codepoints(args.icons)
+    big_cps = font_codepoints(args.big_icons) if args.big_icons else set()
     emoji_cps = font_codepoints(args.emoji)
     print("icons.ttf: %d кодовых точек, эмодзи-шрифт: %d" %
           (len(icons_cps), len(emoji_cps)))
 
     f_icons, s_icons = open_font(args.icons, args.cell)
     f_emoji, s_emoji = open_font(args.emoji, args.cell)
+    f_big, s_big = (open_font(args.big_icons, args.cell)
+                    if args.big_icons else (None, 1.0))
 
     # распорка подбирается под каждый шрифт отдельно: её контур задаёт высоту
     # маски, а значит и то, не срежет ли низ у крупных цветных картинок
     box_icons = int(args.cell / s_icons) if s_icons != 1.0 else args.cell
     box_emoji = int(args.cell / s_emoji) if s_emoji != 1.0 else args.cell
     sp_icons, spadv_icons = pick_spacer(f_icons, icons_cps, box_icons)
+    if f_big is not None:
+        box_big = int(args.cell / s_big) if s_big != 1.0 else args.cell
+        sp_big, spadv_big = pick_spacer(f_big, big_cps, box_big)
     sp_emoji, spadv_emoji = pick_spacer(f_emoji, emoji_cps, box_emoji)
     print("распорка: icons %s, эмодзи %s" % (
         " ".join("U+%04X" % ord(c) for c in sp_icons) or "нет",
@@ -352,6 +373,9 @@ def main():
         if cp in icons_cps:
             font, scale = f_icons, s_icons
             spacer, spadv = sp_icons, spadv_icons
+        elif f_big is not None and cp in big_cps:
+            font, scale = f_big, s_big
+            spacer, spadv = sp_big, spadv_big
         elif cp in emoji_cps:
             font, scale = f_emoji, s_emoji
             spacer, spadv = sp_emoji, spadv_emoji

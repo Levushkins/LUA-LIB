@@ -434,6 +434,11 @@ HIDDEN_RANGES = [
 ]
 HIDDEN_OTHER = "Скрытые: прочее"
 
+# Отдельная категория для второго шрифта: big_icons.ttf рисует крупные иконки
+# интерфейса плагина. В чат они, скорее всего, не вставляются — текст чата
+# рисуется другим шрифтом, — но в наборе им место.
+BIG_ICONS_CATEGORY = "Скрытые: интерфейс (big_icons)"
+
 
 def hidden_category(cp):
     for lo, hi, name in HIDDEN_RANGES:
@@ -537,7 +542,7 @@ def write_lua(items, path):
         f.write("}\n")
 
 
-def build_items(panel, table, icon_cps=()):
+def build_items(panel, table, icon_cps=(), big_cps=()):
     """Сводит списки панели, таблицу имён и глифы icons.ttf в один список.
 
     Порядок: сначала вкладки панели чата как есть, затем всё остальное —
@@ -580,6 +585,14 @@ def build_items(panel, table, icon_cps=()):
     hidden.sort(key=lambda cp: (hidden_order(cp), cp))
     for cp in hidden:
         items.append({"cp": cp, "cat": hidden_category(cp),
+                      "names": names_by_cp.get(cp, [])})
+
+    # то, что есть только во втором шрифте
+    for cp in sorted(big_cps):
+        if cp in seen or cp <= 0x20 or cp == 0xFFFD:
+            continue
+        seen.add(cp)
+        items.append({"cp": cp, "cat": BIG_ICONS_CATEGORY,
                       "names": names_by_cp.get(cp, [])})
 
     for i, it in enumerate(items):
@@ -635,10 +648,13 @@ def main():
     print("  имён в таблице шорткатов: %d" % len(table))
 
     icons_ttf = fonts_by_name.get("icons")
+    big_ttf = fonts_by_name.get("big_icons")
     icon_cps = font_codepoints(icons_ttf) if icons_ttf else set()
-    print("  глифов в icons.ttf: %d" % len(icon_cps))
+    big_cps = font_codepoints(big_ttf) if big_ttf else set()
+    print("  глифов в icons.ttf: %d, в big_icons.ttf: %d (уникальных %d)"
+          % (len(icon_cps), len(big_cps), len(big_cps - icon_cps)))
 
-    items = build_items(panel, table, icon_cps)
+    items = build_items(panel, table, icon_cps, big_cps)
     named = sum(1 for it in items if it["names"])
     print("  всего смайлов: %d (с именем %d, без имени %d)"
           % (len(items), named, len(items) - named))

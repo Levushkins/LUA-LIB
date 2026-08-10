@@ -79,6 +79,7 @@ rem --- сборка -----------------------------------------------------------
 echo [4/4] Собираю атлас...
 %PY% tools\build_emoji_atlas.py data\emoji.json ^
     --icons data\icons.ttf ^
+    --big-icons data\big_icons.ttf ^
     --emoji "%FONT%" ^
     -o moonloader\resource\chat_emoji ^
     --cell 40 --width 2048
