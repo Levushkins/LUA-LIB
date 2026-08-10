@@ -31,6 +31,15 @@ local function check(cond, msg)
 end
 
 -- --------------------------------------------------------------------------
+-- заглушка mimgui почти пустая, поэтому load() обязан внятно сообщить,
+-- каких функций ImGui не хватает, а не падать посреди отрисовки
+local okLoad, loadErr = emoji.load()
+check(okLoad == false, 'load() на пустой заглушке mimgui должен вернуть false')
+check(type(loadErr) == 'string' and loadErr:find('mimgui'),
+      'load() должен объяснить, чего не хватает, получено: ' .. tostring(loadErr))
+print('проверка API: ' .. tostring(loadErr))
+
+-- --------------------------------------------------------------------------
 local atlas = dofile('moonloader/resource/chat_emoji/chat_emoji_atlas.lua')
 print(('атлас %dx%d, ячейка %d, колонок %d, записей %d')
     :format(atlas.width, atlas.height, atlas.cell, atlas.cols, #atlas.emoji))

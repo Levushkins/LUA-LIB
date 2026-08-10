@@ -107,8 +107,36 @@ end
 --- Загружает описание атласа и текстуру. Вызывать из imgui.OnInitialize.
 -- @param dir каталог с chat_emoji_atlas.lua и chat_emoji.png (необязательно)
 -- @return true либо false, текст ошибки
+-- Функции ImGui, на которые опирается модуль. Сборки mimgui отличаются, и
+-- перегруженные функции (PushID, например) в биндинге могут отсутствовать —
+-- лучше сказать об этом сразу, чем упасть посреди отрисовки.
+local REQUIRED_IMGUI = {
+    'ImVec2', 'Dummy', 'Image', 'InvisibleButton', 'GetWindowDrawList',
+    'IsItemHovered', 'IsMouseDown', 'ColorConvertFloat4ToU32', 'GetStyle',
+    'GetCursorScreenPos', 'GetFontSize', 'TextUnformatted', 'GetTextLineHeight',
+    'TextDisabled', 'PushItemWidth', 'PopItemWidth', 'InputTextWithHint',
+    'BeginChild', 'EndChild', 'GetContentRegionAvail', 'SameLine', 'Spacing',
+    'SetTooltip',
+}
+
+local function checkImgui()
+    local missing = {}
+    for _, name in ipairs(REQUIRED_IMGUI) do
+        local ok, fn = pcall(function() return imgui[name] end)
+        if not ok or fn == nil then missing[#missing + 1] = name end
+    end
+    if #missing > 0 then
+        return false, 'в этой сборке mimgui нет: ' .. table.concat(missing, ', ')
+    end
+    return true
+end
+
 function emoji.load(dir)
     if emoji.loaded then return true end
+
+    local okApi, apiErr = checkImgui()
+    if not okApi then return false, apiErr end
+
     dir = dir or defaultDir()
 
     local descPath = dir .. 'chat_emoji_atlas.lua'
@@ -339,15 +367,20 @@ function emoji.picker(id, size, height)
     height = height or 320
     local picked = nil
 
-    imgui.PushID(id or 'chat_emoji_picker')
+    -- Пространство имён делаем суффиксом в подписях, а не PushID: PushID в
+    -- ImGui перегружена (int/str/ptr), и биндинг mimgui не отдаёт её под
+    -- коротким именем — imgui.PushID там nil.
+    local pid = tostring(id or 'chat_emoji_picker')
+
     imgui.PushItemWidth(-1)
-    imgui.InputTextWithHint('##search', 'Поиск...', searchBuf, ffi.sizeof(searchBuf))
+    imgui.InputTextWithHint('##search' .. pid, 'Поиск...',
+                            searchBuf, ffi.sizeof(searchBuf))
     imgui.PopItemWidth()
 
     local query = ffi.string(searchBuf):lower()
     local step = size + imgui.GetStyle().ItemSpacing.x + 4
 
-    imgui.BeginChild('##grid', imgui.ImVec2(0, height), true)
+    imgui.BeginChild('##grid' .. pid, imgui.ImVec2(0, height), true)
     local avail = imgui.GetContentRegionAvail().x
     local perRow = math.max(1, math.floor(avail / step))
 
@@ -362,7 +395,7 @@ function emoji.picker(id, size, height)
             imgui.TextDisabled(cat.name)
             for i, e in ipairs(shown) do
                 if (i - 1) % perRow ~= 0 then imgui.SameLine() end
-                if emoji.button(e, size) then picked = e end
+                if emoji.button(e, size, pid .. '_' .. e.slot) then picked = e end
                 if imgui.IsItemHovered() then
                     imgui.SetTooltip((':%s:  %s'):format(e.name, e.token))
                 end
@@ -371,7 +404,6 @@ function emoji.picker(id, size, height)
         end
     end
     imgui.EndChild()
-    imgui.PopID()
 
     return picked
 end
