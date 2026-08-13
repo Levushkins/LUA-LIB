@@ -57,6 +57,19 @@ local function getIcon(name)
     return ''
 end
 
+-- Отложенные действия. Сетевые запросы нельзя запускать прямо из
+-- обработчика пакетов или из колбэка отрисовки imgui - складываем их
+-- сюда, а выполняет главный цикл.
+local pendingActions = {}
+local function defer(fn) pendingActions[#pendingActions + 1] = fn end
+
+local function runPendingActions()
+    if #pendingActions == 0 then return end
+    local queue = pendingActions
+    pendingActions = {}
+    for _, fn in ipairs(queue) do pcall(fn) end
+end
+
 local function clamp(v, lo, hi)
     if v < lo then return lo elseif v > hi then return hi end
     return v
@@ -309,11 +322,34 @@ local function chooseStrategy(cat, ids)
     end
 end
 
+-- Пересобрать список заданий (объявлено заранее: нужно из колбэка загрузки)
+local rebuildQuests
+local lastCefItems
+local lastUnresolved = {}   -- id, для которых не нашлось описания
+
+local function buildUrl(server, key)
+    return ('https://reserve-server-api.arizona.games/client/json/table/get?project=arizona&server=%d&key=%s')
+        :format(server, key)
+end
+
+-- Сколько id из списка вообще находится в этой таблице (любой схемой)
+local function bestCoverage(store, ids)
+    local best = 0
+    for _, lk in ipairs(lookupsFor(store)) do
+        local score = 0
+        for _, id in ipairs(ids) do
+            local e = lk[2](id)
+            if type(e) == 'table' and field(e, F_TEXT) then score = score + 1 end
+        end
+        if score > best then best = score end
+    end
+    return best
+end
+
 local function loadMissionTable(cat)
     local m = missions[cat]
     local server = tonumber(config.settings.server) or 1
-    local url = ('https://reserve-server-api.arizona.games/client/json/table/get?project=arizona&server=%d&key=%s')
-        :format(server, m.key)
+    local url = buildUrl(server, m.key)
 
     async_http_request(url, function(result)
         if not result or #result == 0 then
@@ -332,9 +368,83 @@ local function loadMissionTable(cat)
         m.loaded = true
         if not m.store or (not m.store.list and not m.store.byKey) then
             chat(('неизвестный формат таблицы "%s"'):format(cat))
+            return
         end
+        -- Таблица могла приехать уже после того, как БП прислал задания -
+        -- в этом случае пересобираем список сразу, без перезахода в БП
+        if lastCefItems and rebuildQuests then rebuildQuests(lastCefItems) end
     end, function(err)
         chat(('ошибка загрузки "%s": %s'):format(cat, tostring(err)))
+    end)
+end
+
+-- ---------------------------------------------------------------------
+--  Автоподбор номера сервера
+--
+--  Таблицы миссий раздаются отдельно для каждого сервера, и на разных
+--  серверах они разного размера. Если номер не тот, часть id из БП
+--  просто отсутствует в таблице (симптом: coverage вида 10/26).
+--  Перебираем номера и берём первый, который покрывает все id.
+-- ---------------------------------------------------------------------
+
+local probing      = false
+local serverProbed = false
+local probeLog     = {}
+
+local function probeServers(ids, maxServer)
+    if probing or #ids == 0 then return end
+    probing = true
+    serverProbed = true
+    probeLog = {}
+
+    lua_thread.create(function()
+        chat(('подбираю номер сервера по %d заданиям, это займёт минуту...'):format(#ids))
+
+        local bestServer, bestScore, bestSize = nil, -1, 0
+
+        for s = 1, (maxServer or 30) do
+            local done, body = false, nil
+            async_http_request(buildUrl(s, missions.daily.key),
+                function(r) body = r; done = true end,
+                function() done = true end)
+
+            local waited = 0
+            while not done and waited < 8000 do wait(100); waited = waited + 100 end
+
+            local score, size = -1, 0
+            if body and #body > 0 then
+                local ok, decoded = pcall(decodeJson, body)
+                if ok and type(decoded) == 'table' then
+                    local store = normalizeTable(decoded)
+                    if store then
+                        size  = store.list and #store.list or 0
+                        score = bestCoverage(store, ids)
+                    end
+                end
+            end
+            probeLog[#probeLog + 1] = ('сервер %d: записей %d, покрытие %d/%d')
+                :format(s, size, math.max(score, 0), #ids)
+
+            if score > bestScore then bestServer, bestScore, bestSize = s, score, size end
+
+            if score >= #ids then
+                config.settings.server = s
+                settings.server[0]     = s
+                saveConfig()
+                chat(('найден сервер %d (записей %d) - распознаны все %d заданий')
+                    :format(s, size, #ids))
+                loadMissionTable('daily')
+                loadMissionTable('premium')
+                probing = false
+                return
+            end
+            wait(150)
+        end
+
+        chat(('полного совпадения нет. Лучший: сервер %s, покрытие %d/%d')
+            :format(tostring(bestServer), math.max(bestScore, 0), #ids))
+        chat('введите /bpdebug - в файле будет отчёт по всем серверам')
+        probing = false
     end)
 end
 
@@ -383,12 +493,10 @@ local function categorizeQuest(q)
     return 'Прочее', 'list', 50
 end
 
--- Последняя пачка данных от CEF - чтобы пересобрать список
--- при смене схемы сопоставления без перезахода в БП
-local lastCefItems = nil
-
--- Пересобирает список заданий из данных CEF
-local function rebuildQuests(items)
+-- Пересобирает список заданий из данных CEF.
+-- lastCefItems хранит последнюю пачку, чтобы пересобрать список после
+-- смены схемы/сервера без перезахода в БП.
+rebuildQuests = function(items)
     lastCefItems = items
 
     -- сгруппировать id по категориям, чтобы подобрать схему сопоставления
@@ -406,6 +514,7 @@ local function rebuildQuests(items)
     end
 
     local list, missing, noTable = {}, 0, {}
+    local unresolved = {}
     for _, it in ipairs(items) do
         -- В старой версии флаг visible игнорировался, из-за чего в окно
         -- попадали задания, которых нет в самом БП
@@ -436,20 +545,34 @@ local function rebuildQuests(items)
                     })
                 else
                     missing = missing + 1
+                    unresolved[#unresolved + 1] = tonumber(it.id)
                 end
             else
                 missing = missing + 1
+                unresolved[#unresolved + 1] = tonumber(it.id)
             end
         end
     end
 
     quests = list
+    lastUnresolved = unresolved
+
     for cat, n in pairs(noTable) do
         chat(('таблица "%s" не загружена, пропущено заданий: %d'):format(cat, n))
         chat('проверьте интернет и нажмите "Перезагрузить таблицы миссий" в /bphset')
     end
+
     if missing > 0 then
-        chat(('не найдено описаний: %d. Введите /bpdebug'):format(missing))
+        chat(('не найдено описаний: %d из %d'):format(missing, #items))
+        -- Чаще всего это значит, что таблица взята не от того сервера:
+        -- нужных id в ней просто нет. Пробуем подобрать номер сервера.
+        if not serverProbed and missions.daily.loaded then
+            local ids = {}
+            for _, it in ipairs(items) do
+                if it.categoryId == 'daily' then ids[#ids + 1] = tonumber(it.id) end
+            end
+            defer(function() probeServers(ids, 30) end)
+        end
     end
 end
 
@@ -1028,8 +1151,26 @@ imgui.OnFrame(function() return settings_window[0] end, function(player)
             end
 
             if imgui.Button(getIcon('rotate') .. ' Перезагрузить таблицы миссий', imgui.ImVec2(-1, 26)) then
-                loadMissionTable('daily')
-                loadMissionTable('premium')
+                defer(function()
+                    loadMissionTable('daily')
+                    loadMissionTable('premium')
+                end)
+            end
+
+            if probing then
+                imgui.TextColored(imgui.ImVec4(1, 1, 0, 1), 'Идёт подбор сервера, подождите...')
+            elseif imgui.Button(getIcon('magnifying-glass') .. ' Подобрать номер сервера автоматически',
+                    imgui.ImVec2(-1, 26)) then
+                if lastCefItems then
+                    local ids = {}
+                    for _, it in ipairs(lastCefItems) do
+                        if it.categoryId == 'daily' then ids[#ids + 1] = tonumber(it.id) end
+                    end
+                    serverProbed = false
+                    defer(function() probeServers(ids, 30) end)
+                else
+                    chat('сначала откройте Battle Pass в игре, чтобы скрипт увидел задания')
+                end
             end
         imgui.EndChild()
 
@@ -1167,6 +1308,19 @@ local function dumpDebug()
                 end
             end
         end
+        f:write(('\nномер сервера: %s\n'):format(tostring(config.settings.server)))
+
+        if #lastUnresolved > 0 then
+            f:write(('\n=== НЕ найдено описаний (%d) ===\n'):format(#lastUnresolved))
+            f:write('id: ' .. table.concat(lastUnresolved, ', ') .. '\n')
+            f:write('Если эти id больше размера таблицы - таблица не от вашего сервера.\n')
+        end
+
+        if #probeLog > 0 then
+            f:write('\n=== перебор серверов ===\n')
+            for _, line in ipairs(probeLog) do f:write('  ' .. line .. '\n') end
+        end
+
         f:write('\n=== распознанные задания ===\n')
         for _, q in ipairs(quests) do
             f:write(('%s #%d  %d/%d  %s\n'):format(q.category, q.id, q.curr, q.max, q.text))
@@ -1262,6 +1416,7 @@ function main()
 
     while true do
         wait(0)
+        runPendingActions()
         if win_state[0] and not sampIsChatInputActive() and not sampIsDialogActive()
                 and isKeyJustPressed(settings.transparent_mode_key[0]) then
             overlay_mode[0] = not overlay_mode[0]
