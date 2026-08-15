@@ -1,0 +1,123 @@
+<style>
+  body { padding: 14px; background-color: #14161a; font-size: 14px; }
+  h2 { margin: 0 0 8px 0; font-size: 18px; color: #9ecbff; }
+  .panel {
+    position: relative;
+    padding: 12px;
+    margin-bottom: 12px;
+    background-color: #1c1f26;
+    border: 1px solid #2c313b;
+    border-radius: 8px;
+  }
+  .flag {
+    position: absolute;
+    top: -8px;
+    right: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background-color: #ff8a3d;
+    color: #201000;
+    font-size: 11px;
+    font-weight: bold;
+    z-index: 5;
+  }
+  p { margin: 0 0 8px 0; line-height: 1.45; color: #c9ced8; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .cell {
+    padding: 10px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #2b3140, #1f242e);
+    text-align: center;
+    border-bottom: 3px solid #5b8cff;
+  }
+  ul { color: #b8bfcc; }
+  ol { color: #b8bfcc; }
+  li::marker { color: #5b8cff; }
+  .swatches { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .swatch { width: 54px; height: 34px; border-radius: 6px; }
+  .ellipsis {
+    width: 220px;
+    overflow-x: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    background-color: #23272f;
+    padding: 6px 8px;
+    border-radius: 5px;
+  }
+  .scroller { height: 84px; overflow-y: auto; background-color: #101216; border-radius: 6px; padding: 8px; }
+  .scroller div { padding: 4px 0; border-bottom: 1px solid #232833; }
+  .inline-demo b { color: #ffd479; }
+  .inline-demo code { background-color: #262b34; padding: 1px 5px; border-radius: 4px; color: #7ee0a8; }
+  .form-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .shadowed { box-shadow: 0 6px 18px rgba(0,0,0,0.6); }
+  progress { width: 100%; height: 10px; color: #35d07f; }
+</style>
+
+<div class="panel shadowed">
+  <div class="flag">absolute + z-index</div>
+  <h2>Текст и перенос строк</h2>
+  <p class="inline-demo">
+    Этот абзац проверяет перенос длинного текста по словам, а также
+    <b>жирные вставки</b>, <i>курсив</i>, <code>моноширинный код</code> и
+    <span style="color:#ff8a8a; font-size: 17px">крупный цветной span</span>
+    внутри одной строки.
+  </p>
+  <div class="ellipsis">Очень длинная строка, которая должна быть обрезана многоточием</div>
+</div>
+
+<div class="panel">
+  <h2>Grid</h2>
+  <div class="cols">
+    <div class="cell">Первая</div>
+    <div class="cell">Вторая</div>
+    <div class="cell">Третья</div>
+    <div class="cell">Четвёртая</div>
+    <div class="cell">Пятая</div>
+  </div>
+  <div class="swatches">
+    <div class="swatch" style="background-color:#ff5f6d"></div>
+    <div class="swatch" style="background-color:#ffa63d"></div>
+    <div class="swatch" style="background-color:#35d07f"></div>
+    <div class="swatch" style="background: linear-gradient(90deg,#5b8cff,#9b5bff)"></div>
+    <div class="swatch" style="background-color:#f0f3f8"></div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Списки и формы</h2>
+  <ul>
+    <li>Маркированный пункт один</li>
+    <li>Пункт два подлиннее</li>
+  </ul>
+  <ol style="list-style: decimal">
+    <li>Нумерованный пункт</li>
+    <li>Ещё один</li>
+  </ol>
+
+  <div class="form-row">
+    <input type="radio" name="mode" checked> <span>Режим A</span>
+    <input type="radio" name="mode"> <span>Режим B</span>
+    <input type="checkbox" checked> <span>Галочка</span>
+  </div>
+  <div class="form-row">
+    <select>
+      <option>Первый вариант</option>
+      <option selected>Второй вариант</option>
+    </select>
+    <input type="text" value="текст в поле">
+    <input type="color" value="#5b8cff">
+  </div>
+  <progress value="64" max="100"></progress>
+</div>
+
+<div class="panel">
+  <h2>Прокрутка</h2>
+  <div class="scroller">
+    <div>Строка 1</div>
+    <div>Строка 2</div>
+    <div>Строка 3</div>
+    <div>Строка 4</div>
+    <div>Строка 5</div>
+    <div>Строка 6</div>
+  </div>
+</div>

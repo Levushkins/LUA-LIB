@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="window">
+
+  <!-- data-drag makes this element move the whole ImGui window -->
+  <header data-drag>
+    <div class="logo">MH</div>
+    <div class="titles">
+      <div class="title">MoonHTML Panel</div>
+      <div class="subtitle">{{ state.nick }} &middot; id {{ state.id }} &middot; {{ state.ping }} ms</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="badge">v1.0</div>
+    <div class="close" data-close>&times;</div>
+  </header>
+
+  <div class="body">
+
+    <nav>
+      <a class="nav-item active" data-tab="main">Основное</a>
+      <a class="nav-item" data-tab="visual">Визуал</a>
+      <a class="nav-item" data-tab="binder">Биндер</a>
+      <a class="nav-item" data-tab="about">О скрипте</a>
+      <div class="spacer"></div>
+      <div class="stat">
+        <div class="stat-label">FPS</div>
+        <div class="stat-value">{{ state.fps }}</div>
+      </div>
+    </nav>
+
+    <main>
+
+      <section class="tab" id="tab-main">
+        <div class="card">
+          <div class="card-head">
+            <h3>Основные функции</h3>
+            <span class="hint">переключатели сохраняются автоматически</span>
+          </div>
+
+          <label class="row">
+            <span class="row-label">Автопринятие лечения</span>
+            <input type="checkbox" id="auto-heal" checked>
+          </label>
+
+          <label class="row">
+            <span class="row-label">Быстрый вход в авто</span>
+            <input type="checkbox" id="fast-enter">
+          </label>
+
+          <div class="row column">
+            <div class="row-head">
+              <span class="row-label">Радиус автосбора</span>
+              <span class="value">{{ state.radius }} м</span>
+            </div>
+            <input type="range" id="radius" min="1" max="50" value="18">
+          </div>
+
+          <div class="row column">
+            <div class="row-head">
+              <span class="row-label">Задержка, мс</span>
+              <span class="value">{{ state.delay }}</span>
+            </div>
+            <input type="range" id="delay" min="0" max="1000" step="50" value="250">
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Быстрые команды</h3></div>
+          <div class="grid">
+            <button class="btn primary">Заспавнить</button>
+            <button class="btn">Телепорт</button>
+            <button class="btn">Починить</button>
+            <button class="btn danger">Сброс</button>
+          </div>
+          <div class="input-row">
+            <input type="text" id="cmd" placeholder="/команда или текст в чат">
+            <button class="btn primary" id="send">Отправить</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Статус</h3></div>
+          <div class="meter">
+            <div class="meter-label">HP <b>{{ state.hp }}%</b></div>
+            <div class="bar"><div class="fill hp"></div></div>
+          </div>
+          <div class="meter">
+            <div class="meter-label">Броня <b>{{ state.armour }}%</b></div>
+            <div class="bar"><div class="fill armour"></div></div>
+          </div>
+          <ul class="log">
+            <li>Скрипт загружен</li>
+            <li>Подключено к серверу</li>
+            <li>Готово к работе</li>
+          </ul>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer>
+    <span class="dot online"></span>
+    <span>подключено</span>
+    <div class="spacer"></div>
+    <span class="muted">Alt+X — открыть/закрыть</span>
+  </footer>
+
+</div>
+
+</body>
+</html>
