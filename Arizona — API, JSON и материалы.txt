@@ -1,0 +1,298 @@
+Arizona — API, JSON и материалы
+
+Подборка ссылок на API-эндпоинты, JSON-источники, библиотеки-обёртки, исходники и справочники,
+связанные с проектом Arizona RP (Arizona Games): SA-MP (PC), Arizona Mobile, Rodina, Arizona V.
+
+Дата сборки: 15.08.2026
+
+ВАЖНО (прочитать перед использованием):
+— У Arizona Games НЕТ открытого публичного API с документацией. Всё, что перечислено ниже в разделе
+  «JSON-эндпоинты», — это внутренние адреса лаунчера/сайта, найденные сообществом. Они не документированы,
+  могут в любой момент изменить формат, потребовать заголовки/авторизацию или быть закрыты.
+— Ссылки собраны поиском по открытым источникам. Часть ресурсов (blast.hk, git.arizona-rp.com,
+  bugtracker.arizona.games, apitest.arizona-rp.com) закрыта от прямого доступа при сборке подборки,
+  поэтому структуру ответов эндпоинтов нужно проверять самостоятельно (curl / браузер / DevTools).
+— Не спамьте запросами: у неофициальных эндпоинтов легко словить бан по IP. Кэшируйте ответ
+  (10–60 секунд для онлайна более чем достаточно).
+
+
+================================================================================
+1. ОФИЦИАЛЬНЫЕ РЕСУРСЫ ПРОЕКТА
+================================================================================
+
+https://arizona-rp.com/                    — главный сайт проекта
+https://arizona-rp.com/servers/            — список серверов (онлайн, очередь; страница HTML)
+https://arizona-rp.com/mon/fraction/<серверID>/<фракцияID>
+                                           — состав фракции: ник, ранг, онлайн-статус.
+                                             HTML-таблица, традиционно парсится ботами
+                                             (колонки: 1 — ник, 2 — ранг, 3 — онлайн).
+                                             Пример: /mon/fraction/7/3
+
+https://forum.arizona-rp.com/              — форум проекта (XenForo 2)
+https://forum.arizona-rp.com/categories/3794/
+                                           — раздел «Сервера Arizona RP»
+https://help.arizona-rp.com/hc/arizona-rp/ru/categories/account
+                                           — справочный центр (аккаунт, доступы, восстановление)
+
+https://bugtracker.arizona.games/          — официальный багтрекер (Gitea, ArizonaGames)
+https://bugtracker.arizona.games/ArizonaGames/ArizonaServer/issues/3488
+                                           — заявка «[Feature] Внутриигровое API для сторонних
+                                             разработчиков»: предлагают выдавать скриптам токен сессии
+                                             по событию инициализации, чтобы не дёргать /stats раз в 10 сек
+                                             ради баланса депозита и AZ-коинов. Полезно почитать —
+                                             там же объясняется, почему сейчас данные приходится «выковыривать»
+                                             из чата и диалогов.
+https://git.arizona-rp.com/ArizonaGames/Main/wiki/Help
+                                           — Gitea ArizonaGames (вики/хелп по багтрекеру)
+https://apitest.arizona-rp.com/            — тестовый API-хост проекта (упоминается в выдаче; доступ ограничен)
+
+
+================================================================================
+2. JSON-ЭНДПОИНТЫ (НЕОФИЦИАЛЬНЫЕ, БЕЗ ГАРАНТИЙ)
+================================================================================
+
+Онлайн и очередь серверов (используется лаунчером/мониторингами):
+
+    https://arizona-ping.react.group/desktop/ping/Arizona/ping.json
+
+    Отдаёт JSON со статусом серверов десктопной Аризоны (онлайн, лимит слотов, очередь).
+    Путь построен по шаблону: /desktop/ping/<Проект>/ping.json — по аналогии проверяйте
+    Rodina и другие проекты семейства.
+    Именно на этот источник опираются lua-чекеры очереди (см. раздел 4, тема 253219).
+
+Список серверов для лаунчера:
+
+    https://api.arizona-five.com/launcher/servers
+
+Моды/патчи лаунчера (SA-MP-ветка):
+
+    https://api-samp.arizona-five.com/launcher/mods
+
+Поиск аккаунта (закрытый, требует параметров/авторизации):
+
+    https://n-api.arizona-rp.com/api/account/find
+
+    В обсуждениях сообщества так и не сошлись на наборе аргументов — публично не документирован.
+
+REST API форума (XenForo 2):
+
+    https://forum.arizona-rp.com/api/
+
+    Стандартный XenForo REST API. Неаутентифицированного доступа нет — нужен API-ключ
+    из админки (Setup → Service providers → API keys), который администрация форума
+    сторонним разработчикам не выдаёт. Именно поэтому сообщество работает через
+    cookie-обёртки (см. раздел 3).
+    Документация XenForo: https://xenforo.com/docs/dev/rest-api/
+
+Как искать новые эндпоинты самостоятельно:
+— Лаунчер Arizona на Electron: распаковать resources/app.asar (`npx asar extract app.asar out`)
+  и грепнуть по `https://`.
+— DevTools/прокси (mitmproxy, Fiddler) на лаунчере и на сайте — вкладка Network, фильтр XHR.
+— В JSON-конфигах игры/патчей встречаются файлы вида arizona/NamedModels.json.
+
+
+================================================================================
+3. ГОТОВЫЕ БИБЛИОТЕКИ И ОБЁРТКИ
+================================================================================
+
+arz-api (Python) — работа с форумом Arizona без Xenforo-ключей, авторизация по кукам:
+    https://github.com/TastyBread123/Arizona-API/
+    https://pypi.org/project/arz-api/            (актуальная версия 2.2)
+    https://tastybread123.github.io/Arizona-API/arz_api.html   — документация
+    https://github.com/TastyBread123/Arizona-API/tree/main/examples — примеры
+    Установка: pip install arz-api
+    Около 35 методов (темы, сообщения, профили, разделы) — покрывают большинство задач ботов.
+
+arizona-api (Python) — простой клиент со списками серверов:
+    https://pypi.org/project/arizona-api/
+    Методы: get_all_servers(), get_arizona_servers(), get_rodina_servers(),
+            get_arizonav_servers(), get_village_servers(), get_arizona_staging_servers().
+    Версия 0.0.1, исходный репозиторий (github.com/ailishev/arizona-api) сейчас недоступен —
+    ставится с PyPI, код смотреть в архиве пакета.
+
+@nau7ilus/core (JavaScript/Node) — функции для ботов:
+    https://github.com/nieopierzony/core
+    getFractionPlayers(serverID, fractionID, requestConfig) — состав фракции с онлайном и рангами.
+    Работает парсингом сайта (не API), автор предупреждает о риске бана IP при частых запросах.
+
+Arizona-RP-VK-Bot-Parser (Python) — рабочий пример парсинга состава фракции:
+    https://github.com/0niel/Arizona-RP-VK-Bot-Parser/blob/master/main.py
+    Тянет https://arizona-rp.com/mon/fraction/7/3, сравнивает выдачи между опросами,
+    находит смены рангов и шлёт отчёт в чат через https://api.vk.com/method/messages.send
+
+
+================================================================================
+4. ТЕМЫ НА BLAST.HK (ОСНОВНОЙ ИСТОЧНИК ПО API АРИЗОНЫ)
+================================================================================
+
+Часть тем видна только авторизованным пользователям форума.
+
+https://www.blast.hk/threads/247160/   — «SA:MP — Arizona — API Аризоны, онлайн серверов»
+                                         (главная сводная тема по эндпоинтам)
+https://www.blast.hk/threads/226787/   — «API для Аризоны»
+https://www.blast.hk/threads/228529/   — «Arizona api»
+https://www.blast.hk/threads/254654/   — «Игроки arizona rp»
+https://www.blast.hk/threads/253219/   — «[OnlineChecker] [Модифицированный] Узнать очередь
+                                         любого сервера Arizona RP» — берёт данные напрямую из API,
+                                         авто-ответчик по онлайну/очереди
+https://www.blast.hk/threads/250650/   — «[Arz] VSS — Vice City Server Status»
+https://www.blast.hk/threads/215235/   — «RakSAMP — Arizona Servers List»
+https://www.blast.hk/threads/168003/   — «Получение данных о сервере» (SA-MP query-протокол)
+https://www.blast.hk/threads/203370/   — «Отслеживание статистики (онлайна) GTA5 RP проектов»
+                                         (подход применим и к Аризоне)
+https://www.blast.hk/threads/226043/   — «Исходник — Софт — Alternative Launcher Arizona RP»
+https://www.blast.hk/threads/244597/   — «Универсальный Arizona&Rodina Helper»
+https://www.blast.hk/tags/arizona-launcher/   — тег: лаунчер Аризоны
+https://www.blast.hk/tags/lua-arizona-rp/     — тег: lua для Arizona RP
+https://www.blast.hk/tags/lua-arizona-mobile/ — тег: lua для Arizona Mobile
+
+
+================================================================================
+5. МОНИТОРИНГИ И АЛЬТЕРНАТИВНЫЕ ИСТОЧНИКИ ОНЛАЙНА
+================================================================================
+
+https://www.arzdata.com/                        — «Arizona — Мониторинг»: онлайн и очередь по всем
+                                                  серверам (Vice City, Phoenix, Tucson, Scottdale,
+                                                  Chandler, Brainburg, Saint-Rose, Mesa и т.д.)
+https://samp-servers.ru/project/arizona          — все серверы проекта с IP:port
+https://sa-mp-servers.com/                       — мониторинг SA-MP (карточки серверов Аризоны)
+https://samp-rating.ru/  |  https://samp-stats.ru/ — альтернативные мониторинги
+https://play.google.com/store/apps/details?id=com.arizonamobile.gamelauncher
+                                                 — приложение «Arizona Monitoring» (онлайн Arizona PE)
+
+Без всякого API: онлайн можно снять напрямую SA-MP query-протоколом по UDP на порт сервера
+(пакет «SAMP» + IP + порт + опкод: 'i' — инфо, 'c' — клиенты, 'd' — детально, 'r' — правила).
+Плюс — не зависит от смены веб-эндпоинтов; минус — очередь (queue) так не узнать,
+она есть только в JSON лаунчера. См. в этом же репозитории «Полезные сниппеты и функции.txt».
+
+
+================================================================================
+6. ЛАУНЧЕРЫ С ОТКРЫТЫМ ИСХОДНИКОМ (ОТКУДА БЕРУТСЯ ЭНДПОИНТЫ)
+================================================================================
+
+https://github.com/chaposcripts/arizona-rp-alternative-launcher
+    Go + Wails. Смотреть getServerQueryInfo(host, 7777) — опрос серверов, конфиг
+    в Documents\alt-launcher-config.json.
+https://github.com/worteng/ArizonaLauncher
+    Python + HTML/JS. Менеджер патчей ArizonaPatches, менеджер moonloader-скриптов,
+    онлайн и очередь по серверам в реальном времени, новости.
+https://github.com/ZzEdovec/open-arizona-launcher
+    DevelNext, работает с официальными репозиториями Arizona Games, нативный запуск на Linux.
+    Архивирован 07.09.2025 (официальный лаунчер получил поддержку Linux).
+
+
+================================================================================
+7. LUA-СКРИПТЫ И ХЕЛПЕРЫ ПОД АРИЗОНУ (ИСХОДНИКИ)
+================================================================================
+
+https://github.com/MTGMODS/arizona-helper
+    Кроссплатформенный хелпер (Arizona Online / Rodina Online): mimgui-интерфейс, бэкенд-аналитика,
+    подстройка под фракцию, модули SmartPDD / SmartRPTP / SmartUK / SmartVEH. PC + Mobile, MIT.
+https://github.com/leekyrave/RoboTools
+    Админ-тулза Arizona RP: менеджер библиотек, чекеры статистики, формы наказаний, слежка.
+    Внутри каталоги /api и /apiTools — отправка админ-статистики на бэкенд, GEOIP, репорты.
+https://github.com/Prokakashka/ArizonaRP-Palatka       — автошоп/автобай (Lua)
+https://github.com/romanespit/Fire-Department-Helper   — хелпер пожарной службы
+https://github.com/qrluke/adblock                      — блокировщик рекламы в чате RP-серверов
+https://github.com/ins1x/moonloader-scripts/blob/main/arizona/AutoLock.lua — автозакрытие транспорта
+https://github.com/Newmcpe/RakClient
+    Async Rust/Tokio headless-клиент SA-MP 0.3.7 со скриптовым слоем на Luau —
+    когда нужен бот без запуска игры.
+https://github.com/topics/arizona-rp                   — тег на GitHub (свежие проекты)
+
+
+================================================================================
+8. МОБИЛЬНАЯ АРИЗОНА (MONETLOADER)
+================================================================================
+
+https://www.blast.hk/threads/180864/   — MonetLoader 3.x — загрузчик Lua-скриптов для Android
+                                         (GTA:SA 2.00+), поддержка одиночных опкодов, части опкодов
+                                         CLEO, SAMPFUNCS и ряда сторонних библиотек
+https://t.me/monetloader                — официальный канал MonetLoader (там же — API и changelog)
+https://t.me/ospxdev                    — канал по Lua для Arizona Mobile
+Встроенные библиотеки в сборках MonetLoader: mimgui, fAwesome6_solid, encoding.
+
+
+================================================================================
+9. ВИКИ И СПРАВОЧНИКИ
+================================================================================
+
+https://arz-wiki.com/                                        — ARZ WIKI (Arizona / Rodina / Black Russia)
+https://arz-wiki.com/scripts/moonloader-0-26/                — MoonLoader 0.26 под Аризону
+https://arz-wiki.com/scripts/biblioteki-i-nastrojki-moonloader-0-26/  — библиотеки и настройки
+https://arz-wiki.com/faq/setup-lua/                          — как ставить Lua-скрипты (в т.ч. в лаунчер)
+https://arz-wiki.com/arz-rp/scripts/                         — каталог Lua/ASI/CLEO под Arizona RP
+https://arz-wiki.com/arz-rp/articles/donate-items-percent/   — таблица донат-скидок
+
+
+================================================================================
+10. ПРАКТИКА: ЗАБИРАЕМ JSON ИЗ MOONLOADER
+================================================================================
+
+Синхронно (просто, но блокирует Lua-поток на время запроса — только внутри lua_thread):
+
+```lua
+local requests = require('requests')
+
+local ONLINE_URL = 'https://arizona-ping.react.group/desktop/ping/Arizona/ping.json'
+
+local cache = {data = nil, time = 0}
+
+function getOnline(force)
+    -- кэш на 30 секунд: неофициальные эндпоинты не любят частых запросов
+    if not force and cache.data and os.clock() - cache.time < 30 then
+        return cache.data
+    end
+    local ok, resp = pcall(requests.get, ONLINE_URL, nil, {
+        headers = {['User-Agent'] = 'MoonLoader'}
+    })
+    if not ok then return nil, tostring(resp) end
+    if resp.status_code ~= 200 then return nil, 'HTTP ' .. resp.status_code end
+
+    local ok2, data = pcall(decodeJson, resp.text)
+    if not ok2 then return nil, 'bad json: ' .. tostring(data) end
+
+    cache.data, cache.time = data, os.clock()
+    return data
+end
+
+function main()
+    while not isSampAvailable() do wait(0) end
+    lua_thread.create(function()
+        local data, err = getOnline()
+        if not data then
+            sampAddChatMessage('Ошибка запроса: ' .. err, -1)
+            return
+        end
+        -- структура ответа не документирована: сначала посмотрите её глазами
+        print(encodeJson(data))
+    end)
+end
+```
+
+Асинхронно (не блокирует поток) — два рабочих подхода уже описаны в этом репозитории:
+    «Асинхронные HTTP запросы в MoonLoader.txt» — copas + LuaSocket + LuaSec;
+    «Автообновление с помощью requests.txt»     — requests + decodeJson + downloadUrlToFile.
+
+Замечания:
+— decodeJson / encodeJson встроены в MoonLoader; для сложных случаев берите dkjson или rapidjson
+  (см. «Библиотеки MoonLoader.txt»).
+— HTTPS через socket.http не работает — нужен LuaSec (ssl.https) либо requests.
+— Всегда оборачивайте запрос и разбор JSON в pcall: упавший парсер уронит скрипт.
+— Для игровых данных (баланс, депозит, AZ-коины) внешнего API нет вообще: их получают из диалогов
+  и чата — см. «Эмуляция RPC, заполнение BitStream для кипятильников.txt» и раздел про
+  sampRegisterChatCommand / OnShowDialog в «Полезные сниппеты и функции.txt».
+
+
+================================================================================
+11. ПРЕДОСТЕРЕЖЕНИЯ
+================================================================================
+
+— Эндпоинты из раздела 2 неофициальные: их закрывали и меняли уже не раз. Пишите код так,
+  чтобы отвал источника не ломал скрипт (таймауты, pcall, фолбэк на SA-MP query).
+— Cookie-авторизация (arz-api) = полный доступ к вашему форумному аккаунту. Не храните куки
+  в открытом виде в скрипте и не выкладывайте их в репозиторий.
+— Массовый парсинг сайта (mon/fraction, профили) быстро приводит к блокировке IP.
+  Ставьте паузы, кэшируйте, не опрашивайте чаще, чем реально нужно.
+— Правила проекта запрещают автоматизацию игрового процесса. Мониторинг, статистика и
+  информационные скрипты — безопасная зона; авто-игра — нет.
