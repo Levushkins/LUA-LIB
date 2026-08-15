@@ -565,7 +565,14 @@ local function layoutFlex(box, ctx, cw, ch)
             opts.forceWidth = max(0, cw - e.marginCross)
           end
         end
-        e.box = layoutBox(e.node, e.style, ctx, opts)
+        -- a column container measured this item already; if flexing did not
+        -- change its size, that measurement is the final layout
+        if e.probe and math.abs(e.probe.h - (opts.forceHeight or -1)) < 0.01
+            and (not opts.forceWidth or math.abs(e.probe.w - opts.forceWidth) < 0.01) then
+          e.box = e.probe
+        else
+          e.box = layoutBox(e.node, e.style, ctx, opts)
+        end
         e.main = row and e.box.w or e.box.h
       end
       e.cross = e.cross or (row and (e.box.h + e.marginCross) or (e.box.w + e.marginCross))
@@ -870,6 +877,7 @@ layoutBox = function(node, st, ctx, opts)
   box.lines = {}
   box.inlineDecorations = {}
   node.box = box
+  ctx.boxCount = (ctx.boxCount or 0) + 1 -- cheap profiling counter
   metrics(box, avail)
 
   -- ---- width -----------------------------------------------------------
@@ -910,15 +918,29 @@ layoutBox = function(node, st, ctx, opts)
     contentH = ctx.replacedHeight and ctx.replacedHeight(node, st, cw) or st.lineHeight
     contentW = cw
   else
+    -- Whether a scrollbar is needed depends on the content height, which
+    -- depends on the width left over by the scrollbar. Rather than always
+    -- laying out twice, start from last frame's answer -- which is right on
+    -- every frame but the one where it changes.
+    -- Only a box with a definite height can overflow it, which matters
+    -- because flex measures items once with no height constraint before
+    -- laying them out for real -- that measuring pass must not disturb the
+    -- remembered scrollbar state.
+    local canScroll = (st.overflowY == 'auto' or st.overflowY == 'scroll')
+        and ch ~= nil
     local reserve = 0
-    local scrollable = (st.overflowY == 'auto' or st.overflowY == 'scroll')
-    if st.overflowY == 'scroll' then reserve = SCROLLBAR end
-    contentW, contentH = layoutChildren(box, ctx, cw - reserve, ch)
-    if scrollable and reserve == 0 and ch and contentH > ch + 0.5 then
-      -- re-run once with room for the scrollbar
-      box.children, box.lines = {}, {}
+    if canScroll and (st.overflowY == 'scroll' or node.state.hadScrollbar) then
       reserve = SCROLLBAR
-      contentW, contentH = layoutChildren(box, ctx, cw - reserve, ch)
+    end
+    contentW, contentH = layoutChildren(box, ctx, cw - reserve, ch)
+    if canScroll and st.overflowY ~= 'scroll' then
+      local needed = contentH > ch + 0.5
+      if needed ~= (reserve > 0) then
+        box.children, box.lines, box.inlineDecorations = {}, {}, {}
+        reserve = needed and SCROLLBAR or 0
+        contentW, contentH = layoutChildren(box, ctx, cw - reserve, ch)
+      end
+      node.state.hadScrollbar = needed
     end
     box.scrollbarW = reserve
   end
@@ -1091,6 +1113,7 @@ function layout.run(root, opts)
   end
   place(box, 0, 0)
 
+  box.boxCount = ctx.boxCount
   return box, ctx
 end
 

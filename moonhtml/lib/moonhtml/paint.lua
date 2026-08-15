@@ -192,6 +192,19 @@ end
 local paintBox
 
 local function paintChildren(out, box, alpha, ctx)
+  local hasPositioned = false
+  for i = 1, #box.children do
+    local st = box.children[i].style
+    if st and st.position ~= 'static' then
+      hasPositioned = true
+      break
+    end
+  end
+  if not hasPositioned then
+    for i = 1, #box.children do paintBox(box.children[i], out, alpha, ctx) end
+    return
+  end
+
   local normal, positioned = {}, {}
   for _, child in ipairs(box.children) do
     local cst = child.style

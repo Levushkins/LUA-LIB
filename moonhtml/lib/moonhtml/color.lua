@@ -106,10 +106,31 @@ local function numberOrPercent(s, base)
   return tonumber(s)
 end
 
+-- Parsed colours are immutable and shared; the same "#1d2026" appears dozens
+-- of times in a stylesheet and is re-resolved on every restyle.
+local parseCache = {}
+local parseCacheCount = 0
+
 --- Parse any supported CSS colour string. Returns nil when unparseable.
 function color.parse(s)
   if type(s) == 'table' then return s end
   if type(s) ~= 'string' then return nil end
+  local cached = parseCache[s]
+  if cached ~= nil then
+    if cached == false then return nil end
+    return cached
+  end
+  local result = color.parseUncached(s)
+  if parseCacheCount > 2000 then
+    parseCache = {}
+    parseCacheCount = 0
+  end
+  parseCache[s] = result or false
+  parseCacheCount = parseCacheCount + 1
+  return result
+end
+
+function color.parseUncached(s)
   s = util.trim(s)
   local lower = s:lower()
   if lower == '' then return nil end

@@ -34,15 +34,35 @@ local function unitToPx(n, unit, ctx)
   return nil
 end
 
+-- Parsed lengths are immutable and shared, so identical declarations across
+-- the document parse once. Only context-independent results are cached --
+-- em/rem/vw/vh depend on the font size and viewport.
+local lengthCache = {}
+local lengthCacheCount = 0
+local CACHEABLE_UNIT = {
+  px = true, ['%'] = true, fr = true, auto = true, none = true,
+}
+
 --- Parse a CSS length into a spec table understood by the layout engine.
 -- Absolute units collapse to px right away; %, fr, auto and calc() survive.
 function style.parseLength(value, ctx)
   if value == nil then return nil end
   if type(value) == 'table' then return value end
+  local cached = lengthCache[value]
+  if cached ~= nil then
+    if cached == false then return nil end
+    return cached
+  end
   local v = util.trim(tostring(value)):lower()
   if v == '' then return nil end
-  if v == 'auto' then return AUTO end
-  if v == 'none' then return NONE end
+  if v == 'auto' then
+    style.rememberLength(value, AUTO)
+    return AUTO
+  end
+  if v == 'none' then
+    style.rememberLength(value, NONE)
+    return NONE
+  end
   if v == 'min-content' or v == 'max-content' or v == 'fit-content' then
     return { u = 'content', mode = v }
   end
@@ -72,13 +92,36 @@ function style.parseLength(value, ctx)
     return nil
   end
   local n, unit = v:match('^([%-%+]?%d*%.?%d+)(%a*%%?)$')
-  if not n then return nil end
+  if not n then
+    style.rememberLength(value, false)
+    return nil
+  end
   n = tonumber(n)
-  if unit == '%' then return { n = n, u = '%' } end
-  if unit == 'fr' then return { n = n, u = 'fr' } end
-  local conv = unitToPx(n, unit, ctx)
-  if conv then return px(conv) end
-  return nil
+  local spec
+  if unit == '%' then
+    spec = { n = n, u = '%' }
+  elseif unit == 'fr' then
+    spec = { n = n, u = 'fr' }
+  else
+    local conv = unitToPx(n, unit, ctx)
+    if not conv then return nil end
+    spec = px(conv)
+    -- em/rem/vw/vh results depend on context, so only absolute units cache
+    if unit ~= '' and unit ~= 'px' and unit ~= 'pt' then return spec end
+  end
+  style.rememberLength(value, spec)
+  return spec
+end
+
+--- Store a parse result if its unit does not depend on the styling context.
+function style.rememberLength(key, spec)
+  if spec ~= false and not CACHEABLE_UNIT[spec.u] then return end
+  if lengthCacheCount > 2000 then
+    lengthCache = {}
+    lengthCacheCount = 0
+  end
+  lengthCache[key] = spec
+  lengthCacheCount = lengthCacheCount + 1
 end
 
 --- Resolve a length spec against a percentage base. Returns nil for auto/none.
@@ -460,11 +503,15 @@ function Engine:compute(node, parent, props)
   end
   c.vars = vars
 
+  -- values arrive already trimmed from the parser, so only var() substitution
+  -- can leave stray whitespace behind; skipping the trim saves two string
+  -- allocations per property per element per restyle
   local function raw(name)
     local v = props[name]
     if v == nil then return nil end
-    v = resolveVars(v, vars)
-    v = util.trim(v)
+    if v:find('var(', 1, true) then
+      v = util.trim(resolveVars(v, vars))
+    end
     if v == '' then return nil end
     return v
   end
@@ -727,6 +774,60 @@ function Engine:applyTransitions(node, c)
   end
 end
 
+-- -------------------------------------------------- layout damage check ----
+--
+-- Hovering a button changes colours, not geometry. Comparing the properties
+-- that layout actually reads lets the engine skip the whole layout pass on
+-- those frames, which is most frames.
+
+local LAYOUT_SCALARS = {
+  'display', 'position', 'boxSizing', 'overflowX', 'overflowY', 'fontSize',
+  'fontFamily', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing',
+  'textAlign', 'whiteSpace', 'textTransform', 'textOverflow', 'verticalAlign',
+  'flexDirection', 'flexWrap', 'justifyContent', 'alignItems', 'alignSelf',
+  'alignContent', 'flexGrow', 'flexShrink', 'order', 'rowGap', 'columnGap',
+  'listStyle',
+}
+
+local LAYOUT_LENGTHS = {
+  'width', 'height', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight',
+  'top', 'right', 'bottom', 'left', 'flexBasis',
+}
+
+local function sameLength(a, b)
+  if a == b then return true end
+  if not a or not b then return false end
+  return a.u == b.u and a.n == b.n and a.px == b.px and a.pct == b.pct
+end
+
+local function layoutChanged(prev, c)
+  if not prev then return true end
+  for i = 1, #LAYOUT_SCALARS do
+    local f = LAYOUT_SCALARS[i]
+    if prev[f] ~= c[f] then return true end
+  end
+  for i = 1, #LAYOUT_LENGTHS do
+    local f = LAYOUT_LENGTHS[i]
+    if not sameLength(prev[f], c[f]) then return true end
+  end
+  for i = 1, 4 do
+    if not sameLength(prev.margin[i], c.margin[i]) then return true end
+    if not sameLength(prev.padding[i], c.padding[i]) then return true end
+    if prev.border[i] ~= c.border[i] then return true end
+  end
+  local pg, cg = prev.gridTemplateColumns, c.gridTemplateColumns
+  if (pg == nil) ~= (cg == nil) then return true end
+  if pg and cg then
+    if #pg ~= #cg then return true end
+    for i = 1, #pg do
+      if not sameLength(pg[i], cg[i]) then return true end
+    end
+  end
+  return false
+end
+
+style.layoutChanged = layoutChanged
+
 -- ------------------------------------------------------------- restyle ----
 
 --- Recompute styles for the whole tree. Cheap enough to run when dirty,
@@ -734,6 +835,7 @@ end
 function Engine:restyle(root, now)
   self.now = now or 0
   self.animating = false
+  self.layoutDirty = false
   local function visit(node, parentComputed)
     if node.type == 'text' then
       node.computed = parentComputed
@@ -756,8 +858,12 @@ function Engine:restyle(root, now)
           if spec and spec.u == 'px' then self.rootFontSize = spec.n end
         end
       end
+      local previous = node.computed
       computed = self:compute(node, parentComputed, props)
       self:applyTransitions(node, computed)
+      if not self.layoutDirty and layoutChanged(previous, computed) then
+        self.layoutDirty = true
+      end
       node.computed = computed
     end
     if computed and computed.display == 'none' then

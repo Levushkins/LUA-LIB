@@ -384,11 +384,20 @@ function Document:restyle(now)
   local animating = self.engine:restyle(self.root, now or 0)
   self.animating = animating
   self.needsStyle = false
-  self.needsLayout = true
+  -- only geometry-affecting property changes force a new layout pass
+  if self.engine.layoutDirty or not self.rootBox then self.needsLayout = true end
 end
 
 function Document:layout()
-  self.measureCache = {}
+  -- text metrics are immutable for a (font, size, string) triple, so the cache
+  -- survives across layouts; it is only pruned when it grows unreasonable
+  self.measureCacheSize = (self.measureCacheSize or 0) + 1
+  if self.measureCacheSize > 64 then
+    local n = 0
+    for _ in pairs(self.measureCache) do n = n + 1 end
+    if n > 4000 then self.measureCache = {} end
+    self.measureCacheSize = 0
+  end
   local rootBox = layoutmod.run(self.body, {
     measure = function(text, st) return self:measure(text, st) end,
     replacedWidth = replacedWidth(self),
@@ -415,27 +424,38 @@ function Document:update(input, now)
   self.now = now
   self.cursor = nil
 
+  local dirty = false
   if self.stateDirty then
     self.stateDirty = false
     self:applyTemplates()
   end
-  if self.needsStyle or self.animating then self:restyle(now) end
-  if self.needsLayout or not self.rootBox then self:layout() end
+  if self.needsStyle or self.animating then
+    self:restyle(now)
+    dirty = true
+  end
+  if self.needsLayout or not self.rootBox then
+    self:layout()
+    dirty = true
+  end
 
   if input then
     events.update(self, input)
     -- reflect this frame's interaction immediately: no one-frame lag
-    if self.needsStyle then self:restyle(now) end
-    if self.needsLayout then self:layout() end
+    if self.needsStyle then self:restyle(now); dirty = true end
+    if self.needsLayout then self:layout(); dirty = true end
     if self.stateDirty then
       self.stateDirty = false
       self:applyTemplates()
-      if self.needsStyle then self:restyle(now) end
-      if self.needsLayout then self:layout() end
+      if self.needsStyle then self:restyle(now); dirty = true end
+      if self.needsLayout then self:layout(); dirty = true end
     end
   end
 
-  self:repaint()
+  -- an idle frame reuses the display list from the previous one
+  if dirty or self.openSelect or self._lastOpenSelect or #self.displayList == 0 then
+    self:repaint()
+  end
+  self._lastOpenSelect = self.openSelect
   return self.displayList
 end
 

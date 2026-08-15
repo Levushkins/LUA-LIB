@@ -11,6 +11,18 @@ local max, min = math.max, math.min
 -- ---------------------------------------------------------- hit testing ----
 
 local function orderedChildren(box)
+  -- fast path: nothing positioned means paint order is document order, and
+  -- this runs for every box on every frame, so it must not allocate
+  local hasPositioned = false
+  for i = 1, #box.children do
+    local st = box.children[i].style
+    if st and st.position ~= 'static' then
+      hasPositioned = true
+      break
+    end
+  end
+  if not hasPositioned then return box.children end
+
   local normal, positioned = {}, {}
   for _, child in ipairs(box.children) do
     if child.style and child.style.position ~= 'static' then
