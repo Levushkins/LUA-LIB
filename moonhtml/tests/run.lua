@@ -381,6 +381,57 @@ test('overflow: auto clamps scrolling and reports a scrollbar', function()
   near(s.state.scrollY, s.box.maxScrollY, 0.5)
 end)
 
+test('overflow-x: auto scrolls a row sideways', function()
+  local d = doc([[<body><div id="rail">
+      <i></i><i></i><i></i><i></i><i></i><i></i></div></body>]], [[
+    body { padding: 0 }
+    #rail { display: flex; gap: 10px; width: 300px; height: 80px; overflow-x: auto }
+    i { display: block; width: 120px; height: 60px; flex-shrink: 0 }
+  ]])
+  frame(d)
+  local rail = d:getElementById('rail')
+  truthy(rail.box.scrollableX, 'rail scrolls horizontally')
+  near(rail.box.maxScrollX, 120 * 6 + 10 * 5 - 300, 1)
+  local firstItem = rail:querySelector('i')
+  eq(firstItem.box.ax, 0)
+  frame(d, { x = 100, y = 40, wheel = -2 })
+  truthy(rail.state.scrollX > 0, 'wheel scrolled the rail')
+  truthy(firstItem.box.ax < 0, 'content moved under the viewport')
+  for _ = 1, 40 do frame(d, { x = 100, y = 40, wheel = -3 }) end
+  near(rail.state.scrollX, rail.box.maxScrollX, 0.5)
+end)
+
+test('a vertical scroller keeps the wheel, shift sends it sideways', function()
+  local d = doc([[<body><div id="both"><div id="wide"></div></div></body>]], [[
+    body { padding: 0 }
+    #both { width: 200px; height: 100px; overflow: auto }
+    #wide { width: 600px; height: 400px }
+  ]])
+  frame(d)
+  local both = d:getElementById('both')
+  truthy(both.box.scrollable and both.box.scrollableX, 'scrolls both ways')
+  frame(d, { x = 50, y = 50, wheel = -2 })
+  truthy(both.state.scrollY > 0 and (both.state.scrollX or 0) == 0, 'plain wheel is vertical')
+  frame(d, { x = 50, y = 50, wheel = -2, shift = true })
+  truthy(both.state.scrollX > 0, 'shift+wheel is horizontal')
+end)
+
+test('dragging the horizontal scrollbar moves the content', function()
+  local d = doc([[<body><div id="rail"><i></i></div></body>]], [[
+    body { padding: 0 }
+    #rail { width: 200px; height: 60px; overflow-x: auto }
+    i { display: block; width: 800px; height: 30px }
+  ]])
+  frame(d)
+  local rail = d:getElementById('rail')
+  local bar = rail.box.scrollbarRectX
+  truthy(bar, 'horizontal scrollbar painted')
+  frame(d, { x = bar.thumbX + 4, y = bar.y + 4, pressed = true, down = true })
+  frame(d, { x = bar.x + bar.w, y = bar.y + 4, down = true })
+  near(rail.state.scrollX, rail.box.maxScrollX, 1)
+  frame(d, { x = bar.x + bar.w, y = bar.y + 4, released = true })
+end)
+
 test('percentage and calc widths resolve against the container', function()
   local d = doc('<body><div id="a"></div><div id="b"></div></body>', [[
     body { padding: 0; width: 400px }

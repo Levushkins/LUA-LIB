@@ -141,11 +141,18 @@ local function isFocusable(node)
   return node:hasAttribute('tabindex')
 end
 
-local function scrollableAncestor(node)
+--- Nearest ancestor (or self) that can scroll on `axis` ('y' by default).
+local function scrollableAncestor(node, axis)
   local n = node
   while n do
     local box = n.box
-    if box and box.scrollable and (box.maxScrollY or 0) > 0 then return n end
+    if box then
+      if axis == 'x' then
+        if box.scrollableX and (box.maxScrollX or 0) > 0 then return n end
+      elseif box.scrollable and (box.maxScrollY or 0) > 0 then
+        return n
+      end
+    end
     n = n.parent
   end
 end
@@ -272,11 +279,14 @@ function events.update(doc, input)
 
   -- scrollbar hover
   local scrollNode = scrollableAncestor(hitNode)
-  if doc.scrollHoverNode and doc.scrollHoverNode ~= scrollNode then
+  local scrollNodeX = scrollableAncestor(hitNode, 'x')
+  if doc.scrollHoverNode and doc.scrollHoverNode ~= scrollNode
+      and doc.scrollHoverNode ~= scrollNodeX then
     doc.scrollHoverNode.state.scrollHover = nil
   end
   if scrollNode then scrollNode.state.scrollHover = true end
-  doc.scrollHoverNode = scrollNode
+  if scrollNodeX then scrollNodeX.state.scrollHover = true end
+  doc.scrollHoverNode = scrollNode or scrollNodeX
 
   -- press -----------------------------------------------------------------
   if input.pressed then
@@ -336,9 +346,18 @@ function events.update(doc, input)
       local sb = scrollNode and scrollNode.box and scrollNode.box.scrollbarRect
       if sb and input.x >= sb.x and input.x <= sb.x + sb.w then
         doc.scrollDrag = {
-          node = scrollNode,
+          node = scrollNode, axis = 'y',
           grabOffset = input.y - sb.thumbY,
           rect = sb,
+        }
+      end
+      local sbx = scrollNodeX and scrollNodeX.box and scrollNodeX.box.scrollbarRectX
+      if not doc.scrollDrag and sbx
+          and input.y >= sbx.y and input.y <= sbx.y + sbx.h then
+        doc.scrollDrag = {
+          node = scrollNodeX, axis = 'x',
+          grabOffset = input.x - sbx.thumbX,
+          rect = sbx,
         }
       end
     end
@@ -352,9 +371,15 @@ function events.update(doc, input)
     local sd = doc.scrollDrag
     if sd and sd.node.box then
       local box = sd.node.box
-      local travel = max(1, sd.rect.h - sd.rect.thumbH)
-      local t = util.clamp((input.y - sd.grabOffset - sd.rect.y) / travel, 0, 1)
-      sd.node.state.scrollY = t * (box.maxScrollY or 0)
+      if sd.axis == 'x' then
+        local travel = max(1, sd.rect.w - sd.rect.thumbW)
+        local t = util.clamp((input.x - sd.grabOffset - sd.rect.x) / travel, 0, 1)
+        sd.node.state.scrollX = t * (box.maxScrollX or 0)
+      else
+        local travel = max(1, sd.rect.h - sd.rect.thumbH)
+        local t = util.clamp((input.y - sd.grabOffset - sd.rect.y) / travel, 0, 1)
+        sd.node.state.scrollY = t * (box.maxScrollY or 0)
+      end
       doc.needsLayout = true
     end
   else
@@ -390,19 +415,27 @@ function events.update(doc, input)
 
   -- wheel -----------------------------------------------------------------
   if input.wheel and input.wheel ~= 0 and hitNode then
-    local target = scrollableAncestor(hitNode)
+    -- shift scrolls sideways, and a carousel with no vertical scrolling in
+    -- sight takes the plain wheel too
+    local target = not input.shift and scrollableAncestor(hitNode) or nil
+    local step = 42 * input.wheel
     if target then
-      local box = target.box
-      local step = 42 * input.wheel
       target.state.scrollY = util.clamp((target.state.scrollY or 0) - step,
-        0, box.maxScrollY or 0)
+        0, target.box.maxScrollY or 0)
       doc.needsLayout = true
       events.dispatch(doc, target, events.newEvent('scroll',
         { scrollY = target.state.scrollY }))
+    else
+      local targetX = scrollableAncestor(hitNode, 'x')
+      if targetX then
+        targetX.state.scrollX = util.clamp((targetX.state.scrollX or 0) - step,
+          0, targetX.box.maxScrollX or 0)
+        doc.needsLayout = true
+        events.dispatch(doc, targetX, events.newEvent('scroll',
+          { scrollX = targetX.state.scrollX }))
+      end
     end
-    if hitNode then
-      events.dispatch(doc, hitNode, events.newEvent('wheel', { delta = input.wheel }))
-    end
+    events.dispatch(doc, hitNode, events.newEvent('wheel', { delta = input.wheel }))
   end
 
   -- keyboard --------------------------------------------------------------

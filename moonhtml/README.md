@@ -24,7 +24,13 @@ menu:on('#go', 'click', function() sampAddChatMessage('go!', -1) end)
 
 ![Пример меню](docs/preview-menu.png)
 
-*(скриншот сгенерирован самим движком: `tests/snapshot.lua` + `tools/render_png.py`)*
+Или так — магазин в духе CEF-меню на серверах, с боковыми категориями,
+горизонтальной каруселью карточек и картинками (`examples/shop/`):
+
+![Магазин](docs/preview-shop.png)
+
+*(оба скриншота сгенерированы самим движком: `tests/snapshot.lua` +
+`tools/render_png.py` рисуют тот же display list, что уходит в `ImDrawList`)*
 
 ---
 
@@ -240,7 +246,29 @@ local x, y, w, h = node:rect()           -- позиция после раскл
 **Оформление**
 `background-color`, `background-image: linear-gradient(deg | to …, стоп, стоп)`,
 `border` (по сторонам), `border-radius` (по углам), `box-shadow`, `opacity`,
-`visibility`, `cursor`, `pointer-events`, `transform: translate/scale`.
+`visibility`, `cursor`, `pointer-events`, `transform: translate(x, y)`
+(`scale` парсится, но при отрисовке не применяется — для эффекта наведения
+используйте `translate` и смену цвета).
+
+**Прокрутка**
+`overflow-y: auto | scroll` и `overflow-x: auto | scroll` со своими полосами
+прокрутки, колесом (`shift` + колесо — по горизонтали) и перетаскиванием
+ползунка. Именно так делается карусель карточек из примера выше.
+
+**Картинки**
+`<img src="art/case.png">` и `background-image: url(...)`. Загрузка текстуры
+через mimgui, при необходимости — свой загрузчик:
+
+```lua
+local shop = moonhtml.new{
+  file = dir .. 'index.html',
+  loadTexture = function(src)
+    local imgui = require 'mimgui'
+    return imgui.CreateTextureFromFile(dir .. src)
+  end,
+}
+```
+Скруглённые картинки рисуются через `AddImageRounded`, если он есть в сборке.
 
 **Цвета**
 `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`, `rgb()`, `rgba()`, `hsl()`, `hsla()`,
@@ -291,10 +319,13 @@ body { --accent: #5b8cff; }
   `PushClipRect` в ImGui не умеет скруглённые углы.
 - **`::before` / `::after`**, `content`, `@keyframes`, фильтры, `backdrop-filter`.
 - **Многострочный инлайн-бордер** рисуется по фрагменту на строку.
-- **Картинки** (`<img>`, `background-image: url()`) требуют загрузчика текстур:
-  передайте `loadTexture = function(path) return ... end` в `moonhtml.new`.
-  Без него на месте картинки будет заглушка.
+- **`transform: scale`** не применяется при отрисовке (только `translate`):
+  масштабирование потребовало бы пересчёта размеров шрифта по всему поддереву.
 - Градиент рисуется полосами (24 шт.) — это ограничение `ImDrawList`.
+- **Радиальных градиентов** нет, только линейные. Свечение делается
+  полупрозрачным слоем с `linear-gradient`, как в `examples/shop`.
+- Абсолютное позиционирование считается от контентной области предка,
+  а не от его padding-box, как в браузере — разница на величину padding.
 
 ---
 
@@ -341,17 +372,18 @@ local menu = moonhtml.new{
 `lua5.1 tests/bench.lua`:
 
 ```
-idle (nothing changes)               0.003 ms/frame
-mouse moving over the menu           1.722 ms/frame
-state updated every frame            4.128 ms/frame
-full restyle every frame             4.642 ms/frame
-restyle + relayout every frame       9.217 ms/frame
+idle (nothing changes)               0.004 ms/frame
+mouse moving over the menu           2.328 ms/frame
+state updated every frame            5.802 ms/frame
+full restyle every frame             6.862 ms/frame
+restyle + relayout every frame      12.224 ms/frame
 ```
 
-Это **worst case**: обычный интерпретатор Lua 5.1. MoonLoader работает на
-LuaJIT, который на таком коде в несколько раз быстрее. И, что важнее, в
-реальном меню верхние строки — это то, что происходит каждый кадр, а нижние —
-только когда вы сами меняете разметку.
+Это **worst case**: обычный интерпретатор Lua 5.1 на нагруженной машине.
+MoonLoader работает на LuaJIT, который на таком коде в несколько раз быстрее.
+Абсолютные числа поедут от железа — смотрите на соотношение строк: в реальном
+меню верхняя строка это то, что происходит каждый кадр, а нижняя — только
+когда вы сами перестраиваете разметку.
 
 ---
 
@@ -362,7 +394,7 @@ LuaJIT, который на таком коде в несколько раз б�
 
 ```bash
 cd moonhtml
-lua5.1 tests/run.lua          # 43 теста: парсер, каскад, раскладка, события
+lua5.1 tests/run.lua          # 58 тестов: парсер, каскад, раскладка, события
 ```
 
 И даже посмотреть на результат картинкой:
@@ -388,6 +420,18 @@ assert(w > 0)
 ```
 
 ---
+
+## Примеры
+
+| файл | что показывает |
+|---|---|
+| `examples/simple.lua` | минимум: меню целиком внутри скрипта |
+| `examples/menu.lua` + `menu/` | панель с вкладками, тумблерами, ползунками, вводом в чат |
+| `examples/shop.lua` + `shop/` | магазин: категории, поиск, карусель, картинки, генерация карточек из данных |
+
+Плейсхолдерные картинки для магазина лежат в `examples/shop/art/` и
+пересобираются через `python3 tools/gen_placeholder_art.py` — замените их
+своими PNG, разметку менять не придётся.
 
 ## Структура
 

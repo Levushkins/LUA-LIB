@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head><link rel="stylesheet" href="style.css"></head>
+<body>
+
+<!-- <script> внутри разметки -- это Lua. Здесь просто значения по умолчанию,
+     чтобы страница выглядела осмысленно ещё до того, как её наполнит скрипт. -->
+<script>
+  state.rub = state.rub or 254
+  state.az = state.az or '9 437'
+</script>
+
+<div class="app">
+
+  <div class="glow"></div>
+
+  <!-- ------------------------------------------------------- sidebar -- -->
+  <aside>
+    <div class="brand">МАГАЗИН</div>
+
+    <a class="cat sel-blue" data-tab="main">
+      <span>ГЛАВНАЯ</span><img src="art/icon-home.png">
+    </a>
+    <a class="cat sel-gold" data-tab="sale">
+      <span>ТОВАРЫ НА АКЦИИ</span><img src="art/icon-sale.png">
+    </a>
+    <a class="cat sel-gold" data-tab="boxes">
+      <span>БОКСЫ И РУЛЕТКИ</span><img src="art/icon-box.png">
+    </a>
+    <a class="cat sel-gold" data-tab="vip">
+      <span>ВИП УРОВНИ</span><img src="art/icon-vip.png">
+    </a>
+    <a class="cat" data-tab="skins">
+      <span>СКИНЫ</span><img src="art/icon-skins.png">
+    </a>
+    <a class="cat" data-tab="acc">
+      <span>АКСЕССУАРЫ</span><img src="art/icon-acc.png">
+    </a>
+    <a class="cat sel-blue active" data-tab="cars">
+      <span>ТРАНСПОРТ</span><img src="art/icon-car.png">
+    </a>
+    <a class="cat" data-tab="tuning">
+      <span>ТЮНИНГ</span><img src="art/icon-tuning.png">
+    </a>
+    <a class="cat" data-tab="guards">
+      <span>ОХРАННИКИ</span><img src="art/icon-guard.png">
+    </a>
+    <a class="cat" data-tab="other">
+      <span>ДРУГОЕ</span><img src="art/icon-other.png">
+    </a>
+  </aside>
+
+  <!-- ---------------------------------------------------------- main -- -->
+  <main>
+    <div class="topbar">
+      <div class="search">
+        <input type="text" id="q" placeholder="поиск">
+        <span class="glass"></span><span class="glass-handle"></span>
+      </div>
+
+      <div class="pass">
+        <span class="pass-icon"></span><span class="pass-text">BATTLEPASS</span>
+      </div>
+
+      <div class="wallet">
+        <span class="amount">{{ state.rub }}</span><span class="rub">₽</span>
+        <span class="plus green" id="add-rub">+</span>
+      </div>
+
+      <div class="wallet">
+        <span class="amount">{{ state.az }}</span><span class="az">AZ</span>
+        <span class="coin"></span>
+        <span class="plus gold" id="add-az">+</span>
+      </div>
+
+      <div class="esc" data-close>Esc</div>
+    </div>
+
+    <div class="rail" id="rail">
+
+      <div class="card promo">
+        <img class="art art-wide" src="art/coins.png">
+        <div class="rate-label">КУРС ОБМЕНА</div>
+        <div class="rate">1 <span class="rub">₽</span> = 10 <span class="coin sm"></span></div>
+        <div class="card-title"><b class="hl">ОБМЕН</b> РУБЛЕЙ<br>НА AZ COINS</div>
+        <div class="buy orange" data-buy="exchange">ОБМЕНЯТЬ</div>
+      </div>
+
+      <div class="card">
+        <img class="art" src="art/money.png">
+        <div class="card-title"><b>500</b> <span class="hl">ИГРОВЫХ РУБЛЕЙ</span></div>
+        <div class="buy gold" data-buy="rub500">
+          <span class="badge-rub">₽</span> 500 РУБ
+        </div>
+      </div>
+
+      <div class="card">
+        <img class="art" src="art/deal.png">
+        <div class="card-title"><b>300</b> <span class="hl">ИГРОВЫХ РУБЛЕЙ</span><br>ДРУГУ</div>
+        <div class="card-note">X3 ЗАРПЛАТЫ НА ВСЁ!</div>
+        <div class="buy red" data-buy="gift300">
+          <span class="badge-rub">₽</span> 499 РУБ
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="tag">+5%</div>
+        <img class="art" src="art/case.png">
+        <div class="card-title"><b>1575</b> <span class="hl">ИГРОВЫХ РУБЛЕЙ</span></div>
+        <div class="card-note">1500 + 75 БОНУСНЫХ</div>
+        <div class="buy gold" data-buy="rub1500">
+          <span class="badge-rub">₽</span> 1500 РУБ
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="tag">+10%</div>
+        <img class="art" src="art/case.png">
+        <div class="card-title"><b>2750</b> <span class="hl">ИГРОВЫХ РУБЛЕЙ</span></div>
+        <div class="card-note">2500 + 250 БОНУСНЫХ</div>
+        <div class="buy gold" data-buy="rub2500">
+          <span class="badge-rub">₽</span> 2500 РУБ
+        </div>
+      </div>
+
+      <div class="card">
+        <img class="art" src="art/coins.png">
+        <div class="card-title"><b>10 000</b> <span class="hl">AZ COINS</span></div>
+        <div class="buy gold" data-buy="az10000">
+          <span class="badge-rub">₽</span> 1000 РУБ
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

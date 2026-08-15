@@ -434,8 +434,18 @@ function backend.new(opts)
       elseif op == 'image' then
         local tex = self.texture(cmd.src)
         if tex then
-          dl:AddImage(tex, vec2(cmd.x + originX, cmd.y + originY),
-            vec2(cmd.x + cmd.w + originX, cmd.y + cmd.h + originY))
+          local pmin = vec2(cmd.x + originX, cmd.y + originY)
+          local pmax = vec2(cmd.x + cmd.w + originX, cmd.y + cmd.h + originY)
+          local flags, r = cornerFlags(cmd.radius)
+          r = min(r, min(cmd.w, cmd.h) * 0.5)
+          local drawn = false
+          if r > 0 then
+            drawn = pcall(function()
+              dl:AddImageRounded(tex, pmin, pmax, vec2(0, 0), vec2(1, 1),
+                color.toU32(color.rgba(255, 255, 255, 1), alpha), r, flags)
+            end)
+          end
+          if not drawn then dl:AddImage(tex, pmin, pmax) end
         else
           fillRect(dl, cmd.x + originX, cmd.y + originY, cmd.w, cmd.h,
             color.toU32(color.rgba(90, 90, 90, 0.35), alpha), cmd.radius)

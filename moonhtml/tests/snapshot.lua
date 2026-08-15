@@ -120,7 +120,10 @@ for _, cmd in ipairs(doc.displayList) do
   commands[#commands + 1] = c
 end
 
-writeValue({ width = width, height = height, commands = commands })
+writeValue({
+  width = width, height = height, commands = commands,
+  basePath = file:match('^(.*[/\\])') or '',
+})
 
 local fh = assert(io.open(out, 'wb'))
 fh:write(table.concat(buf))

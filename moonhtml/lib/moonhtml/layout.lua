@@ -926,31 +926,51 @@ layoutBox = function(node, st, ctx, opts)
     contentH = ctx.replacedHeight and ctx.replacedHeight(node, st, cw) or st.lineHeight
     contentW = cw
   else
-    -- Whether a scrollbar is needed depends on the content height, which
-    -- depends on the width left over by the scrollbar. Rather than always
-    -- laying out twice, start from last frame's answer -- which is right on
-    -- every frame but the one where it changes.
+    -- Whether a scrollbar is needed depends on the content size, which in
+    -- turn depends on the room the scrollbar takes away. Rather than always
+    -- laying out twice, start from last frame's answer -- right on every
+    -- frame but the one where it changes -- and only redo when it was wrong.
+    --
     -- Only a box with a definite height can overflow it, which matters
     -- because flex measures items once with no height constraint before
-    -- laying them out for real -- that measuring pass must not disturb the
+    -- laying them out for real: that measuring pass must not disturb the
     -- remembered scrollbar state.
-    local canScroll = (st.overflowY == 'auto' or st.overflowY == 'scroll')
+    local canScrollY = (st.overflowY == 'auto' or st.overflowY == 'scroll')
         and ch ~= nil
-    local reserve = 0
-    if canScroll and (st.overflowY == 'scroll' or node.state.hadScrollbar) then
-      reserve = SCROLLBAR
-    end
-    contentW, contentH = layoutChildren(box, ctx, cw - reserve, ch)
-    if canScroll and st.overflowY ~= 'scroll' then
-      local needed = contentH > ch + 0.5
-      if needed ~= (reserve > 0) then
-        box.children, box.lines, box.inlineDecorations = {}, {}, {}
-        reserve = needed and SCROLLBAR or 0
-        contentW, contentH = layoutChildren(box, ctx, cw - reserve, ch)
+    local canScrollX = (st.overflowX == 'auto' or st.overflowX == 'scroll')
+    local reserveW = (canScrollY and (st.overflowY == 'scroll'
+      or node.state.hadScrollbar)) and SCROLLBAR or 0
+    local reserveH = (canScrollX and ch ~= nil and (st.overflowX == 'scroll'
+      or node.state.hadScrollbarX)) and SCROLLBAR or 0
+
+    for _ = 1, 3 do
+      contentW, contentH = layoutChildren(box, ctx, cw - reserveW,
+        ch and (ch - reserveH) or nil)
+      -- the widest thing actually placed, whichever formatting context ran
+      for _, child in ipairs(box.children) do
+        contentW = max(contentW, child.x + child.w + (child.margin[2] or 0))
       end
-      node.state.hadScrollbar = needed
+      for _, ln in ipairs(box.lines) do
+        contentW = max(contentW, (ln.x or 0) + ln.w)
+      end
+
+      local wantW = canScrollY and (st.overflowY == 'scroll'
+        or contentH > (ch - reserveH) + 0.5) and SCROLLBAR or 0
+      local wantH = canScrollX and ch ~= nil and (st.overflowX == 'scroll'
+        or contentW > (cw - reserveW) + 0.5) and SCROLLBAR or 0
+      if wantW == reserveW and wantH == reserveH then break end
+      reserveW, reserveH = wantW, wantH
+      box.children, box.lines, box.inlineDecorations = {}, {}, {}
     end
-    box.scrollbarW = reserve
+
+    if canScrollY and st.overflowY ~= 'scroll' then
+      node.state.hadScrollbar = reserveW > 0
+    end
+    if canScrollX and ch ~= nil and st.overflowX ~= 'scroll' then
+      node.state.hadScrollbarX = reserveH > 0
+    end
+    box.scrollbarW = reserveW
+    box.scrollbarH = reserveH
   end
 
   local usedCH = ch or contentH
@@ -961,15 +981,30 @@ layoutBox = function(node, st, ctx, opts)
   box.scrollW = contentW
 
   -- scroll clamping
+  local viewH = usedCH - (box.scrollbarH or 0)
+  local viewW = cw - (box.scrollbarW or 0)
+  box.viewW, box.viewH = viewW, viewH
+
   local overflowY = st.overflowY
   if overflowY == 'auto' or overflowY == 'scroll' then
-    box.scrollable = contentH > usedCH + 0.5
-    local maxScroll = max(0, contentH - usedCH)
+    box.scrollable = contentH > viewH + 0.5
+    local maxScroll = max(0, contentH - viewH)
     node.state.scrollY = util.clamp(node.state.scrollY or 0, 0, maxScroll)
     box.scrollY = node.state.scrollY
     box.maxScrollY = maxScroll
   else
     box.scrollY = 0
+  end
+
+  local overflowX = st.overflowX
+  if overflowX == 'auto' or overflowX == 'scroll' then
+    box.scrollableX = contentW > viewW + 0.5
+    local maxScrollX = max(0, contentW - viewW)
+    node.state.scrollX = util.clamp(node.state.scrollX or 0, 0, maxScrollX)
+    box.scrollX = node.state.scrollX
+    box.maxScrollX = maxScrollX
+  else
+    box.scrollX = 0
   end
 
   return box
@@ -1093,7 +1128,7 @@ function layout.run(root, opts)
     end
     b.ax = ox + b.x + tx
     b.ay = oy + b.y + ty
-    local cox = b.ax + b.border[4] + b.padding[4]
+    local cox = b.ax + b.border[4] + b.padding[4] - (b.scrollX or 0)
     local coy = b.ay + b.border[1] + b.padding[1] - (b.scrollY or 0)
     for _, child in ipairs(b.children) do
       if child.isFixed then

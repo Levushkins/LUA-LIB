@@ -1,0 +1,324 @@
+/* Магазин в стиле CEF-меню на серверах SAMP. Всё, что ниже, обычный CSS. */
+
+body {
+  --bg:      #0f1114;
+  --panel:   #16191d;
+  --tile:    #1c2025;
+  --tile-2:  #23282e;
+  --line:    #2a2f36;
+  --text:    #eef1f5;
+  --muted:   #8b929c;
+  --blue:    #4a9eff;
+  --gold:    #f0b429;
+  --green:   #35c46a;
+
+  margin: 0;
+  font-family: default;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.app {
+  position: relative;
+  display: flex;
+  height: 100%;
+  background: linear-gradient(160deg, #101317, #0d150f);
+}
+
+/* свечение у нижней кромки экрана */
+.glow {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 260px;
+  background: linear-gradient(0deg, rgba(46, 180, 92, 0.20), rgba(46, 180, 92, 0));
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* --------------------------------------------------------------- sidebar -- */
+
+aside {
+  width: 300px;
+  padding: 26px 22px;
+  background-color: rgba(9, 11, 13, 0.55);
+  overflow-y: auto;
+}
+
+.brand {
+  margin-bottom: 26px;
+  font-size: 34px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.cat {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  padding: 0 0 0 14px;
+  margin-bottom: 9px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background-color: var(--tile);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: background-color 0.14s, border-color 0.14s;
+}
+.cat span { margin-right: auto; }
+.cat img { width: 56px; height: 44px; }
+.cat:hover { background-color: var(--tile-2); }
+
+.cat.sel-blue { border-color: rgba(74, 158, 255, 0.85); }
+.cat.sel-gold { border-color: rgba(240, 180, 41, 0.85); }
+.cat.active {
+  background-color: #232a33;
+  border-color: var(--blue);
+}
+
+/* ---------------------------------------------------------------- topbar -- */
+
+main {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  padding: 22px 0 0 26px;
+  overflow: hidden;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 26px;
+  margin-bottom: 34px;
+}
+
+.search {
+  position: relative;
+  flex-grow: 1;
+  max-width: 470px;
+  height: 40px;
+  border-radius: 20px;
+  background-color: rgba(24, 27, 32, 0.9);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.search input {
+  width: 100%;
+  height: 38px;
+  margin: 0;
+  padding: 0 40px 0 20px;
+  border: none;
+  border-radius: 20px;
+  background-color: transparent;
+  color: var(--text);
+  font-size: 13px;
+}
+/* лупа: кольцо + ручка, всё обычными боксами */
+.glass {
+  position: absolute;
+  top: 11px;
+  right: 18px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--muted);
+  border-radius: 8px;
+}
+.glass-handle {
+  position: absolute;
+  top: 23px;
+  right: 16px;
+  width: 6px;
+  height: 2px;
+  border-radius: 1px;
+  background-color: var(--muted);
+  transform: translate(1px, 0);
+}
+
+.pass {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 40px;
+  padding: 0 18px 0 10px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #8b5cf6, #6d3ff0);
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.pass:hover { background: linear-gradient(135deg, #9d76ff, #7d55ff); }
+.pass-icon {
+  display: inline-block;
+  width: 30px;
+  height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #d9c7ff, #b79bff);
+}
+
+.wallet {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 5px 0 16px;
+  border-radius: 12px;
+  background-color: rgba(24, 27, 32, 0.9);
+  border: 1px solid var(--line);
+  font-size: 15px;
+  font-weight: bold;
+}
+.amount { letter-spacing: 0.5px; }
+.rub { color: var(--gold); font-weight: bold; }
+.az { color: var(--muted); font-size: 13px; }
+.coin {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border-radius: 8px;
+  background: linear-gradient(160deg, #ffd76a, #d99a17);
+}
+.coin.sm { width: 13px; height: 13px; }
+
+.plus {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: #10240f;
+  font-size: 17px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 29px;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.plus:hover { transform: translate(0, -1px); }
+.plus.green { background: linear-gradient(180deg, #5ada7d, #2eb257); }
+.plus.gold  { background: linear-gradient(180deg, #ffcc4d, #e0980f); }
+
+.esc {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 12px;
+  background-color: #2b3037;
+  color: #aeb5bf;
+  font-size: 14px;
+  line-height: 39px;
+  cursor: pointer;
+  transition: background-color 0.14s;
+}
+.esc:hover { background-color: #3a414a; }
+
+/* ------------------------------------------------------------ карусель -- */
+
+.rail {
+  display: flex;
+  gap: 16px;
+  height: 400px;
+  padding-bottom: 14px;
+  overflow-x: auto;      /* горизонтальная прокрутка + своя полоса снизу */
+  overflow-y: hidden;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 246px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background-color: rgba(28, 32, 38, 0.72);
+  transition: border-color 0.15s, transform 0.15s;
+}
+.card:hover { border-color: #46505d; transform: translateY(-3px); }
+
+.card.promo {
+  background: linear-gradient(165deg, #e8392f, #b81f18);
+  border-color: #ff6a5f;
+}
+
+.art {
+  width: 214px;
+  height: 150px;
+  margin-bottom: auto;
+}
+.art-wide { margin-bottom: 10px; }
+
+.rate-label { font-size: 10px; color: rgba(255, 255, 255, 0.75); margin-bottom: 5px; }
+.rate {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 12px;
+  margin-bottom: 12px;
+  border-radius: 9px;
+  background-color: rgba(0, 0, 0, 0.22);
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.card-title {
+  margin-bottom: 4px;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1.25;
+}
+.card-title b { color: #ffffff; }
+.hl { color: var(--gold); }
+.card.promo .hl { color: #ffd76a; }
+.card-note { margin-bottom: 8px; font-size: 10px; color: var(--muted); }
+
+.buy {
+  height: 38px;
+  margin-top: 10px;
+  border-radius: 10px;
+  color: #2a1a00;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 37px;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.buy:hover { transform: translate(0, -1px); }
+.buy.gold   { background: linear-gradient(90deg, #f5a623, #ffd54a); }
+.buy.orange { background: linear-gradient(90deg, #ff8a00, #ff5f18); color: #fff; }
+.buy.red    { background: linear-gradient(90deg, #ff5f4d, #e02b1d); color: #fff; }
+
+.badge-rub {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+  border-radius: 10px;
+  background-color: rgba(0, 0, 0, 0.22);
+  color: #ffdf8a;
+  font-size: 11px;
+  text-align: center;
+  line-height: 19px;
+  vertical-align: middle;
+}
+
+.tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ff5b62, #e01f2d);
+  color: #fff;
+  font-size: 11px;
+  font-weight: bold;
+  z-index: 3;
+}

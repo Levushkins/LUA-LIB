@@ -170,23 +170,36 @@ local function paintMarker(out, box, st, alpha)
 end
 
 local function paintScrollbar(out, box, st, alpha)
-  if not box.scrollable or (box.maxScrollY or 0) <= 0 then return end
-  local w = layout.SCROLLBAR
-  local trackX = box.ax + box.w - box.border[2] - w
-  local trackY = box.ay + box.border[1]
-  local trackH = box.h - box.border[1] - box.border[3]
-  pushRect(out, trackX + 2, trackY, w - 4, trackH,
-    color.rgba(255, 255, 255, 0.06), { 3, 3, 3, 3 }, alpha)
-  local visible = box.contentH
-  local total = box.scrollH
-  local thumbH = max(20, trackH * (visible / total))
-  local t = box.scrollY / box.maxScrollY
-  local thumbY = trackY + (trackH - thumbH) * t
-  pushRect(out, trackX + 2, thumbY, w - 4, thumbH,
-    color.rgba(255, 255, 255, box.node.state.scrollHover and 0.34 or 0.22),
-    { 3, 3, 3, 3 }, alpha)
-  box.scrollbarRect = { x = trackX, y = trackY, w = w, h = trackH,
-    thumbY = thumbY, thumbH = thumbH }
+  local bar = layout.SCROLLBAR
+  local hovered = box.node.state.scrollHover
+
+  if box.scrollable and (box.maxScrollY or 0) > 0 then
+    local trackX = box.ax + box.w - box.border[2] - bar
+    local trackY = box.ay + box.border[1]
+    local trackH = box.h - box.border[1] - box.border[3] - (box.scrollbarH or 0)
+    pushRect(out, trackX + 2, trackY, bar - 4, trackH,
+      color.rgba(255, 255, 255, 0.06), { 3, 3, 3, 3 }, alpha)
+    local thumbH = max(20, trackH * (box.viewH / box.scrollH))
+    local thumbY = trackY + (trackH - thumbH) * (box.scrollY / box.maxScrollY)
+    pushRect(out, trackX + 2, thumbY, bar - 4, thumbH,
+      color.rgba(255, 255, 255, hovered and 0.34 or 0.22), { 3, 3, 3, 3 }, alpha)
+    box.scrollbarRect = { x = trackX, y = trackY, w = bar, h = trackH,
+      thumbY = thumbY, thumbH = thumbH }
+  end
+
+  if box.scrollableX and (box.maxScrollX or 0) > 0 then
+    local trackY = box.ay + box.h - box.border[3] - bar
+    local trackX = box.ax + box.border[4]
+    local trackW = box.w - box.border[2] - box.border[4] - (box.scrollbarW or 0)
+    pushRect(out, trackX, trackY + 2, trackW, bar - 4,
+      color.rgba(255, 255, 255, 0.06), { 3, 3, 3, 3 }, alpha)
+    local thumbW = max(24, trackW * (box.viewW / box.scrollW))
+    local thumbX = trackX + (trackW - thumbW) * (box.scrollX / box.maxScrollX)
+    pushRect(out, thumbX, trackY + 2, thumbW, bar - 4,
+      color.rgba(255, 255, 255, hovered and 0.34 or 0.22), { 3, 3, 3, 3 }, alpha)
+    box.scrollbarRectX = { x = trackX, y = trackY, w = trackW, h = bar,
+      thumbX = thumbX, thumbW = thumbW }
+  end
 end
 
 local paintBox

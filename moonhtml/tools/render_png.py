@@ -7,6 +7,7 @@ is a faithful preview of what the game will show.
     python3 tools/render_png.py snapshot.json preview.png
 """
 import json
+import os
 import sys
 from PIL import Image, ImageDraw, ImageFont
 
@@ -211,10 +212,21 @@ def render(data, out_path, scale=2):
             composite(layer)
         elif op == "image":
             layer = new_layer()
-            d = ImageDraw.Draw(layer)
-            d.rectangle([cmd["x"] * scale, cmd["y"] * scale,
-                         (cmd["x"] + cmd["w"]) * scale, (cmd["y"] + cmd["h"]) * scale],
-                        fill=(90, 90, 90, int(90 * alpha)))
+            src = cmd.get("src", "")
+            path = os.path.join(data.get("basePath", ""), src) if src else ""
+            box = [int(cmd["x"] * scale), int(cmd["y"] * scale),
+                   int((cmd["x"] + cmd["w"]) * scale),
+                   int((cmd["y"] + cmd["h"]) * scale)]
+            if src and os.path.isfile(path):
+                art = Image.open(path).convert("RGBA")
+                art = art.resize((max(1, box[2] - box[0]), max(1, box[3] - box[1])),
+                                 Image.LANCZOS)
+                if alpha < 1:
+                    art.putalpha(art.getchannel("A").point(
+                        lambda v: int(v * alpha)))
+                layer.alpha_composite(art, (box[0], box[1]))
+            else:
+                ImageDraw.Draw(layer).rectangle(box, fill=(90, 90, 90, int(90 * alpha)))
             composite(layer)
 
     img.convert("RGB").save(out_path)
