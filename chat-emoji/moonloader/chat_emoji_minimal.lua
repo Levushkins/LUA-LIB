@@ -1,4 +1,4 @@
--- chat_emoji_minimal.lua — самый короткий рабочий пример.
+-- chat_emoji_minimal.lua - самый короткий рабочий пример.
 -- Команда /sm открывает окно mimgui со смайлами.
 --
 -- Файлы:
@@ -9,7 +9,7 @@
 --
 -- ВАЖНО про кодировку: этот файл сохранён в UTF-8, а ImGui как раз ждёт
 -- UTF-8, поэтому русские строки передаются в него как есть, без u8().
--- Оборачивать в u8() надо наоборот — файлы в cp1251. А вот SA-MP работает
+-- Оборачивать в u8() надо наоборот - файлы в cp1251. А вот SA-MP работает
 -- в cp1251, поэтому текст для sampSendChat / sampAddChatMessage переводим
 -- обратно через u8:decode().
 
@@ -34,7 +34,7 @@ end
 imgui.OnInitialize(function()
     imgui.GetIO().IniFilename = nil
 
-    -- грузим атлас смайлов; если что-то не так — напишет в чат
+    -- грузим атлас смайлов; если что-то не так - напишет в чат
     local ok, err = emoji.load()
     if not ok then sampAddChatMessage('Emoji: ' .. tostring(err), 0xFF4444) end
 end)
@@ -62,7 +62,20 @@ imgui.OnFrame(
 
             imgui.Separator()
 
-            -- 4. панель выбора: клик отправляет смайл в чат.
+            -- 4. смайлы в обычном диалоге SA-MP. Тут ничего не рисуем:
+            --    токен подменит сам плагин чата, поэтому ни текстура,
+            --    ни mimgui для этого не нужны.
+            if imgui.Button('Show SA-MP dialog') then
+                emoji.dialog(31501, 'Menu ' .. emoji.tok('arz'),
+                    emoji.tok('trophy')   .. ' Records\n' ..
+                    emoji.tok('moneybag') .. ' Balance\n' ..
+                    emoji.tok('gear')     .. ' Settings',
+                    'Select', 'Close', 2)       -- 2 = DIALOG_STYLE_LIST
+            end
+
+            imgui.Separator()
+
+            -- 5. панель выбора: клик отправляет смайл в чат.
             --    Токен :uXXXX: состоит из цифр и латиницы, так что
             --    перекодировать его не нужно.
             local picked = emoji.picker('grid', 24, 220)
