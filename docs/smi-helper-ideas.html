@@ -1,0 +1,1180 @@
+<title>Ранлист SMI Helper</title>
+<style>
+:root{
+  --ground:#ECEFF4;
+  --panel:#F5F7FA;
+  --panel-2:#E5E9F0;
+  --ink:#2E3440;
+  --ink-2:#434C5E;
+  --ink-3:#6B7590;
+  --rule:#D3DAE6;
+  --rule-soft:#DFE4EE;
+  --frost:#3F6E8C;
+  --frost-soft:#5E81AC;
+  --ok:#5C7F4B;
+  --warn:#9A7B27;
+  --bad:#A8474A;
+  --shadow:rgba(46,52,64,.10);
+  --font-sans:system-ui,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#242933;
+    --panel:#2E3440;
+    --panel-2:#333A47;
+    --ink:#ECEFF4;
+    --ink-2:#D8DEE9;
+    --ink-3:#98A2B8;
+    --rule:#3D4553;
+    --rule-soft:#363E4B;
+    --frost:#88C0D0;
+    --frost-soft:#81A1C1;
+    --ok:#A3BE8C;
+    --warn:#EBCB8B;
+    --bad:#BF616A;
+    --shadow:rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#242933;
+  --panel:#2E3440;
+  --panel-2:#333A47;
+  --ink:#ECEFF4;
+  --ink-2:#D8DEE9;
+  --ink-3:#98A2B8;
+  --rule:#3D4553;
+  --rule-soft:#363E4B;
+  --frost:#88C0D0;
+  --frost-soft:#81A1C1;
+  --ok:#A3BE8C;
+  --warn:#EBCB8B;
+  --bad:#BF616A;
+  --shadow:rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--font-sans);
+  font-size:16px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{margin:0;text-wrap:balance}
+p{margin:0}
+a{color:var(--frost)}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 96px}
+
+/* ---------- слейт ---------- */
+.slate{
+  border-bottom:2px solid var(--ink);
+  padding:56px 0 22px;
+  margin-bottom:0;
+}
+.slate .eyebrow{
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  display:flex;
+  flex-wrap:wrap;
+  gap:18px;
+  margin-bottom:20px;
+}
+.slate h1{
+  font-family:var(--font-mono);
+  font-size:clamp(30px,5.2vw,52px);
+  font-weight:700;
+  letter-spacing:-.02em;
+  line-height:1.02;
+}
+.slate .lede{
+  margin-top:16px;
+  max-width:64ch;
+  color:var(--ink-2);
+  font-size:17px;
+}
+.meta{
+  margin-top:26px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px 28px;
+  font-family:var(--font-mono);
+  font-size:12px;
+  color:var(--ink-3);
+  text-transform:uppercase;
+  letter-spacing:.1em;
+}
+.meta b{color:var(--ink);font-weight:700}
+
+/* ---------- панель управления ---------- */
+.controls{
+  position:sticky;
+  top:0;
+  z-index:20;
+  background:var(--ground);
+  border-bottom:1px solid var(--rule);
+  padding:14px 0;
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:center;
+}
+.search{
+  flex:1 1 260px;
+  min-width:200px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:var(--panel);
+  border:1px solid var(--rule);
+  padding:9px 14px;
+}
+.search input{
+  flex:1;
+  border:0;
+  background:transparent;
+  color:var(--ink);
+  font-family:var(--font-sans);
+  font-size:15px;
+  outline:none;
+  min-width:0;
+}
+.search input::placeholder{color:var(--ink-3)}
+.search span{
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:.14em;
+  color:var(--ink-3);
+  text-transform:uppercase;
+}
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.fbtn{
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  padding:9px 13px;
+  border:1px solid var(--rule);
+  background:var(--panel);
+  color:var(--ink-3);
+  cursor:pointer;
+}
+.fbtn:hover{color:var(--ink);border-color:var(--frost-soft)}
+.fbtn[aria-pressed="true"]{
+  background:var(--ink);
+  color:var(--ground);
+  border-color:var(--ink);
+}
+.fbtn:focus-visible,.search:focus-within{outline:2px solid var(--frost);outline-offset:2px}
+.count{
+  font-family:var(--font-mono);
+  font-size:12px;
+  color:var(--ink-3);
+  letter-spacing:.1em;
+  white-space:nowrap;
+}
+
+/* ---------- оглавление ---------- */
+.toc{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  gap:0;
+  border:1px solid var(--rule);
+  border-bottom:0;
+  margin:28px 0 44px;
+}
+.toc a{
+  display:flex;
+  gap:12px;
+  align-items:baseline;
+  padding:12px 14px;
+  border-bottom:1px solid var(--rule);
+  border-right:1px solid var(--rule);
+  text-decoration:none;
+  color:var(--ink-2);
+  font-size:14px;
+}
+.toc a:hover{background:var(--panel);color:var(--ink)}
+.toc a em{
+  font-family:var(--font-mono);
+  font-style:normal;
+  font-size:11px;
+  color:var(--frost);
+  letter-spacing:.08em;
+}
+
+/* ---------- секции ---------- */
+.sec{margin:0 0 12px;scroll-margin-top:80px}
+.sec-h{
+  display:flex;
+  align-items:baseline;
+  gap:16px;
+  padding:20px 0 12px;
+  border-bottom:2px solid var(--ink);
+  position:relative;
+}
+.sec-h .sid{
+  font-family:var(--font-mono);
+  font-size:12px;
+  letter-spacing:.16em;
+  color:var(--frost);
+  font-weight:700;
+}
+.sec-h h2{
+  font-size:clamp(19px,2.4vw,25px);
+  letter-spacing:-.01em;
+  flex:1;
+}
+.sec-h .sn{
+  font-family:var(--font-mono);
+  font-size:11px;
+  color:var(--ink-3);
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+.sec-note{
+  padding:12px 0 4px;
+  color:var(--ink-3);
+  font-size:14px;
+  max-width:70ch;
+}
+
+ol.ideas{list-style:none;margin:0;padding:0}
+.idea{
+  display:grid;
+  grid-template-columns:64px 1fr;
+  gap:0 18px;
+  padding:16px 0;
+  border-bottom:1px solid var(--rule-soft);
+  align-items:start;
+}
+.idea:hover{background:var(--panel)}
+.idea .num{
+  font-family:var(--font-mono);
+  font-size:12px;
+  color:var(--ink-3);
+  padding-top:3px;
+  font-variant-numeric:tabular-nums;
+}
+.idea h3{
+  font-size:16.5px;
+  font-weight:650;
+  letter-spacing:-.005em;
+  margin-bottom:4px;
+}
+.idea p{color:var(--ink-2);font-size:15px;max-width:74ch}
+.idea code{
+  font-family:var(--font-mono);
+  font-size:13px;
+  background:var(--panel-2);
+  padding:1px 5px;
+  color:var(--ink);
+  white-space:nowrap;
+}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tag{
+  font-family:var(--font-mono);
+  font-size:10px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  padding:3px 7px;
+  border:1px solid var(--rule);
+  color:var(--ink-3);
+}
+.tag.bug{border-color:var(--bad);color:var(--bad)}
+.tag.s{border-color:var(--ok);color:var(--ok)}
+.tag.m{border-color:var(--frost-soft);color:var(--frost)}
+.tag.l{border-color:var(--warn);color:var(--warn)}
+
+.idea[hidden],.sec[hidden]{display:none}
+
+.empty{
+  padding:60px 0;
+  text-align:center;
+  color:var(--ink-3);
+  font-family:var(--font-mono);
+  font-size:13px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+
+footer{
+  margin-top:56px;
+  padding-top:22px;
+  border-top:2px solid var(--ink);
+  color:var(--ink-3);
+  font-size:14px;
+  max-width:70ch;
+}
+footer p+p{margin-top:10px}
+
+@media (max-width:640px){
+  .wrap{padding:0 16px 72px}
+  .idea{grid-template-columns:46px 1fr;gap:0 12px}
+  .toc{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="slate">
+  <div class="eyebrow">
+    <span>SMI Helper v2.9.0</span>
+    <span>Редактор объявлений</span>
+    <span>Ранлист доработок</span>
+  </div>
+  <h1>163 идеи для<br>редактора объявлений</h1>
+  <p class="lede">Разбор текущего кода плюс то, что умеют соседние СМИ-хелперы. Всё строго про объявления: ловля, текст, шаблоны, отправка, отчётность. Каждая идея с номером — на неё можно сослаться: «делаем 041 и 118».</p>
+  <div class="meta">
+    <span><b>12</b> разделов</span>
+    <span><b>163</b> пункта</span>
+    <span>Метки: <b>баг</b> · <b>S</b> час-два · <b>M</b> вечер · <b>L</b> отдельный релиз</span>
+  </div>
+</header>
+
+<div class="controls">
+  <label class="search">
+    <span>Поиск</span>
+    <input id="q" type="search" placeholder="шаблон, цена, хоткей, очередь…" autocomplete="off">
+  </label>
+  <div class="filters" role="group" aria-label="Фильтр по сложности">
+    <button class="fbtn" data-f="bug" aria-pressed="false">Баги</button>
+    <button class="fbtn" data-f="s" aria-pressed="false">S</button>
+    <button class="fbtn" data-f="m" aria-pressed="false">M</button>
+    <button class="fbtn" data-f="l" aria-pressed="false">L</button>
+  </div>
+  <span class="count" id="count">163 / 163</span>
+</div>
+
+<nav class="toc" id="toc"></nav>
+
+<main id="main">
+
+<!-- ============ 00 ============ -->
+<section class="sec" id="s00">
+  <div class="sec-h"><span class="sid">00</span><h2>Баги и технический долг</h2><span class="sn">17 пунктов</span></div>
+  <p class="sec-note">Это не идеи, а то, что уже сломано или мертво в коде. Дешевле починить до того, как сверху ляжет новая функциональность.</p>
+  <ol class="ideas">
+
+<li class="idea"><span class="num">001</span><div><h3>Сообщения очереди уходят мимо форматтера</h3>
+<p><code>startQueueProcessing</code> принимает один аргумент, а вызывают её как <code>startQueueProcessing(text, 'INBOX')</code> — эмодзи молча теряется. Внутри вместо <code>chat()</code> стоит <code>sampAddChatMessage(chatText, 0xFFFFFF)</code>, поэтому строка идёт без тега «SMI »» и белым цветом, ломая единый стиль всех остальных сообщений.</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">002</span><div><h3>Ползунок «Размытие списка» ни на что не влияет</h3>
+<p><code>blurListRadius</code> сохраняется, рисуется в настройках, но нигде не применяется — <code>mimgui_blur.apply</code> вызывается только с <code>bgBlurRadius</code>. Либо применить к области списка объявлений, либо убрать настройку: неработающий тумблер хуже отсутствующего.</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">003</span><div><h3>Срок жизни шаблонов нельзя настроить из интерфейса</h3>
+<p><code>templateTtlDays</code> подставляется в подпись кнопки «Убрать неиспользуемые (&gt; 10 дн.)», но поменять его можно только руками в ini. Нужен <code>NumberBox</code> рядом с кнопкой.</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">004</span><div><h3>Таблица пропущенных ников растёт бесконечно</h3>
+<p><code>state.recentSkips</code> чистится только при обращении к конкретному ключу. За длинную смену там накапливаются сотни записей, которые никогда не будут прочитаны. Прунить по времени в <code>processPendingSendState</code> раз в 30 секунд.</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">005</span><div><h3>Кэш ховеров обнуляется целиком</h3>
+<p>При переполнении <code>UI._hv</code> (512 записей) таблица сбрасывается полностью — в этот кадр все подсветки дёргаются разом. Чистить по «к элементу не обращались N секунд», а не рубить всё.</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">006</span><div><h3>Многострочные объявления парсятся ненадёжно</h3>
+<p><code>parseAdDialog</code> сначала пробует <code>Сообщение:%s*([^\n]+)</code> — то есть только первую строку. Фолбэк на многострочный вариант срабатывает лишь когда первая строка пустая. Если игрок прислал текст с переносом, хвост молча теряется, и в шаблон уходит обрезок.</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">007</span><div><h3>Нет ограничения длины под лимит серверного диалога</h3>
+<p>Буфер на 4096 байт, а серверный input принимает заметно меньше. Сейчас лишнее просто обрезается сервером, и редактор об этом не знает. Нужен жёсткий лимит на ввод плюс счётчик (см. 076).</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">008</span><div><h3>Ключ шаблона чувствителен к регистру</h3>
+<p><code>normalizeTemplateText</code> только схлопывает пробелы. «Продам а/м» и «продам а/м» становятся двумя разными шаблонами, база пухнет, точное совпадение не находится. Хранить ключ в нижнем регистре без концевой пунктуации, оригинал держать отдельным полем для показа.</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">009</span><div><h3>Нечёткий шаблон может подменить цену</h3>
+<p><code>Tpl.tokenize</code> выбрасывает токены короче двух символов и сравнивает числа как строки. Объявление «Продам Elegy. Цена: 5.000.000» может нечётко совпасть с сохранённым «…9.000.000» и подставить чужую сумму. Правило: если множества чисел в оригиналах не совпадают — нечёткое совпадение не предлагать вовсе.</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">010</span><div><h3>Обработчики диалогов не обёрнуты в pcall</h3>
+<p>Любая неожиданная строка от сервера в <code>handleShowDialog</code> роняет весь скрипт. Краш-хендлер это красиво покажет, но лучше не падать: обернуть тело обработчиков и при ошибке отдать управление серверу (<code>sampSendDialogResponse(id, 0, 0, "")</code>).</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">011</span><div><h3>Две шкалы времени в одной логике</h3>
+<p><code>cooldownUntil</code> живёт в <code>os.time()</code>, а <code>autoApproveAt</code> / <code>autoSkipAt</code> — в <code>os.clock()</code>. Сравнения между ними уже сейчас выглядят как случайность. Свести всё к <code>os.clock()</code>, а <code>os.time()</code> оставить только для дат.</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">012</span><div><h3>Дневная статистика зависит от одной строки чата</h3>
+<p><code>dailyApproved</code> растёт только когда пришло «Вы получили … за отредактированое вами объявление». Потерялась строка (флуд, дисконнект, смена формулировки на сервере) — потерялся факт. Считать отдельный счётчик по факту успешной отправки, а деньги — по чату.</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">013</span><div><h3>Настройка «Перехват /newsredak» врёт</h3>
+<p><code>newsredakHotkeyToggle</code> проверяется только в ветке <code>fromHotkey</code>. Команда <code>/newsredak</code> перехватывается всегда, независимо от тумблера. Либо переименовать в «Открывать очередь по хоткею», либо честно завести отдельный флаг для перехвата команды.</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">014</span><div><h3>VIP-флаг теряется при пересборке очереди</h3>
+<p><code>Queue.syncFromList</code> строит список заново из диалога. Если объявление в этот момент в чужой редакции и в список не попало, при возврате оно приходит уже без пометки VIP, и приоритет ловли ломается. Держать флаги в отдельной таблице по нормализованному нику с TTL.</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">015</span><div><h3>Пустой текст отправляется без вопросов</h3>
+<p>Ни <code>startEditorSendAttempt</code>, ни авто-отправка не проверяют, что в поле вообще что-то есть. Один <code>Ctrl+A / Delete</code> — и в эфир уходит пустая строка. Блокировать кнопку и отменять авто-отправку при пустом или состоящем из пробелов вводе.</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">016</span><div><h3>Мёртвая переменная в виджете очереди</h3>
+<p><code>local icon = getIcon('inbox', '')</code> объявляется до <code>if</code>, а внутри ветки объявляется ещё раз. Верхняя не используется. Мелочь, но такие места копятся.</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">017</span><div><h3>Конфиг сохраняется слишком часто</h3>
+<p><code>inicfg.save</code> дёргается на каждое одобрение, отклонение, изменение тумблера и получение денег — то есть десятки раз в минуту, каждый раз перезаписывая файл целиком. Ввести отложенное сохранение: помечать «грязно» и писать раз в 5 секунд плюс при выгрузке.</p>
+<div class="tags"><span class="tag bug">баг</span><span class="tag s">S</span></div></div></li>
+
+  </ol>
+</section>
+
+<!-- ============ 01 ============ -->
+<section class="sec" id="s01">
+  <div class="sec-h"><span class="sid">01</span><h2>Автокоррекция текста</h2><span class="sn">26 пунктов</span></div>
+  <p class="sec-note">Ядро скрипта: 90% работы редактора — это одни и те же правки одних и тех же ошибок. Каждый пункт стоит делать отдельным правилом в общем конвейере с индивидуальным тумблером, а не хардкодом.</p>
+  <ol class="ideas">
+
+<li class="idea"><span class="num">018</span><div><h3>Конвейер правил вместо разрозненных функций</h3>
+<p>Один список <code>RULES = { {id, name, enabled, apply(text) → text, note} }</code>, который прогоняется по тексту сверху вниз. Всё, что ниже в этом разделе, становится строкой в этом списке, а в настройках появляется вкладка со списком тумблеров и порядком применения.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">019</span><div><h3>Заглавная буква в начале</h3>
+<p>Самая частая правка вообще. С учётом того, что первым словом может быть марка («NRG-500 продам») — не трогать токен, если он весь в верхнем регистре или есть в справочнике марок.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">020</span><div><h3>Убрать точку в конце</h3>
+<p>По уставу СМИ точку в конце ставит сам сервер. Снимать финальную точку, но не многоточие и не «!»/«?».</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">021</span><div><h3>Схлопывание пробелов и пробелы вокруг знаков</h3>
+<p>Двойные пробелы, пробел перед запятой/точкой/двоеточием, отсутствие пробела после запятой. Отдельно — пробелы вокруг слэша в сокращениях: «а / м» → «а/м».</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">022</span><div><h3>Исправление раскладки</h3>
+<p>«Ghjlfv f/v» → «Продам а/м». Таблица соответствия QWERTY↔ЙЦУКЕН, применять только к словам, где доля латиницы высокая и слова нет в справочнике марок. Ловит целый класс объявлений, которые сейчас редактируются вручную посимвольно.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">023</span><div><h3>Транслит в кириллицу</h3>
+<p>«Prodam dom v Los Santos» → «Продам дом в г. Лос-Сантос». Работает по словарю частых слов плюс общая таблица транслитерации; марки и англоязычные названия не трогаем.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">024</span><div><h3>Снятие капса</h3>
+<p>«СРОЧНО ПРОДАМ ДОМ» → «Срочно продам дом». Исключения: аббревиатуры из справочника (VIP, СМИ, ФБР), сокращения через слэш, названия организаций в кавычках.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">025</span><div><h3>Нормализация чисел под устав</h3>
+<p><code>1000000</code> → <code>1 млн</code>, <code>500000</code> → <code>500 тыс</code>, <code>2500000</code> → <code>2.5 млн</code>. Устав прямо требует формат «тыс / млн / млрд», так что это ежедневная правка. Порог и стиль (2.5 млн или 2кк) — в настройки.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">026</span><div><h3>Игровой сленг в числа</h3>
+<p>«лям», «кк», «косарь», «сотка», «полтишок», «5кк» → нормальная сумма. Словарь редактируемый: у каждого сервера свой жаргон.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">027</span><div><h3>Единый формат валюты</h3>
+<p>«руб», «р.», «доллars», «$5кк», «баксов» → один вид. Плюс правило «$ перед числом или после» — как принято в вашей редакции.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">028</span><div><h3>Исправление марок транспорта по справочнику</h3>
+<p>В <code>QUICK_PICKERS.vehicles</code> уже лежит полный список моделей. Нечёткий поиск (расстояние Левенштейна ≤ 2) чинит «инфернус», «Infernus.», «infernuss», «elegi» → правильное написание. Это самая заметная фича из всех перечисленных здесь.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">029</span><div><h3>Нормализация городов и локаций</h3>
+<p>«лс», «ls», «в лос сантосе», «Los Santos» → «г. Лос-Сантос». Справочник <code>QUICK_PICKERS.locations</code> уже есть, нужен только словарь алиасов к нему.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">030</span><div><h3>Развёртка и свёртка сокращений</h3>
+<p>Двусторонний словарь: «автомобиль» → «а/м», «биж/зона» → «б/з», и наоборот, если объявление нужно расшифровать. Управляется тумблером «сокращать / расшифровывать».</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">031</span><div><h3>Кавычки к единому виду</h3>
+<p>«», "", '', ``  → выбранный стиль. Заодно чинить непарные кавычки — они ломают вид объявления в эфире.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">032</span><div><h3>Дефис и тире</h3>
+<p>Тире между словами → «-», диапазоны «5-10» без пробелов, «--» → «-».</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">033</span><div><h3>Схлопывание повторов знаков</h3>
+<p>«!!!!», «???», «....», «)))))» → один знак. Заодно вычищаются эмодзи и символы, которые сервер не отрисует.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">034</span><div><h3>Удаление дублей слов</h3>
+<p>«продам продам дом» → «продам дом». Частая опечатка при быстром наборе игроком.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">035</span><div><h3>Нормализация глагола действия</h3>
+<p>«продаю», «продаётся», «пpoдам» (с латиницей внутри) → «Продам». То же для «Куплю», «Сдам», «Обменяю», «Сниму» — набор уже есть в быстрых кнопках.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">036</span><div><h3>Вырезание контактов и ссылок</h3>
+<p>Discord-теги, ссылки, «пиши в тг», номера вне игрового формата. Настраивается: вырезать / подсветить / отклонить.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">037</span><div><h3>Ё и Е</h3>
+<p>Один тумблер, приводящий текст к принятому в редакции виду. Мелочь, но всплывает в каждом втором объявлении с «ещё» и «её».</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">038</span><div><h3>Умная обрезка по лимиту</h3>
+<p>Если после всех правил текст длиннее лимита — резать по границе слова и подсвечивать, а не молча отдавать серверу на обрезку.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">039</span><div><h3>Кнопка и хоткей «Применить все правила»</h3>
+<p>Автокоррекция должна быть управляемой: по умолчанию — предложение, по кнопке — применение. Отдельный режим «применять сразу при открытии редактора» для тех, кто доверяет правилам.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">040</span><div><h3>Показывать, что именно исправилось</h3>
+<p>После применения — строчка «исправлено: раскладка, капс, формат цены» и подсветка изменённых фрагментов в поле. Без этого редактор не может доверять автоматике.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">041</span><div><h3>Пользовательский редактор правил</h3>
+<p>Вкладка, где можно добавить своё правило: шаблон поиска (текст или Lua-паттерн) → замена, с тестовым полем «вот текст, вот результат». Это превращает скрипт из «инструмента автора» в «инструмент редакции».</p>
+<div class="tags"><span class="tag l">L</span></div></div></li>
+
+<li class="idea"><span class="num">042</span><div><h3>Профили правил под тип объявления</h3>
+<p>Для транспорта, недвижимости и аксессуаров нужны разные наборы. Категория уже определяется в <code>recordAdCategoryAndSpeed</code> — вычислять её при открытии и включать соответствующий профиль.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">043</span><div><h3>Сухой прогон по всей базе шаблонов</h3>
+<p>Кнопка «прогнать новые правила по 500 сохранённым шаблонам и показать, что изменится». Позволяет проверить правило без риска испортить живое объявление.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+  </ol>
+</section>
+
+<!-- ============ 02 ============ -->
+<section class="sec" id="s02">
+  <div class="sec-h"><span class="sid">02</span><h2>Проверки перед отправкой</h2><span class="sn">15 пунктов</span></div>
+  <p class="sec-note">Сейчас скрипт отправит что угодно. Слой валидации превращает его из «ускорителя» в «страховку от выговора».</p>
+  <ol class="ideas">
+
+<li class="idea"><span class="num">044</span><div><h3>Светофор готовности вместо простой кнопки</h3>
+<p>Зелёный — можно слать, жёлтый — есть замечания, красный — нарушение устава. Цвет и список замечаний прямо над кнопкой «Отправить». Красный блокирует отправку, но пропускает по <code>Shift+клик</code> с записью в лог.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">045</span><div><h3>Словарь стоп-слов</h3>
+<p>Мат, оскорбления, запрещённая тематика — отдельным json рядом со скриптом, с поддержкой обхода фильтра (замена букв на похожие символы: «а»↔«a», «о»↔«0»).</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">046</span><div><h3>Детект рекламы сторонних проектов</h3>
+<p>Названия других серверов, «переходи на», домены, приглашения в Discord — мгновенное красное предупреждение и готовая причина отказа.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">047</span><div><h3>Контроль «смысл не изменён»</h3>
+<p>Устав прямо запрещает менять смысл объявления. Считать пересечение значимых токенов оригинала и отредактированного текста; если ниже порога — предупреждение. Заодно ловит случай, когда шаблон подставился не туда.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">048</span><div><h3>Числа из оригинала обязаны остаться</h3>
+<p>Самая опасная ошибка редактора — «уехавшая» цена. Собрать все числа из исходного сообщения и проверить, что они (с учётом нормализации 1000000 ↔ 1 млн) присутствуют в итоговом тексте. Иначе — красный.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">049</span><div><h3>Проверка длины: минимум и максимум</h3>
+<p>Слишком короткое («продам») — вероятно, неинформативное объявление, повод к отказу. Слишком длинное — обрежет сервер.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">050</span><div><h3>Детект дубликата</h3>
+<p>Тот же отправитель с тем же (или почти тем же) текстом за последние N минут — предупреждение «уже публиковалось 4 минуты назад». Хранить последние 200 обработанных пар ник+хеш текста.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">051</span><div><h3>Инлайн-подсветка проблемных мест</h3>
+<p>Отрисовывать поверх поля ввода подложку под найденными стоп-словами и подозрительными фрагментами. Через <code>DrawList</code> и <code>CalcTextSize</code> это реализуемо без хаков.</p>
+<div class="tags"><span class="tag l">L</span></div></div></li>
+
+<li class="idea"><span class="num">052</span><div><h3>Пресеты причин отказа</h3>
+<p>Ряд кнопок над полем причины: «Реклама», «Мат», «Бессмысленное», «Нарушение формата», «Запрещённый товар». Сейчас причину набирают руками каждый раз.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">053</span><div><h3>Причина подставляется из сработавшей проверки</h3>
+<p>Валидатор нашёл рекламу — в поле причины уже лежит «Реклама стороннего проекта». Один клик до отклонения вместо десяти секунд набора.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">054</span><div><h3>Статистика по причинам отклонений</h3>
+<p>Какие нарушения встречаются чаще — это и отчётность, и подсказка, какое правило автокоррекции писать следующим.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">055</span><div><h3>Чеклист устава в боковой панели</h3>
+<p>Свёрнутый список пунктов правил с галочками: длина, формат цены, отсутствие контактов, корректная категория. Полезно новичкам и на случай проверки от лидера.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">056</span><div><h3>Режим обучения</h3>
+<p>Для новичка каждая проверка объясняет, почему это нарушение, со ссылкой на пункт устава. Отключается одним тумблером, когда рука набита.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">057</span><div><h3>Проверка соответствия категории</h3>
+<p>Если в тексте маркеры транспорта, а выбрана категория недвижимости — предупредить. Маркеры уже описаны в <code>CAT_MARKERS</code>.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">058</span><div><h3>Жёсткий стоп-лист на авто-отправку</h3>
+<p>Даже при точном совпадении шаблона: если сработал любой красный валидатор — авто-отправка отменяется и объявление уходит на ручной просмотр. Автопилот не должен уметь опубликовать мат.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+  </ol>
+</section>
+
+<!-- ============ 03 ============ -->
+<section class="sec" id="s03">
+  <div class="sec-h"><span class="sid">03</span><h2>Шаблоны 2.0</h2><span class="sn">15 пунктов</span></div>
+  <p class="sec-note">Сейчас шаблон — это жёсткая пара «оригинал → результат». Из-за этого база растёт линейно и почти не попадает в новые объявления: достаточно другой цены, чтобы совпадения не было.</p>
+  <ol class="ideas">
+
+<li class="idea"><span class="num">059</span><div><h3>Параметризованные шаблоны</h3>
+<p>Хранить не текст, а маску: <code>Продам {model}. Цена: {money}</code>. При сохранении автоматически выделять числа, названия в кавычках и марки из справочника и заменять их на слоты. Один такой шаблон закрывает сотни объявлений вместо одного — это главный рычаг во всём списке.</p>
+<div class="tags"><span class="tag l">L</span></div></div></li>
+
+<li class="idea"><span class="num">060</span><div><h3>Предпросмотр вместо молчаливой подстановки</h3>
+<p>При нечётком совпадении показывать «нашёл похожий на 82% — подставить?» с двумя кнопками, а не подменять текст сразу. Сейчас редактор рискует отправить чужую редакцию, не заметив подмены.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">061</span><div><h3>Диф между оригиналом и шаблоном</h3>
+<p>Подсветить, что именно изменится: удалённое красным, добавленное зелёным. Это же решает проблему доверия к нечётким совпадениям.</p>
+<div class="tags"><span class="tag l">L</span></div></div></li>
+
+<li class="idea"><span class="num">062</span><div><h3>Порог схожести в настройках</h3>
+<p><code>FUZZY_MIN_SCORE = 0.70</code> сейчас константа. Вынести ползунком с живым предпросмотром: «при этом пороге в базе нашлось бы N совпадений».</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">063</span><div><h3>Расстояние Левенштейна вместо чистого Жаккара</h3>
+<p>Токенное пересечение не видит опечаток: «Инфернус» и «Инферус» — разные токены. Гибрид «Жаккар по токенам + расстояние по строке» заметно поднимает попадаемость.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">064</span><div><h3>Шаблоны, привязанные к отправителю</h3>
+<p>Постоянные клиенты шлют одно и то же каждый день. Отдельный индекс «ник → его последняя редакция» даёт мгновенное попадание там, где общий поиск промахивается.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">065</span><div><h3>Ручное создание шаблона</h3>
+<p>Кнопка «сохранить как шаблон» прямо в редакторе, плюс возможность добавить шаблон с нуля во вкладке. Сейчас шаблон появляется только как побочный эффект отправки.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">066</span><div><h3>Понижение доверия к плохому шаблону</h3>
+<p>Если после подстановки шаблона объявление отклонили или сильно переписали — уменьшать вес и после двух-трёх раз убирать из авто-подстановки. База должна самоочищаться.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">067</span><div><h3>Импорт и экспорт шаблонов</h3>
+<p>Кнопки «выгрузить в файл» / «загрузить из файла» со слиянием, а не заменой. Позволяет передать наработанную базу коллеге или перенести на другой ПК.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">068</span><div><h3>Общая база редакции</h3>
+<p>Один общий json на несколько человек (сетевая папка или простой gist): шаблоны, стоп-слова, ЧС. Новый сотрудник сразу работает на уровне опытного.</p>
+<div class="tags"><span class="tag l">L</span></div></div></li>
+
+<li class="idea"><span class="num">069</span><div><h3>Подсветка совпадения в поиске по шаблонам</h3>
+<p>Во вкладке «Шаблоны» подсвечивать найденную подстроку в строках списка — сейчас поиск фильтрует, но не показывает, где именно совпало.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">070</span><div><h3>«Этот шаблон сэкономил вам 14 минут»</h3>
+<p>Сохранять среднее время ручного редактирования и умножать на число срабатываний. Хорошая мотивация не удалять базу и приятная строка в статистике.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">071</span><div><h3>Групповые правила формы</h3>
+<p>Не «текст → текст», а «если начинается с "Куплю а/м" → привести к форме "Куплю а/м «{model}». Бюджет: {money}"». Промежуточный уровень между правилом автокоррекции и шаблоном.</p>
+<div class="tags"><span class="tag l">L</span></div></div></li>
+
+<li class="idea"><span class="num">072</span><div><h3>История версий шаблона</h3>
+<p>Если один и тот же оригинал редактировали по-разному, хранить последние 3 варианта и предлагать выбор, а не молча перезаписывать.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">073</span><div><h3>Обучение правилам на своих правках</h3>
+<p>Копить пары «было → стало» и находить в них повторяющиеся замены («Продаю»→«Продам» встретилось 40 раз). Предлагать: «сделать это правилом автокоррекции?». Скрипт сам растит свою базу правил — это то, что конкуренты продают под словом «нейросеть».</p>
+<div class="tags"><span class="tag l">L</span></div></div></li>
+
+  </ol>
+</section>
+
+<!-- ============ 04 ============ -->
+<section class="sec" id="s04">
+  <div class="sec-h"><span class="sid">04</span><h2>Очередь, приоритеты, тайминги</h2><span class="sn">14 пунктов</span></div>
+  <ol class="ideas">
+
+<li class="idea"><span class="num">074</span><div><h3>Таймер жизни объявления</h3>
+<p>В виджете уже показывается возраст, но важнее обратное — сколько осталось до сгорания. Красный отсчёт на последних 30 секундах и звук: сгоревшее объявление — это потерянные деньги.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">075</span><div><h3>Настраиваемый приоритет ловли</h3>
+<p>Сейчас ранги зашиты: VIP+шаблон, VIP, шаблон, обычное. Дать выбор стратегии: «по возрасту» (не терять старые), «по деньгам» (VIP вперёд), «по скорости» (сначала те, где есть шаблон).</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">076</span><div><h3>Предсказание VIP-кулдауна</h3>
+<p>Сейчас кулдаун обрабатывается по факту отказа сервера. Достаточно запомнить время последней VIP-публикации и не начинать следующую раньше — редактор перестанет терять объявление и переоткрывать редактор.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">077</span><div><h3>Пауза и возобновление очереди хоткеем</h3>
+<p>Автоматика работает — надо отойти. Одна клавиша ставит конвейер на паузу, не сбрасывая режим и статистику.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">078</span><div><h3>Лимит на сессию</h3>
+<p>«Обработать 50 и остановиться» — против переработки и против подозрительно длинных серий автодействий.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">079</span><div><h3>Авто-стоп по дневной цели</h3>
+<p><code>dailyGoal</code> уже есть и рисуется в прогресс-баре, но ни на что не влияет. Тумблер «останавливать автоматику при достижении цели» + уведомление.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">080</span><div><h3>Оценка времени разбора очереди</h3>
+<p>«12 в очереди · ~4 мин при вашем темпе» — считается из средней скорости редактирования, которая уже собирается в <code>totalEditTime / timedEdits</code>.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">081</span><div><h3>Счётчик объявлений в час</h3>
+<p>Живой показатель темпа в виджете. Помогает понять, когда очередь плотная и стоит задержаться, а когда пусто.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">082</span><div><h3>Список «мои пропущенные»</h3>
+<p><code>recentSkips</code> сейчас — чёрная дыра на 300 секунд. Показать их отдельной вкладкой виджета с возможностью вернуться к объявлению до истечения таймера.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">083</span><div><h3>Статистика конкуренции</h3>
+<p>Считать, сколько объявлений увели другие редакторы, пока вы открывали список. Полезно, чтобы понять, стоит ли включать более агрессивные тайминги.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">084</span><div><h3>Обновление списка без переоткрытия</h3>
+<p>Кнопка «обновить» в окне списка, которая переотправляет <code>/newsredak</code> и перерисовывает таблицу с сохранением выделения.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">085</span><div><h3>Сохранение очереди между перезаходами</h3>
+<p>При вылете и релоге виджет пуст, хотя объявления никуда не делись. Сохранять список с таймстампами в файл и восстанавливать при старте, помечая записи как «требуют подтверждения».</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">086</span><div><h3>Разворачивающийся виджет</h3>
+<p>Сейчас жёстко 6 строк и «…ещё N». Дать перетаскиваемую высоту и режим «компактный / полный», позицию уже умеет запоминать.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">087</span><div><h3>Клик по строке виджета — взять объявление</h3>
+<p>Виджет сейчас декоративный (<code>NoInputs</code>). Режим «интерактивный»: клик по нику открывает очередь и сразу берёт именно его.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+  </ol>
+</section>
+
+<!-- ============ 05 ============ -->
+<section class="sec" id="s05">
+  <div class="sec-h"><span class="sid">05</span><h2>Редактор: ввод и интерфейс</h2><span class="sn">17 пунктов</span></div>
+  <ol class="ideas">
+
+<li class="idea"><span class="num">088</span><div><h3>Счётчик символов с лимитом</h3>
+<p>«143 / 180» под полем, желтеет на подходе к границе, краснеет за ней. Закрывает и баг 007, и половину недоразумений с обрезанным текстом.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">089</span><div><h3>Undo / Redo в поле ввода</h3>
+<p><code>Ctrl+Z</code> / <code>Ctrl+Y</code> по своему стеку состояний буфера. Особенно нужно после массовой автокоррекции — должна быть возможность откатить одним нажатием.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">090</span><div><h3>Кнопка «вернуть оригинал»</h3>
+<p>Возврат текста ровно к тому, что прислал игрок. Простая страховка, когда правка ушла не туда.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">091</span><div><h3>Кликабельные фрагменты оригинала</h3>
+<p>В боковой панели оригинал показан просто текстом. Сделать числа, названия в кавычках и марки кликабельными — клик вставляет их в позицию курсора. Убирает ручное перепечатывание цены.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">092</span><div><h3>Автодополнение при вводе</h3>
+<p>Начал печатать «Инф» — выпадающий список из справочника марок, <code>Tab</code> дополняет. Все словари для этого уже лежат в <code>QUICK_PICKERS</code>.</p>
+<div class="tags"><span class="tag l">L</span></div></div></li>
+
+<li class="idea"><span class="num">093</span><div><h3>Предпросмотр «как увидят в эфире»</h3>
+<p>Строка ровно в том виде, в котором объявление уйдёт в чат — с точкой, которую поставит сервер, и префиксом. Ловит ошибки, невидимые в поле ввода.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">094</span><div><h3>Избранные быстрые кнопки</h3>
+<p>Правый клик по кнопке — «закрепить». Закреплённые собираются в верхний ряд. Сейчас до нужного сокращения приходится прокручивать шесть секций.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">095</span><div><h3>Свои кнопки</h3>
+<p>Пользовательская секция, куда можно добавить произвольные вставки — у каждой редакции свои устоявшиеся формулировки.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">096</span><div><h3>Частотная сортировка кнопок</h3>
+<p>Считать нажатия и выводить наверх то, чем реально пользуетесь. Отключаемо — некоторым важна стабильность расположения.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">097</span><div><h3>Контекстное меню по слову</h3>
+<p>Правый клик по слову в поле: «сократить», «в кавычки», «заменить на марку из справочника», «удалить».</p>
+<div class="tags"><span class="tag l">L</span></div></div></li>
+
+<li class="idea"><span class="num">098</span><div><h3>Компактный режим окна</h3>
+<p>1090×860 не влезает на 1366×768 с включёнными быстрыми кнопками. Одноколоночная раскладка: панель информации сворачивается в шапку.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">099</span><div><h3>Масштаб интерфейса</h3>
+<p>Ползунок UI scale, влияющий на размеры шрифтов и отступов. Сейчас размеры зашиты в <code>FONT_SIZE</code> и константы.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">100</span><div><h3>Изменяемый размер окна</h3>
+<p>Размер задаётся <code>Cond.Always</code> и не запоминается. Разрешить ресайз и сохранять габариты рядом с позицией.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">101</span><div><h3>Таймер редактирования на виду</h3>
+<p>Секундомер с момента открытия рядом с ником. Скорость уже считается для статистики — показать её в моменте, это заметно дисциплинирует.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">102</span><div><h3>История последних отправленных</h3>
+<p>Выпадашка с 10 последними отредактированными текстами и вставкой по клику. Спасает, когда подряд идут почти одинаковые объявления.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">103</span><div><h3>Заметка по отправителю прямо в панели</h3>
+<p>«Писал 14 раз, 2 отклонения, обычно просит вернуть кавычки» — короткая память о клиенте под ником.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">104</span><div><h3>Тумблер «показывать причину отказа»</h3>
+<p>Поле причины занимает место в каждой сессии, хотя нужно в одном случае из двадцати. Сворачивать по умолчанию, раскрывать по кнопке «Отклонить» или хоткею.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+  </ol>
+</section>
+
+<!-- ============ 06 ============ -->
+<section class="sec" id="s06">
+  <div class="sec-h"><span class="sid">06</span><h2>Горячие клавиши и скорость</h2><span class="sn">10 пунктов</span></div>
+  <p class="sec-note">Деньги в этой работе зарабатываются секундами. Всё, что убирает движение мышью, окупается сразу.</p>
+  <ol class="ideas">
+
+<li class="idea"><span class="num">105</span><div><h3>Сочетания клавиш, а не одиночные</h3>
+<p>Сейчас <code>cfg.hotkeys</code> хранит один код клавиши. Перейти на «модификатор + клавиша», иначе нормальные хоткеи в редакторе невозможны — все буквы заняты вводом.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">106</span><div><h3>Ctrl+Enter — отправить</h3>
+<p>Обычный <code>Enter</code> уже отправляет, но требует, чтобы фокус был в поле. Нужен хоткей, работающий из любого места окна.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">107</span><div><h3>Хоткей «отклонить с последней причиной»</h3>
+<p>Когда идёт волна одинакового спама, отклонение должно занимать одно нажатие.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">108</span><div><h3>Alt+1…9 на быстрые кнопки</h3>
+<p>Первые девять кнопок текущей секции. И отрисовывать номер прямо на кнопке, чтобы не заучивать.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">109</span><div><h3>Хоткей «применить автокоррекцию»</h3>
+<p>Главная кнопка нового конвейера правил должна быть под пальцем.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">110</span><div><h3>Хоткей «пропустить»</h3>
+<p>Явный пропуск с возвратом в очередь — сейчас это доступно только через закрытие окна или авто-пропуск по бездействию.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">111</span><div><h3>Ctrl+Backspace — удалить слово</h3>
+<p>Есть «стереть символ» кнопкой, но нет удаления слова — а правки чаще пословные.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">112</span><div><h3>Детектор конфликтов хоткеев</h3>
+<p>При назначении предупреждать, что клавиша уже занята другим действием скрипта или стандартной клавишей игры.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">113</span><div><h3>Хоткей-килсвитч</h3>
+<p>Одна клавиша, которая мгновенно вырубает всю автоматику, закрывает окна и отдаёт диалог серверу. Нужна на случай, когда рядом появился администратор.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">114</span><div><h3>Шпаргалка по хоткеям</h3>
+<p>Оверлей по удержанию клавиши со списком всех назначенных сочетаний. Дешёвая функция, сильно поднимающая ощущение готового продукта.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+  </ol>
+</section>
+
+<!-- ============ 07 ============ -->
+<section class="sec" id="s07">
+  <div class="sec-h"><span class="sid">07</span><h2>Отправители: ЧС, доверие, репутация</h2><span class="sn">12 пунктов</span></div>
+  <ol class="ideas">
+
+<li class="idea"><span class="num">115</span><div><h3>Белый список</h3>
+<p>Зеркало чёрного: доверенные отправители, чьи объявления можно одобрять автоматически даже без точного шаблона (с обязательным прохождением валидаторов).</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">116</span><div><h3>Репутация вместо бинарного ЧС</h3>
+<p>По каждому нику копить «одобрено / отклонено» и выводить процент. Чип «12 объявлений · 100% ок» в боковой панели говорит больше, чем факт отсутствия в ЧС.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">117</span><div><h3>Авто-ЧС после серии отклонений</h3>
+<p>Три отклонения подряд от одного ника — предложение добавить в ЧС одной кнопкой прямо в тосте.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">118</span><div><h3>Временный ЧС</h3>
+<p>«На час», «на сутки», «навсегда» с авто-снятием. Большинство спамеров успокаиваются за смену, а вечный ЧС потом никто не чистит.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">119</span><div><h3>Маски в ЧС</h3>
+<p>Не только точный ник, но и шаблон: всё, что содержит «casino», «shop», «bot». Ловит целые серии одноразовых аккаунтов.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">120</span><div><h3>Чёрный список по тексту</h3>
+<p>Стоп-фразы, при которых объявление отклоняется независимо от отправителя. Смыкается с валидаторами из раздела 02, но управляется как ЧС.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">121</span><div><h3>Причина отказа из карточки ЧС</h3>
+<p>Причина в ЧС уже хранится, но при авто-пропуске никуда не идёт. Использовать её текстом отказа — отправитель получит осмысленный ответ.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">122</span><div><h3>Лог блокировок</h3>
+<p>Кто, когда, по какой причине был пропущен. Сейчас есть только счётчики <code>totalBlockedBL</code>.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">123</span><div><h3>Импорт и экспорт ЧС</h3>
+<p>Обмен списками между редакторами. Общий ЧС редакции — сильная штука против волн спама.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">124</span><div><h3>Заметки по отправителю</h3>
+<p>Свободное поле в карточке: «просит не сокращать название организации». Показывается в редакторе (см. 103).</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">125</span><div><h3>Добавление в ЧС по ID из чата</h3>
+<p>Кнопка добавления по ID уже есть, но её нет в самом редакторе. Плюс команда <code>/smibl [id|ник] [причина]</code> для быстрого добавления не отходя от игры.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">126</span><div><h3>Ограничение частоты на отправителя</h3>
+<p>Больше N объявлений за час от одного ника — предупреждение о флуде с предложением временного ЧС.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+  </ol>
+</section>
+
+<!-- ============ 08 ============ -->
+<section class="sec" id="s08">
+  <div class="sec-h"><span class="sid">08</span><h2>Автоматика и осторожность</h2><span class="sn">10 пунктов</span></div>
+  <p class="sec-note">Автопилот, который отвечает за 300 мс и с точностью до миллисекунды, выглядит ровно тем, чем является. Смысл раздела — чтобы автоматика не создавала проблем самому редактору.</p>
+  <ol class="ideas">
+
+<li class="idea"><span class="num">127</span><div><h3>Джиттер задержек</h3>
+<p>Все задержки сейчас фиксированные: <code>QUEUE_CONTINUE_DELAY_SEC = 0.35</code>, <code>1.1 * 2^n</code>, ровные секунды авто-отправки. Добавить случайный разброс ±30%.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">128</span><div><h3>Минимальное время «на прочтение»</h3>
+<p>Не отправлять раньше, чем через N мс после открытия редактора, даже при точном совпадении шаблона. Заодно даёт человеку шанс заметить ошибку.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">129</span><div><h3>Лимит автодействий в час</h3>
+<p>Настраиваемый потолок, после которого автоматика переходит в режим «только подсказки».</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">130</span><div><h3>Проверка фокуса окна</h3>
+<p>Перед авто-отправкой убедиться, что игра в фокусе. Отправка вслепую, пока пользователь в браузере, — источник самых обидных ошибок.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">131</span><div><h3>Авто-пауза по условиям</h3>
+<p>Игрок вне здания редакции, потерял здоровье, в машине, начался диалог не от СМИ — автоматика приостанавливается и пишет причину.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">132</span><div><h3>Тихий режим</h3>
+<p>Ни строчки в чат, только тосты в интерфейсе. Сейчас скрипт довольно разговорчив, а чат — общий ресурс.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">133</span><div><h3>Полный аудит-лог</h3>
+<p>Файл с построчной записью: время, ник, оригинал, итог, действие, режим (ручной/авто). Незаменимо при разборе «почему это ушло в эфир».</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">134</span><div><h3>Ограничение серии авто-одобрений</h3>
+<p>После N подряд автоматических отправок требовать одно ручное подтверждение. Не даёт уйти в полностью безнадзорный режим.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">135</span><div><h3>Предупреждение в разделе «Информация»</h3>
+<p>Честный блок о том, что автоматика делает от имени игрока и какие функции стоит выключать. Это и уважение к пользователю, и снятие вопросов к автору.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">136</span><div><h3>Отдельный тумблер на каждое автодействие</h3>
+<p>Сейчас «авто-ловля» — это цепочка из открытия очереди, выбора объявления и продолжения после отправки. Разнести на три флага: кто-то хочет только уведомления, кто-то — полный конвейер.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+  </ol>
+</section>
+
+<!-- ============ 09 ============ -->
+<section class="sec" id="s09">
+  <div class="sec-h"><span class="sid">09</span><h2>Статистика и аналитика</h2><span class="sn">14 пунктов</span></div>
+  <ol class="ideas">
+
+<li class="idea"><span class="num">137</span><div><h3>Почасовой график активности</h3>
+<p>Когда очередь плотнее всего. Прямо влияет на то, в какое время выходить в смену — самая практичная метрика из возможных.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">138</span><div><h3>Трекер смены</h3>
+<p>Старт/стоп смены, отработанное время, доход за смену, темп. Сейчас «доход в час» считается от старта скрипта, что смазывает картину при долгих паузах.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">139</span><div><h3>Итоговый отчёт по смене</h3>
+<p>Одно сообщение по завершении: обработано, отклонено, заработано, средняя скорость, лучший результат. И то же самое — при выгрузке скрипта.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">140</span><div><h3>Сравнение с прошлым днём</h3>
+<p>«+18% к вчерашнему» рядом с дневным счётчиком. История за 7 дней уже хранится в <code>cfg.stats.history</code>.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">141</span><div><h3>Стрик выполненных целей</h3>
+<p>Сколько дней подряд закрыта дневная цель. Дешёвая механика, которая реально держит в тонусе.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">142</span><div><h3>Расширенная история</h3>
+<p>Сейчас 7 дней в json внутри ini. Вынести в отдельный файл с помесячной разбивкой и графиком за 30 дней.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">143</span><div><h3>Экспорт в CSV</h3>
+<p>Выгрузка истории и журнала объявлений — чтобы посчитать что угодно в таблице и отчитаться перед лидером.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">144</span><div><h3>Гистограмма времени редактирования</h3>
+<p>Не только среднее и рекорд, но и распределение: видно, что 80% объявлений уходят за 5 секунд, а хвост из 20% съедает половину смены.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">145</span><div><h3>Доход по категориям</h3>
+<p>Категории уже считаются, а деньги — нет. Связать их: видно, какой тип объявлений выгоднее.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">146</span><div><h3>Доля объявлений, закрытых шаблоном</h3>
+<p>Ключевая метрика полезности базы шаблонов. Сейчас есть только доля автопилота от общего числа.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">147</span><div><h3>Топ отправителей</h3>
+<p>Кто пишет чаще всех — кандидаты в белый список и в персональные шаблоны.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">148</span><div><h3>Топ используемых кнопок и сокращений</h3>
+<p>Данные для 094 и 096, а заодно повод убрать из панели то, чем никто не пользуется.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">149</span><div><h3>Больше достижений и прогресс до следующего</h3>
+<p>Пять достижений закрываются за неделю. Добавить длинные цели (1000 объявлений, 30 дней подряд, 100 шаблонов) и показывать ближайшее незакрытое отдельной строкой.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">150</span><div><h3>Учёт доплаты за ранг отдельно</h3>
+<p>Доплата уже парсится и складывается в общий доход. Показать её отдельной строкой — видно реальную отдачу от повышения.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+  </ol>
+</section>
+
+<!-- ============ 10 ============ -->
+<section class="sec" id="s10">
+  <div class="sec-h"><span class="sid">10</span><h2>Данные, бэкапы, обновления</h2><span class="sn">8 пунктов</span></div>
+  <ol class="ideas">
+
+<li class="idea"><span class="num">151</span><div><h3>Автообновление скрипта</h3>
+<p>Проверка версии через <code>requests</code> и загрузка новой версии с уведомлением. В репозитории уже лежит готовая статья «Автообновление с помощью requests» — механика описана.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">152</span><div><h3>Окно изменений после обновления</h3>
+<p>При первом запуске новой версии показать список нововведений. Миграция конфига уже логируется — осталось показать её человеку.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">153</span><div><h3>Плановые бэкапы с ротацией</h3>
+<p><code>atomicWriteFile</code> держит одну <code>.bak</code>-копию. Сделать папку <code>backups/</code> с датированными копиями шаблонов, ЧС и конфига и хранением последних 7.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">154</span><div><h3>Восстановление из бэкапа кнопкой</h3>
+<p>Список копий с датами и размером, восстановление в один клик. Иначе бэкапы существуют только для тех, кто умеет лазить в папки.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">155</span><div><h3>Справочники наружу</h3>
+<p>Марки, локации, бизнесы, готовые объявления сейчас зашиты в код на 200 строк. Вынести в json рядом со скриптом — правится без риска сломать скрипт и обновляется отдельно от него.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">156</span><div><h3>Профили настроек</h3>
+<p>Несколько персонажей или несколько серверов — разные пороги, хоткеи, базы шаблонов. Переключатель профиля в шапке настроек.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">157</span><div><h3>Единый экспорт всего</h3>
+<p>Одна кнопка «выгрузить всё» — конфиг, шаблоны, ЧС, статистика в один файл. И «загрузить всё» на новом ПК.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">158</span><div><h3>Тексты в отдельный файл</h3>
+<p>Все строки интерфейса и чата — в таблицу локализации. Даже без второго языка это упрощает правку формулировок и снимает риск сломать кодировку CP1251 при редактировании кода.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+  </ol>
+</section>
+
+<!-- ============ 11 ============ -->
+<section class="sec" id="s11">
+  <div class="sec-h"><span class="sid">11</span><h2>Уведомления и звук</h2><span class="sn">5 пунктов</span></div>
+  <ol class="ideas">
+
+<li class="idea"><span class="num">159</span><div><h3>Разные звуки на разные события</h3>
+<p>Новое объявление, VIP, ошибка отправки, достигнута цель, объявление скоро сгорит. Сейчас один <code>smi_notify.wav</code> на всё. Файлы искать в папке скрипта по именам, отсутствующие — молча пропускать.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">160</span><div><h3>Уведомление о наплыве</h3>
+<p>«В очереди 15 объявлений» — отдельный порог с более настойчивым сигналом. Виджет это показывает, но его можно не смотреть.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">161</span><div><h3>Напоминание о перерыве</h3>
+<p>Каждые N минут непрерывной работы — мягкий тост. Работа монотонная, и это ровно та функция, за которую потом говорят спасибо.</p>
+<div class="tags"><span class="tag s">S</span></div></div></li>
+
+<li class="idea"><span class="num">162</span><div><h3>Кликабельные тосты</h3>
+<p>Тост «Новое объявление от X» с действием по клику — открыть очередь и взять именно его. Сейчас тосты только информируют (<code>NoInputs</code>).</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+<li class="idea"><span class="num">163</span><div><h3>Отчёт в Telegram или Discord</h3>
+<p>Вебхук с итогом смены: обработано, заработано, темп. Для тех, кто ведёт учёт вне игры, и для лидера редакции. Строго опционально, URL — в настройках.</p>
+<div class="tags"><span class="tag m">M</span></div></div></li>
+
+  </ol>
+</section>
+
+<div class="empty" id="empty" hidden>Ничего не найдено</div>
+
+</main>
+
+<footer>
+  <p><strong>С чего начать.</strong> Раздел 00 целиком — это часовая работа, которая снимает уже существующие риски. Дальше самый большой эффект на единицу усилий дают 048 (числа из оригинала не должны меняться), 022 (фикс раскладки), 028 (марки по справочнику), 088 (счётчик символов) и 052 (пресеты причин отказа). Из крупного один пункт стоит остальных — 059, параметризованные шаблоны: он превращает базу из справочника точных совпадений в набор форм и разом поднимает попадаемость всей системы.</p>
+  <p>Соседние хелперы для СМИ на Arizona (SMI-plalkeo, CNNHelper, Mr.Robot) продают примерно четыре вещи: авто-ловлю, авто-редактирование по правилам, сокращённые команды и «нейросетевую» правку текста. Первые три здесь уже есть и сделаны лучше; четвёртая на практике сводится к разделам 01 и 03 этого списка.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var main=document.getElementById('main');
+  var ideas=[].slice.call(main.querySelectorAll('.idea'));
+  var secs=[].slice.call(main.querySelectorAll('.sec'));
+  var q=document.getElementById('q');
+  var count=document.getElementById('count');
+  var empty=document.getElementById('empty');
+  var toc=document.getElementById('toc');
+  var active=null;
+
+  ideas.forEach(function(el){
+    el.dataset.text=el.textContent.toLowerCase();
+    var t=el.querySelector('.tag.bug')?'bug':
+          el.querySelector('.tag.s')?'s':
+          el.querySelector('.tag.m')?'m':'l';
+    el.dataset.kind=el.querySelector('.tag.bug')?'bug':t;
+    el.dataset.eff=el.querySelector('.tag.s')?'s':el.querySelector('.tag.m')?'m':'l';
+  });
+
+  secs.forEach(function(s){
+    var a=document.createElement('a');
+    a.href='#'+s.id;
+    a.innerHTML='<em>'+s.querySelector('.sid').textContent+'</em><span>'+s.querySelector('h2').textContent+'</span>';
+    toc.appendChild(a);
+  });
+
+  function apply(){
+    var term=q.value.trim().toLowerCase();
+    var shown=0;
+    ideas.forEach(function(el){
+      var okText=!term||el.dataset.text.indexOf(term)>-1;
+      var okTag=!active||(active==='bug'?el.dataset.kind==='bug':el.dataset.eff===active);
+      var vis=okText&&okTag;
+      el.hidden=!vis;
+      if(vis)shown++;
+    });
+    secs.forEach(function(s){
+      s.hidden=!s.querySelector('.idea:not([hidden])');
+    });
+    count.textContent=shown+' / '+ideas.length;
+    empty.hidden=shown>0;
+  }
+
+  q.addEventListener('input',apply);
+  [].slice.call(document.querySelectorAll('.fbtn')).forEach(function(b){
+    b.addEventListener('click',function(){
+      active=(active===b.dataset.f)?null:b.dataset.f;
+      document.querySelectorAll('.fbtn').forEach(function(x){
+        x.setAttribute('aria-pressed',String(x.dataset.f===active));
+      });
+      apply();
+    });
+  });
+})();
+</script>
