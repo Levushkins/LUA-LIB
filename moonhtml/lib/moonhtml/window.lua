@@ -164,7 +164,9 @@ function Window:render(player)
   local ox, oy = origin.x, origin.y
 
   local input = self.backend.input(ox, oy)
-  self.doc:setViewport(w, self.autoHeight and 100000 or h)
+  -- if the backend could not drive ImGui's InputText, take typing back
+  self.doc.nativeText = not self.backend.nativeBroken
+  self.doc:setViewport(w, h)
   self.doc:update(input, os.clock())
 
   -- window dragging from any element marked `data-drag`
@@ -187,7 +189,8 @@ function Window:render(player)
 
   if self.autoHeight then
     local _, contentH = self.doc:contentSize()
-    self.size[2] = math.max(1, math.floor(contentH + 0.5))
+    local _, screenH = screenSize()
+    self.size[2] = math.max(1, math.min(screenH, math.floor(contentH + 0.5)))
   end
 
   self.backend.draw(self.doc.displayList, ox, oy)

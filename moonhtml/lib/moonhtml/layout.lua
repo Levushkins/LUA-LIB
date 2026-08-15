@@ -1056,8 +1056,10 @@ function layout.run(root, opts)
     local tx, ty = 0, 0
     if st2 and st2.transform then tx, ty = st2.transform.tx, st2.transform.ty end
     if st2 and st2.position == 'relative' then
-      tx = tx + (resolve(st2.left, 0) or -(resolve(st2.right, 0) or 0) or 0)
-      ty = ty + (resolve(st2.top, 0) or -(resolve(st2.bottom, 0) or 0) or 0)
+      local left, right = resolve(st2.left, 0), resolve(st2.right, 0)
+      local top, bottom = resolve(st2.top, 0), resolve(st2.bottom, 0)
+      tx = tx + (left or (right and -right) or 0)
+      ty = ty + (top or (bottom and -bottom) or 0)
     end
     b.ax = ox + b.x + tx
     b.ay = oy + b.y + ty

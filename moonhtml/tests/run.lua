@@ -582,6 +582,139 @@ test('nothing paints for a hidden subtree', function()
   end
 end)
 
+test('margin: auto pushes flex items apart', function()
+  local d = doc('<body><div class="bar"><i id="a"></i><i id="b"></i></div></body>', [[
+    body { padding: 0 }
+    .bar { display: flex; width: 300px }
+    i { display: block; width: 40px; height: 10px }
+    #b { margin-left: auto }
+  ]])
+  frame(d)
+  eq(d:getElementById('a').box.ax, 0)
+  eq(d:getElementById('b').box.ax, 260)
+end)
+
+test('a full-height column keeps its header and footer', function()
+  local d = doc([[<body><div class="win">
+      <div class="head"></div>
+      <div class="mid"><div class="tall"></div></div>
+      <div class="foot"></div>
+    </div></body>]], [[
+    body { padding: 0 }
+    .win { display: flex; flex-direction: column; height: 300px }
+    .head { height: 40px }
+    .mid { flex-grow: 1; overflow-y: auto }
+    .tall { height: 2000px }
+    .foot { height: 30px }
+  ]], { height = 300 })
+  frame(d)
+  local head = d:querySelector('.head').box
+  local mid = d:querySelector('.mid').box
+  local foot = d:querySelector('.foot').box
+  eq(head.h, 40, 'header keeps its height')
+  eq(foot.h, 30, 'footer keeps its height')
+  eq(mid.h, 230, 'the scrollable middle absorbs the rest')
+  eq(foot.ay + foot.h, 300, 'footer sits on the bottom edge')
+end)
+
+test('flex items do not shrink below their content', function()
+  local d = doc([[<body><div class="row">
+      <div class="fixed">Очень длинный текст в первой ячейке</div>
+      <div class="grow"></div></div></body>]], [[
+    body { padding: 0 }
+    .row { display: flex; width: 200px }
+    .grow { flex-grow: 1; height: 10px }
+    .fixed { white-space: nowrap }
+  ]])
+  frame(d)
+  local fixed = d:querySelector('.fixed').box
+  truthy(fixed.w > 40, 'kept its min-content width, got ' .. fixed.w)
+end)
+
+test('inline elements get a background box and are clickable', function()
+  local d = doc('<body><p>text <a id="link" href="#">клик</a> more text</p></body>', [[
+    body { padding: 0 } p { margin: 0 }
+    #link { background-color: #ff0000; padding: 2px 6px }
+  ]])
+  frame(d)
+  local link = d:getElementById('link')
+  local x, y, w, h = link:rect()
+  truthy(w and w > 10, 'inline fragment has a rect')
+  local found = false
+  for _, cmd in ipairs(d.displayList) do
+    if cmd.op == 'rect' and cmd.color and math.floor(cmd.color[1]) == 255
+        and math.abs(cmd.x - x) < 0.5 then
+      found = true
+    end
+  end
+  truthy(found, 'inline background painted')
+  local clicked = false
+  link:on('click', function() clicked = true end)
+  frame(d, { x = x + w / 2, y = y + h / 2, pressed = true, down = true })
+  frame(d, { x = x + w / 2, y = y + h / 2, released = true })
+  truthy(clicked, 'inline element received the click')
+end)
+
+test('<label for> forwards clicks to its control', function()
+  local d = doc([[<body>
+    <label for="cb" style="display:block; width:120px; height:20px">Включить</label>
+    <input type="checkbox" id="cb">
+  </body>]], 'body { padding: 0 }')
+  frame(d)
+  local label = d:querySelector('label')
+  local x, y = label.box.ax + 5, label.box.ay + 5
+  frame(d, { x = x, y = y, pressed = true, down = true })
+  frame(d, { x = x, y = y, released = true })
+  truthy(d:getElementById('cb').state.checked, 'checkbox toggled through the label')
+end)
+
+test('radio groups keep a single selection', function()
+  local d = doc([[<body>
+    <input type="radio" name="g" id="r1"><input type="radio" name="g" id="r2">
+  </body>]], 'body { padding: 0 }')
+  frame(d)
+  local function click(node)
+    local b = node.box
+    frame(d, { x = b.ax + 3, y = b.ay + 3, pressed = true, down = true })
+    frame(d, { x = b.ax + 3, y = b.ay + 3, released = true })
+  end
+  click(d:getElementById('r1'))
+  truthy(d:getElementById('r1').state.checked)
+  click(d:getElementById('r2'))
+  truthy(d:getElementById('r2').state.checked)
+  truthy(not d:getElementById('r1').state.checked, 'first radio cleared')
+end)
+
+test('survives malformed markup and css without erroring', function()
+  local d = doc([[<div class="a><p>unclosed <b>bold<div></p>
+    <span style="color:">x</span><input <>&notanentity;]], [[
+    .a { color: ; background }
+    @media { p { color: red } }
+    } stray brace {
+    .b { width: calc(100% -); border-radius: }
+  ]])
+  frame(d)
+  frame(d, { x = 10, y = 10, pressed = true, down = true })
+  truthy(d.rootBox ~= nil, 'still produced a layout')
+end)
+
+test('empty document lays out cleanly', function()
+  local d = doc('')
+  frame(d)
+  truthy(d.rootBox ~= nil)
+  eq(#d.displayList, 0)
+end)
+
+test('deep nesting does not blow the stack', function()
+  local parts = {}
+  for i = 1, 60 do parts[#parts + 1] = '<div class="l">' end
+  parts[#parts + 1] = 'deep'
+  for i = 1, 60 do parts[#parts + 1] = '</div>' end
+  local d = doc('<body>' .. table.concat(parts) .. '</body>', '.l { padding-left: 1px }')
+  frame(d)
+  truthy(d.rootBox.h > 0)
+end)
+
 test('colors: hex, rgb, rgba, hsl and names', function()
   local color = require 'moonhtml.color'
   local function hex(s) return color.toHex(color.parse(s)) end

@@ -440,11 +440,33 @@ function backend.new(opts)
             color.toU32(color.rgba(90, 90, 90, 0.35), alpha), cmd.radius)
         end
       elseif op == 'native' then
-        local ok, err = pcall(nativeInput, {
-          node = cmd.node, style = cmd.style, kind = cmd.kind, alpha = alpha,
-          x = cmd.x + originX, y = cmd.y + originY, w = cmd.w, h = cmd.h,
-        }, originX, originY)
-        if not ok and self.onError then self.onError(err) end
+        if not self.nativeBroken then
+          local ok, err = pcall(nativeInput, {
+            node = cmd.node, style = cmd.style, kind = cmd.kind, alpha = alpha,
+            x = cmd.x + originX, y = cmd.y + originY, w = cmd.w, h = cmd.h,
+          }, originX, originY)
+          if not ok then
+            -- an ImGui build we cannot drive: stop trying and draw the text
+            -- ourselves (moonhtml then handles typing on its own)
+            self.nativeBroken = true
+            if self.onError then
+              self.onError('moonhtml: native InputText unavailable (' ..
+                tostring(err) .. '), falling back to built-in text editing')
+            end
+          end
+        end
+        if self.nativeBroken then
+          local st = cmd.style
+          drawText(dl, cmd.x + originX,
+            cmd.y + originY + (cmd.h - st.fontSize) * 0.5,
+            cmd.text or '', color.toU32(cmd.color, alpha), st)
+          if cmd.focused then
+            local caretX = cmd.x + originX + self.measure(cmd.text or '', st) + 1
+            dl:AddLine(vec2(caretX, cmd.y + originY + 2),
+              vec2(caretX, cmd.y + originY + cmd.h - 2),
+              color.toU32(cmd.color, alpha), 1)
+          end
+        end
       end
     end
     while clipDepth > 0 do
@@ -464,6 +486,26 @@ function backend.new(opts)
   function self.input(originX, originY)
     local io_ = imgui.GetIO()
     local keys, chars = {}, {}
+
+    -- typed characters, only needed when ImGui's own InputText is unavailable
+    if self.nativeBroken then
+      pcall(function()
+        for i = 0, 15 do
+          local c = io_.InputCharacters[i]
+          if c == nil or tonumber(c) == 0 then break end
+          chars[#chars + 1] = util.utf8char(tonumber(c))
+        end
+      end)
+      if #chars == 0 then
+        pcall(function()
+          local queue = io_.InputQueueCharacters
+          for i = 0, queue.Size - 1 do
+            chars[#chars + 1] = util.utf8char(tonumber(queue.Data[i]))
+          end
+        end)
+      end
+    end
+
     for name, vk in pairs(KEYMAP) do
       local down = false
       pcall(function() down = io_.KeysDown[vk] end)

@@ -439,10 +439,12 @@ function Document:update(input, now)
   return self.displayList
 end
 
---- Total height of the laid out content (useful for auto-sizing windows).
+--- Natural size of the laid out content, ignoring any stretch to the viewport
+-- (this is what an auto-sizing window wants to know).
 function Document:contentSize()
-  if not self.rootBox then return 0, 0 end
-  return self.rootBox.w, self.rootBox.h
+  local b = self.rootBox
+  if not b then return 0, 0 end
+  return b.w, (b.scrollH or b.contentH or 0) + (b.frameH or 0)
 end
 
 function Document:dispatch(node, etype, props)

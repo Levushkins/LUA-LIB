@@ -170,8 +170,7 @@ local function activateNode(doc, node, event)
   elseif kind == 'radio' then
     local group = node:getAttribute('name', '')
     if group ~= '' then
-      local form = node:closest(function(n) return n.parent == nil end)
-      for _, other in ipairs(form:getElementsByTagName('input')) do
+      for _, other in ipairs(doc.root:getElementsByTagName('input')) do
         if other:getAttribute('name', '') == group and widgets.kind(other) == 'radio' then
           other:setChecked(false)
         end
