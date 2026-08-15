@@ -214,6 +214,48 @@ https://t.me/ospxdev                    — канал по Lua для Arizona M
 
 
 ================================================================================
+8.1. ЛАВКИ: ДОНАТ-МАГАЗИНЫ И ПЛОЩАДКИ
+================================================================================
+
+Официальный донат (AZ Coin):
+https://arizona-games.com/shop        — официальный магазин Arizona Games
+https://arizona-rp.com/shop           — магазин на основном домене проекта
+https://arizona-rp.online/shop        — зеркало магазина
+https://arizona-darkland.ru/shop      — зеркало магазина
+http://www.arz-old.ru/shop            — старое зеркало магазина
+
+Магазины отдельных серверов (движок TradeMC):
+https://arizona-rp.trademc.org/       — Arizona RP :: Онлайн-магазин
+https://arizonadonatrp.trademc.org/   — Arizona Role Play Grand (51.75.232.69:2269)
+https://arizona-green.trademc.org/    — Arizona RP Green (93.170.123.133:7800)
+https://arizonalibdonate.trademc.org/ — Arizona RP Donate (54.38.117.73:1227)
+
+Реселлеры доната:
+https://paygame.ru/games/arizona-rp/offers?type=donate           — донат на любой сервер
+https://paygame.ru/games/arizona-rp/offers/selection/az-coins    — AZ Coins
+
+Площадки аккаунтов и внутриигровых ценностей (сторонние, вне контроля проекта):
+https://samp-store.ru/ArizonaRP/      — аккаунты Arizona RP (продажа/покупка через бота-гаранта)
+https://samp-store.ru/catalog/        — общий каталог SAMP / CRMP / Mobile
+https://funpay.com/lots/166/          — GTA SAMP / GTA 5 RP аккаунты
+https://garantmarket.net/83/26/       — торговля аккаунтами SAMP/CRMP с гарантом
+https://online-garant.net/shop/samp   — покупка/продажа аккаунтов SAMP
+https://cheat-master.ru/shop/samp/arizona-rp — аккаунты Arizona RP
+https://accounts-arizona-rp.ru/       — аккаунты Arizona RP
+https://samplogs.ru/                  — магазин логов и аккаунтов SA:MP / CR:MP
+https://sampshop001.orgs.biz/         — аккаунты и валюта SAMP
+
+Скидки в донат-магазине:
+https://arz-wiki.com/arz-rp/articles/donate-items-percent/  — таблица уникальных донат-скидок
+
+Автоматизация под площадки (пример на Lua+Python):
+https://www.blast.hk/threads/183617/  — «Hermer — Чекер | Авто-выставление на продажу Samp-Store»
+
+Осторожно: покупка/продажа аккаунтов нарушает правила проекта и карается блокировкой,
+у сторонних площадок нет никакой связи с Arizona Games. Ссылки приведены справочно.
+
+
+================================================================================
 9. ВИКИ И СПРАВОЧНИКИ
 ================================================================================
 
