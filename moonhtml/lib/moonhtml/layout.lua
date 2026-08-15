@@ -847,12 +847,20 @@ local function layoutChildren(box, ctx, cw, ch)
       local mb = resolve(cst.margin[3], cw) or 0
       local ml = resolve(cst.margin[4], cw) or 0
       local mr = resolve(cst.margin[2], cw) or 0
-      local avail = max(0, cw - ml - mr)
-      local cbox = layoutBox(child, cst, ctx, { avail = avail })
+      -- the containing block width goes in whole: layoutBox subtracts the
+      -- margins itself, and percentages resolve against it, not against what
+      -- is left after the margins
+      local cbox = layoutBox(child, cst, ctx, { avail = cw })
       cbox.x = ml
       cbox.y = y + mt
-      if isAuto(cst.width) == false and (cst.margin[4].u == 'auto' or cst.margin[2].u == 'auto') then
-        cbox.x = ml + max(0, (avail - cbox.w) * 0.5) -- margin:auto centring
+      if not isAuto(cst.width) then
+        local autoLeft = cst.margin[4].u == 'auto'
+        local autoRight = cst.margin[2].u == 'auto'
+        if autoLeft and autoRight then
+          cbox.x = max(0, (cw - cbox.w) * 0.5) -- margin: 0 auto
+        elseif autoLeft then
+          cbox.x = max(0, cw - cbox.w - mr)    -- pushed to the right edge
+        end
       end
       box.children[#box.children + 1] = cbox
       y = cbox.y + cbox.h + mb

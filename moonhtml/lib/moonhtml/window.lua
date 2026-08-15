@@ -33,7 +33,10 @@ end
 --   onError            error reporter
 function window.new(opts)
   opts = opts or {}
-  local imgui = require 'mimgui'
+  local ok, imgui = pcall(require, 'mimgui')
+  if not ok then
+    error('moonhtml: нужен mimgui в moonloader/lib/mimgui (' .. tostring(imgui) .. ')', 2)
+  end
   local backendModule = require 'moonhtml.backends.mimgui'
 
   local self = setmetatable({}, Window)
@@ -125,7 +128,15 @@ function Window:on(...) self.doc:on(...) return self end
 function Window:getElementById(id) return self.doc:getElementById(id) end
 function Window:querySelector(sel) return self.doc:querySelector(sel) end
 function Window:querySelectorAll(sel) return self.doc:querySelectorAll(sel) end
-function Window:setState(k, v) self.doc.state[k] = v return self end
+--- menu:setState('hp', 90) or menu:setState{ hp = 90, armour = 30 }
+function Window:setState(k, v)
+  if type(k) == 'table' then
+    self.doc:setState(k)
+  else
+    self.doc.state[k] = v
+  end
+  return self
+end
 
 local function screenSize()
   if getScreenResolution then return getScreenResolution() end
@@ -150,10 +161,11 @@ function Window:render(player)
   end
   imgui.SetNextWindowSize(imgui.ImVec2(w, h), imgui.Cond.Always)
 
+  -- the HTML paints all the chrome, so ImGui contributes nothing but a
+  -- transparent, unmanaged surface to draw on
   local flags = imgui.WindowFlags.NoTitleBar + imgui.WindowFlags.NoResize
       + imgui.WindowFlags.NoScrollbar + imgui.WindowFlags.NoScrollWithMouse
       + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoSavedSettings
-      + imgui.WindowFlags.NoBringToFrontOnFocus
 
   imgui.PushStyleVar(imgui.StyleVar.WindowPadding, imgui.ImVec2(0, 0))
   imgui.PushStyleVar(imgui.StyleVar.WindowBorderSize, 0)

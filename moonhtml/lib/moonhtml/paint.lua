@@ -28,8 +28,9 @@ end
 local function paintShadow(out, box, st, alpha)
   local sh = st.boxShadow
   if not sh or sh.inset then return end
+  -- a blur approximated by stacked translucent rounded rects, largest first
   local steps = util.clamp(floor((sh.blur or 0) / 2), 1, 6)
-  local baseAlpha = (sh.color[4] or 1)
+  local layerAlpha = 0.55 / steps
   for i = steps, 1, -1 do
     local t = i / steps
     local grow = (sh.spread or 0) + (sh.blur or 0) * t
@@ -38,8 +39,7 @@ local function paintShadow(out, box, st, alpha)
     pushRect(out,
       box.ax + sh.x - grow, box.ay + sh.y - grow,
       box.w + grow * 2, box.h + grow * 2,
-      color.withAlpha(sh.color, (0.55 / steps) / (baseAlpha > 0 and 1 or 1)),
-      r, alpha * baseAlpha)
+      color.withAlpha(sh.color, layerAlpha), r, alpha)
   end
 end
 
@@ -250,7 +250,6 @@ paintBox = function(box, out, alpha, ctx)
   local clipY = st.overflowY ~= 'visible'
   local clipped = clipX or clipY
   if clipped then
-    local pad = 0
     out[#out + 1] = {
       op = 'clip',
       x = clipX and (box.ax + box.border[4]) or -100000,

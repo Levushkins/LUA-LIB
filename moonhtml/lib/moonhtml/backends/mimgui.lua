@@ -73,7 +73,8 @@ function backend.new(opts)
   self.loaded = false
   self.specs = opts.fonts
   self.textures = {}
-  self.buffers = {}
+  -- keyed by node so replacing the document lets the buffers be collected
+  self.buffers = setmetatable({}, { __mode = 'k' })
   self.opts = opts
   self.scale = opts.scale or 1
 
@@ -330,12 +331,12 @@ function backend.new(opts)
   -- ---- native ImGui widgets -------------------------------------------
   local function nativeInput(cmd, originX, originY)
     local node = cmd.node
-    local id = tostring(node)
-    local buf = self.buffers[id]
+    local id = tostring(node):gsub('%W', '')
+    local buf = self.buffers[node]
     local capacity = tonumber(node:getAttribute('maxlength', '')) or 128
     if not buf then
       buf = imgui.new.char[capacity + 1]()
-      self.buffers[id] = buf
+      self.buffers[node] = buf
       imgui.StrCopy(buf, tostring(node:getValue() or ''))
       node.state._nativeValue = tostring(node:getValue() or '')
     elseif node.state._nativeValue ~= tostring(node:getValue() or '') then

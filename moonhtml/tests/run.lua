@@ -198,6 +198,40 @@ test('block boxes stack and fill the width', function()
   eq(b.ay, 35)
 end)
 
+test('block margins are subtracted exactly once', function()
+  local d = doc('<body><div id="a"></div><div id="b"></div></body>', [[
+    body { padding: 0; width: 200px }
+    #a { margin-left: 20px; height: 10px }
+    #b { margin: 0 30px; height: 10px }
+  ]], { width = 200 })
+  frame(d)
+  local a, b = d:getElementById('a').box, d:getElementById('b').box
+  eq(a.w, 180)
+  eq(a.ax, 20)
+  eq(b.w, 140)
+  eq(b.ax, 30)
+end)
+
+test('percentage width resolves against the container, not the leftovers', function()
+  local d = doc('<body><div id="a"></div></body>', [[
+    body { padding: 0; width: 200px }
+    #a { width: 50%; margin-left: 40px; height: 10px }
+  ]], { width = 200 })
+  frame(d)
+  eq(d:getElementById('a').box.w, 100)
+end)
+
+test('margin: 0 auto centres a fixed-width block', function()
+  local d = doc('<body><div id="a"></div><div id="b"></div></body>', [[
+    body { padding: 0; width: 200px }
+    #a { width: 80px; height: 10px; margin: 0 auto }
+    #b { width: 60px; height: 10px; margin-left: auto }
+  ]], { width = 200 })
+  frame(d)
+  eq(d:getElementById('a').box.ax, 60)
+  eq(d:getElementById('b').box.ax, 140)
+end)
+
 test('border-box is the default sizing model', function()
   local d = doc('<body><div id="a"></div></body>', [[
     #a { width: 100px; height: 40px; padding: 10px; border: 2px solid red }
