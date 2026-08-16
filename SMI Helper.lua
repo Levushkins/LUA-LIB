@@ -6278,7 +6278,7 @@ mimgui.OnFrame(
       withFont('small', function()
          local avg = avgEditSeconds()
          local eta = (avg > 0) and math.ceil(total * avg / 60) or 0
-         local left = (eta > 0) and ("~" .. eta .. u8" мин") or u8"нет данных"
+         local left = (eta > 0) and ("~" .. eta .. " мин") or "нет данных"
          local info = u8(("%s   %d/час"):format(left, adsPerHour()))
          DL:AddText(mimgui.ImVec2(origin.x + 18, footY),
             mimgui.ColorConvertFloat4ToU32(UI.C.MUTE), info)
