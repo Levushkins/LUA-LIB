@@ -1,11 +1,11 @@
 -- encoding: CP1251
-local SCRIPT_VERSION = '3.0.0'
+local SCRIPT_VERSION = '3.1.0'
 
 script_name('SMI Helper')
 script_description('Автоматизация работы редактора объявлений СМИ')
 script_author('e11evated')
 script_version(SCRIPT_VERSION)
-script_version_number(300)
+script_version_number(310)
 script_properties('work-in-pause')
 
 function logLine(level, text)
@@ -348,16 +348,155 @@ local C = {
    HOVER_GC_SEC            = 6,
    CONFIG_FLUSH_SEC        = 5,
    BLOCK_LOG_MAX           = 120,
-   DONE_WINDOW_SEC         = 3600
+   DONE_WINDOW_SEC         = 3600,
+   RECENT_ADS_MAX          = 200,
+   HISTORY_MAX             = 30,
+   SUB_LEARN_MAX           = 400,
+   LEV_MAX_LEN             = 120,
+   AUTOCOMPLETE_MAX        = 6
 }
 
+local function escPat(text)
+   return (tostring(text or ""):gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%1"))
+end
+
+local function levenshtein(a, b, maxDist)
+   if a == b then return 0 end
+   local la, lb = #a, #b
+   if la == 0 then return lb end
+   if lb == 0 then return la end
+   maxDist = maxDist or 99
+   if math.abs(la - lb) > maxDist then return maxDist + 1 end
+   if la > C.LEV_MAX_LEN or lb > C.LEV_MAX_LEN then return maxDist + 1 end
+
+   local prev, cur = {}, {}
+   for j = 0, lb do prev[j] = j end
+
+   for i = 1, la do
+      cur[0] = i
+      local best = cur[0]
+      local ca = a:byte(i)
+      for j = 1, lb do
+         local cost = (ca == b:byte(j)) and 0 or 1
+         local v = prev[j] + 1
+         local w = cur[j - 1] + 1
+         local d = prev[j - 1] + cost
+         if w < v then v = w end
+         if d < v then v = d end
+         cur[j] = v
+         if v < best then best = v end
+      end
+      if best > maxDist then return maxDist + 1 end
+      prev, cur = cur, prev
+   end
+   return prev[lb]
+end
+
+local UNIT_SCALE = {
+   ["тыс"] = 1000, ["тыс."] = 1000,
+   ["млн"] = 1000000, ["млн."] = 1000000,
+   ["млрд"] = 1000000000, ["млрд."] = 1000000000
+}
+
+local function parseAmount(head)
+   if not head or head == "" then return nil end
+   local cleaned
+   if head:match("^%d+[%.,]%d%d%d") then
+      cleaned = head:gsub("[%.,]", "")
+   else
+      cleaned = head:gsub(",", ".")
+   end
+   return tonumber(cleaned)
+end
+
+local function splitWords(text)
+   local out = {}
+   for word in tostring(text or ""):gmatch("%S+") do out[#out + 1] = word end
+   return out
+end
+
+local function wordDiff(before, after)
+   local A, B = splitWords(before), splitWords(after)
+   local n, m = #A, #B
+   local la, lb = {}, {}
+   for i = 1, n do la[i] = lower1251(A[i]) end
+   for j = 1, m do lb[j] = lower1251(B[j]) end
+
+   if n * m > 6000 then
+      local out = {}
+      for i = 1, n do out[#out + 1] = { w = A[i], op = '-' } end
+      for j = 1, m do out[#out + 1] = { w = B[j], op = '+' } end
+      return out
+   end
+
+   local L = {}
+   for i = 0, n do
+      L[i] = {}
+      L[i][0] = 0
+   end
+   for j = 0, m do L[0][j] = 0 end
+   for i = 1, n do
+      for j = 1, m do
+         if la[i] == lb[j] then
+            L[i][j] = L[i - 1][j - 1] + 1
+         elseif L[i - 1][j] >= L[i][j - 1] then
+            L[i][j] = L[i - 1][j]
+         else
+            L[i][j] = L[i][j - 1]
+         end
+      end
+   end
+
+   local out, i, j = {}, n, m
+   while i > 0 and j > 0 do
+      if la[i] == lb[j] then
+         table.insert(out, 1, { w = B[j], op = '=' })
+         i, j = i - 1, j - 1
+      elseif L[i - 1][j] >= L[i][j - 1] then
+         table.insert(out, 1, { w = A[i], op = '-' })
+         i = i - 1
+      else
+         table.insert(out, 1, { w = B[j], op = '+' })
+         j = j - 1
+      end
+   end
+   while i > 0 do
+      table.insert(out, 1, { w = A[i], op = '-' })
+      i = i - 1
+   end
+   while j > 0 do
+      table.insert(out, 1, { w = B[j], op = '+' })
+      j = j - 1
+   end
+   return out
+end
+
+local function diffSubstitutions(diff)
+   local subs = {}
+   local i = 1
+   while i <= #diff do
+      if diff[i].op == '-' and diff[i + 1] and diff[i + 1].op == '+'
+         and (not diff[i + 2] or diff[i + 2].op ~= '+')
+         and (i == 1 or diff[i - 1].op ~= '-') then
+         subs[#subs + 1] = { from = diff[i].w, to = diff[i + 1].w }
+         i = i + 2
+      else
+         i = i + 1
+      end
+   end
+   return subs
+end
+
 local CHANGELOG = {
-   "Исправлены 17 багов: парсинг многострочных объявлений, ключи шаблонов, подмена цены нечётким шаблоном",
-   "Автокоррекция текста: заглавная буква, точка в конце, пробелы, капс, валюта, повторы знаков, дубли слов",
-   "Проверки перед отправкой: длина, смена категории, блокировка авто-отправки при нарушении",
-   "Новое в статистике: заработано за всё время, сравнение с вчера, стрик целей, топ отправителей",
-   "Хоткеи: пауза очереди, автокоррекция, пропуск, Ctrl+Enter и Ctrl+Backspace в редакторе",
-   "Тихий режим, лог блокировок, единый экспорт данных, окно изменений"
+   "Автокоррекция выросла до 19 правил: раскладка, транслит, сленг в числа, формат сумм, марки по справочнику, локации, сокращения, глагол, ссылки, форма объявления",
+   "Профили правил под транспорт, недвижимость и аксессуары",
+   "Шаблоны по форме: числа и марки становятся подстановками, один шаблон закрывает похожие объявления",
+   "Нечёткий поиск учитывает опечатки, добавлены шаблоны по отправителю",
+   "Светофор готовности, проверка дубликатов и сравнение сумм с учётом тыс/млн",
+   "Диф оригинала и правки, автодополнение, контекстное меню по слову, кнопка Отменить",
+   "Скрипт учится на повторяющихся заменах и предлагает их как правило",
+   "Стратегия ловли, предсказание VIP-кулдауна, счётчик уведённых объявлений",
+   "Смена, активность по часам, история за 30 дней, масштаб интерфейса"
 }
 
 local Ease = { fn = {} }
@@ -388,6 +527,41 @@ function Ease.get(from, to, startTime, duration, kind)
    return from + (to - from) * (Ease.fn[kind or 'linear'] or Ease.fn.linear)(t), 1
 end
 
+local AUTOFIX_DEFAULTS = {
+   layout     = true,
+   translit   = false,
+   spaces     = true,
+   repeats    = true,
+   dupWords   = true,
+   caps       = true,
+   contacts   = true,
+   slang      = true,
+   money      = true,
+   currency   = true,
+   abbrev     = true,
+   vehicles   = true,
+   places     = true,
+   verb       = true,
+   forms      = true,
+   learned    = true,
+   trim       = true,
+   trailingDot = true,
+   capitalize = true
+}
+
+local function copyFlags(src)
+   local out = {}
+   for k, v in pairs(src) do out[k] = v end
+   return out
+end
+
+local AUTOFIX_PROFILES = {
+   { key = 'autofix',           name = "Общий",        cat = nil },
+   { key = 'autofix_transport', name = "Транспорт",    cat = 'transport' },
+   { key = 'autofix_realty',    name = "Недвижимость", cat = 'realty' },
+   { key = 'autofix_accs',      name = "Аксессуары",   cat = 'accs' }
+}
+
 local defaultConfig = {
    settings = {
       configVersion = SCRIPT_VERSION,
@@ -416,17 +590,23 @@ local defaultConfig = {
       validateEnabled = true,
       minAdLength = 8,
       maxAdLength = 180,
-      fuzzyThreshold = 70
+      fuzzyThreshold = 70,
+      uiScale = 100,
+      catchStrategy = "smart",
+      vipCooldownSec = 0,
+      useCategoryProfiles = false,
+      dupWindowMin = 15,
+      autocomplete = true,
+      paramTemplates = true,
+      senderTemplates = true,
+      showDiff = true,
+      learnSuggest = true,
+      learnThreshold = 5
    },
-   autofix = {
-      capitalize = true,
-      trailingDot = true,
-      spaces = true,
-      caps = true,
-      currency = true,
-      repeats = true,
-      dupWords = true
-   },
+   autofix           = copyFlags(AUTOFIX_DEFAULTS),
+   autofix_transport = copyFlags(AUTOFIX_DEFAULTS),
+   autofix_realty    = copyFlags(AUTOFIX_DEFAULTS),
+   autofix_accs      = copyFlags(AUTOFIX_DEFAULTS),
    hotkeys = {
       scriptActive_key = 0,
       autoCatch_key = 0,
@@ -443,6 +623,9 @@ local defaultConfig = {
       fastestEdit = C.NO_RECORD_SPEED_SEC,
       tplApproved = 0, tplSavedSec = 0,
       goalStreak = 0, goalStreakDate = "",
+      lostToOthers = 0,
+      shiftActive = false, shiftStartedAt = 0, shiftApproved = 0,
+      shiftRejected = 0, shiftEarned = 0,
       totalBlockedBL = 0, sessionBlockedBL = 0, history = "[]", lastDate = ""
    }
 }
@@ -590,6 +773,12 @@ local Data = {
    rejectReasons = {},
    senders = {},
    blockLog = {},
+   hourly = {},
+   history = {},
+   recentAds = {},
+   senderTpl = {},
+   subs = {},
+   learned = {},
    dirty = false
 }
 
@@ -601,18 +790,41 @@ function Data.load()
    if not content or content == '' then return end
    local ok, parsed = pcall(decodeJson, content)
    if ok and type(parsed) == 'table' then
-      Data.rejectReasons = type(parsed.rejectReasons) == 'table' and parsed.rejectReasons or {}
-      Data.senders = type(parsed.senders) == 'table' and parsed.senders or {}
-      Data.blockLog = type(parsed.blockLog) == 'table' and parsed.blockLog or {}
+      local function tbl(v) return type(v) == 'table' and v or {} end
+      Data.rejectReasons = tbl(parsed.rejectReasons)
+      Data.senders = tbl(parsed.senders)
+      Data.blockLog = tbl(parsed.blockLog)
+      Data.hourly = tbl(parsed.hourly)
+      Data.history = tbl(parsed.history)
+      Data.recentAds = tbl(parsed.recentAds)
+      Data.senderTpl = tbl(parsed.senderTpl)
+      Data.subs = tbl(parsed.subs)
+      Data.learned = tbl(parsed.learned)
    end
+end
+
+Data.lastSave = 0
+
+function Data.flush(force)
+   if not Data.dirty then return end
+   if not force and (os.clock() - Data.lastSave) < C.CONFIG_FLUSH_SEC then return end
+   Data.lastSave = os.clock()
+   Data.save()
 end
 
 function Data.save()
    Data.dirty = false
+   Data.lastSave = os.clock()
    local ok, json = pcall(encodeJson, {
       rejectReasons = Data.rejectReasons,
       senders = Data.senders,
-      blockLog = Data.blockLog
+      blockLog = Data.blockLog,
+      hourly = Data.hourly,
+      history = Data.history,
+      recentAds = Data.recentAds,
+      senderTpl = Data.senderTpl,
+      subs = Data.subs,
+      learned = Data.learned
    })
    if not ok then
       logLine('ERROR', 'Данные -> JSON: ' .. tostring(json))
@@ -654,6 +866,88 @@ function Data.addBlock(nick, reason)
    })
    while #Data.blockLog > C.BLOCK_LOG_MAX do table.remove(Data.blockLog, 1) end
    Data.dirty = true
+end
+
+function Data.addHour()
+   local h = tostring(tonumber(os.date('%H')) or 0)
+   Data.hourly[h] = (Data.hourly[h] or 0) + 1
+   Data.dirty = true
+end
+
+function Data.pushHistory(date, approved, earnings)
+   Data.history[#Data.history + 1] = {
+      date = date, approved = approved or 0, earnings = earnings or 0
+   }
+   while #Data.history > C.HISTORY_MAX do table.remove(Data.history, 1) end
+   Data.dirty = true
+end
+
+function Data.rememberAd(senderKey, textKey)
+   if not senderKey or senderKey == "" or not textKey or textKey == "" then return end
+   Data.recentAds[#Data.recentAds + 1] = {
+      s = senderKey, t = textKey, at = os.time()
+   }
+   while #Data.recentAds > C.RECENT_ADS_MAX do table.remove(Data.recentAds, 1) end
+   Data.dirty = true
+end
+
+function Data.findDuplicate(senderKey, textKey, windowMin)
+   if not senderKey or senderKey == "" or not textKey or textKey == "" then return nil end
+   local limit = (tonumber(windowMin) or 15) * 60
+   local now = os.time()
+   for i = #Data.recentAds, 1, -1 do
+      local rec = Data.recentAds[i]
+      local age = now - (rec.at or 0)
+      if age > limit then break end
+      if rec.s == senderKey and rec.t == textKey then
+         return math.max(0, math.floor(age / 60))
+      end
+   end
+   return nil
+end
+
+function Data.setSenderTemplate(senderKey, orig, edited)
+   if not senderKey or senderKey == "" then return end
+   if not orig or orig == "" or not edited or edited == "" then return end
+   Data.senderTpl[senderKey] = { orig = orig, edited = edited, at = os.time() }
+   Data.dirty = true
+end
+
+function Data.learnSub(from, to)
+   if not from or not to or from == "" or to == "" or from == to then return nil end
+   if #from > 24 or #to > 24 then return nil end
+   local key = from .. "\t" .. to
+   local n = (Data.subs[key] or 0) + 1
+   Data.subs[key] = n
+   Data.dirty = true
+
+   local count = 0
+   for _ in pairs(Data.subs) do count = count + 1 end
+   if count > C.SUB_LEARN_MAX then
+      local weakest, weakestN = nil, math.huge
+      for k, v in pairs(Data.subs) do
+         if v < weakestN then weakest, weakestN = k, v end
+      end
+      if weakest then Data.subs[weakest] = nil end
+   end
+   return n
+end
+
+function Data.learnCandidates(threshold)
+   local list = {}
+   for key, n in pairs(Data.subs) do
+      if n >= threshold then
+         local from, to = key:match("^(.-)\t(.+)$")
+         if from and to and Data.learned[from] ~= to then
+            list[#list + 1] = { from = from, to = to, count = n }
+         end
+      end
+   end
+   table.sort(list, function(a, b)
+      if a.count == b.count then return a.from < b.from end
+      return a.count > b.count
+   end)
+   return list
 end
 
 function Data.topSenders(limit)
@@ -754,7 +1048,14 @@ function updateMoonMonetColors()
 end
 
 local iconRanges = nil
-local FONT_SIZE = { small = 15.0, main = 19.0, big = 31.0, huge = 46.0 }
+local UI_SCALE = math.max(0.75, math.min(1.5, (tonumber(cfg.settings.uiScale) or 100) / 100))
+local FONT_SIZE = {
+   small = 15.0 * UI_SCALE,
+   main  = 19.0 * UI_SCALE,
+   big   = 31.0 * UI_SCALE,
+   huge  = 46.0 * UI_SCALE
+}
+local function SC(value) return math.floor(value * UI_SCALE + 0.5) end
 local fonts = { small = nil, main = nil, big = nil, huge = nil }
 
 local state = {
@@ -792,6 +1093,10 @@ local state = {
    waitingEditorUntil = 0,
    doneTimes = {},
    usedTemplate = false,
+   undoStack = {},
+   redoStack = {},
+   lastVipPublishAt = 0,
+   shiftPaused = false,
    templateMatch = nil,
    validation = nil,
    autoFixApplied = nil,
@@ -823,6 +1128,8 @@ local listData = {
 
 local editorData = {
    sender = "",
+   senderKey = "",
+   textKey = "",
    time = "",
    message = "",
    inputBuffer = new.char[4096](),
@@ -1246,16 +1553,286 @@ local MONEY_WORDS = {
    ["usd"] = true, ["у.е."] = true, ["уе"] = true
 }
 
+local LAYOUT_MAP = {}
+do
+   local lat = [[qwertyuiop[]asdfghjkl;'zxcvbnm,.`]]
+   local cyr = { "й","ц","у","к","е","н","г","ш","щ","з","х","ъ",
+                 "ф","ы","в","а","п","р","о","л","д","ж","э",
+                 "я","ч","с","м","и","т","ь","б","ю","ё" }
+   for i = 1, #lat do
+      local c = lat:sub(i, i)
+      LAYOUT_MAP[c] = cyr[i]
+      LAYOUT_MAP[upper1251(c)] = upper1251(cyr[i])
+   end
+   LAYOUT_MAP["{"] = "Х"
+   LAYOUT_MAP["}"] = "Ъ"
+   LAYOUT_MAP[":"] = "Ж"
+   LAYOUT_MAP['"'] = "Э"
+   LAYOUT_MAP["<"] = "Б"
+   LAYOUT_MAP[">"] = "Ю"
+end
+
+local TRANSLIT_PAIRS = {
+   { "sch", "щ" }, { "shh", "щ" }, { "yo", "ё" }, { "zh", "ж" }, { "kh", "х" },
+   { "ts", "ц" }, { "ch", "ч" }, { "sh", "ш" }, { "yu", "ю" }, { "ya", "я" },
+   { "ye", "е" }, { "ee", "и" }, { "iy", "ий" }, { "a", "а" }, { "b", "б" },
+   { "v", "в" }, { "g", "г" }, { "d", "д" }, { "e", "е" }, { "z", "з" },
+   { "i", "и" }, { "j", "й" }, { "k", "к" }, { "l", "л" }, { "m", "м" },
+   { "n", "н" }, { "o", "о" }, { "p", "п" }, { "r", "р" }, { "s", "с" },
+   { "t", "т" }, { "u", "у" }, { "f", "ф" }, { "h", "х" }, { "c", "к" },
+   { "y", "ы" }, { "w", "в" }, { "q", "к" }, { "x", "кс" }
+}
+
+local SLANG_UNITS = {
+   { "кк",     1000000 },
+   { "лямов",  1000000 },
+   { "ляма",   1000000 },
+   { "лям",    1000000 },
+   { "косарей", 1000 },
+   { "косаря",  1000 },
+   { "косарь",  1000 },
+   { "к",      1000 }
+}
+
+local ABBREV_MAP = {
+   ["автомобиль"] = "а/м", ["автомобиля"] = "а/м", ["автомобилей"] = "а/м",
+   ["автомобили"] = "а/м", ["автомашину"] = "а/м", ["автомашина"] = "а/м",
+   ["машину"] = "а/м", ["машина"] = "а/м",
+   ["транспорт"] = "т/с", ["транспорта"] = "т/с",
+   ["вертолет"] = "в/т", ["вертолёт"] = "в/т", ["вертолета"] = "в/т", ["вертолёта"] = "в/т",
+   ["мотоцикл"] = "м/т", ["мотоцикла"] = "м/т", ["мотоциклы"] = "м/т",
+   ["велосипед"] = "в/с", ["велосипеда"] = "в/с",
+   ["самолет"] = "с/м", ["самолёт"] = "с/м", ["самолета"] = "с/м", ["самолёта"] = "с/м",
+   ["аксессуар"] = "а/с", ["аксессуары"] = "а/с", ["аксессуара"] = "а/с"
+}
+
+local PLACE_ALIASES = {
+   ["лос сантос"] = "г. Лос-Сантос", ["лос-сантос"] = "г. Лос-Сантос",
+   ["лос сантосе"] = "г. Лос-Сантос", ["лос-сантосе"] = "г. Лос-Сантос",
+   ["los santos"] = "г. Лос-Сантос",
+   ["сан фиерро"] = "г. Сан-Фиерро", ["сан-фиерро"] = "г. Сан-Фиерро",
+   ["сан фиеро"] = "г. Сан-Фиерро", ["san fierro"] = "г. Сан-Фиерро",
+   ["лас вентурас"] = "г. Лас-Вентурас", ["лас-вентурас"] = "г. Лас-Вентурас",
+   ["las venturas"] = "г. Лас-Вентурас",
+   ["вайс сити"] = "г. Вайс-Сити", ["вайс-сити"] = "г. Вайс-Сити",
+   ["vice city"] = "г. Вайс-Сити",
+   ["ред каунти"] = "д. Ред Каунти", ["red county"] = "д. Ред Каунти",
+   ["паломино крик"] = "д. Паломино Крик", ["палермо крик"] = "д. Паломино Крик",
+   ["форт карсон"] = "д. Форт Карсон", ["диллимор"] = "д. Диллимор",
+   ["блуберри"] = "д. Блуберри", ["монтгомери"] = "д. Монтгомери"
+}
+
+local VERB_MAP = {
+   ["продаю"] = "Продам", ["продам"] = "Продам", ["продается"] = "Продам",
+   ["продаётся"] = "Продам", ["продаю."] = "Продам", ["продажа"] = "Продам",
+   ["куплю"] = "Куплю", ["покупаю"] = "Куплю", ["купля"] = "Куплю",
+   ["сдаю"] = "Сдам", ["сдам"] = "Сдам", ["сдается"] = "Сдам", ["сдаётся"] = "Сдам",
+   ["меняю"] = "Обменяю", ["обменяю"] = "Обменяю", ["обмен"] = "Обменяю",
+   ["снимаю"] = "Сниму", ["сниму"] = "Сниму",
+   ["арендую"] = "Арендую", ["аренда"] = "Арендую"
+}
+
+local VEHICLE_ALIASES = {
+   ["инфернус"] = "Infernus", ["инферно"] = "Infernus",
+   ["элегия"] = "Elegy", ["элеги"] = "Elegy", ["элегy"] = "Elegy",
+   ["банши"] = "Banshee", ["баньши"] = "Banshee",
+   ["турисмо"] = "Turismo", ["туризмо"] = "Turismo",
+   ["буффало"] = "Buffalo", ["буфало"] = "Buffalo",
+   ["султан"] = "Sultan", ["сультан"] = "Sultan",
+   ["феникс"] = "Phoenix", ["комет"] = "Comet", ["комета"] = "Comet",
+   ["читах"] = "Cheetah", ["чита"] = "Cheetah",
+   ["хантли"] = "Huntley", ["хотринг"] = "Hotring Racer",
+   ["бульет"] = "Bullet", ["буллет"] = "Bullet",
+   ["сабре"] = "Sabre", ["сейбр"] = "Sabre",
+   ["еврос"] = "Euros", ["юрос"] = "Euros",
+   ["ураниус"] = "Uranus", ["уранус"] = "Uranus",
+   ["джестер"] = "Jester", ["флеш"] = "Flash", ["клуб"] = "Club"
+}
+
+local VEHICLE_NAMES = {}
+local VEHICLE_CANON = {}
+for _, name in ipairs(QUICK_PICKERS.vehicles.items) do
+   VEHICLE_NAMES[#VEHICLE_NAMES + 1] = name
+   VEHICLE_CANON[lower1251(name)] = name
+end
+
+local LATIN_KEEP = {
+   ["http"] = true, ["https"] = true, ["www"] = true, ["com"] = true, ["net"] = true,
+   ["org"] = true, ["ru"] = true, ["gg"] = true, ["me"] = true, ["vk"] = true,
+   ["discord"] = true, ["telegram"] = true, ["vip"] = true, ["rp"] = true
+}
+
+local PLACE_KEYS = {}
+
+local PRICE_WORDS = {
+   ["цена"] = true, ["цену"] = true, ["цены"] = true, ["бюджет"] = true,
+   ["стоимость"] = true, ["торг"] = true, ["договорная"] = true, ["за"] = true
+}
+
+local function mapOutsideQuotes(text, fn)
+   local out, pos = {}, 1
+   while true do
+      local qs, qe = text:find('"[^"]*"', pos)
+      if not qs then
+         out[#out + 1] = fn(text:sub(pos))
+         break
+      end
+      out[#out + 1] = fn(text:sub(pos, qs - 1))
+      out[#out + 1] = text:sub(qs, qe)
+      pos = qe + 1
+   end
+   return table.concat(out)
+end
+
+local function hasCyrVowel(word)
+   return lower1251(word):find("[аеёиоуыэюя]") ~= nil
+end
+
+local function latinVowelRatio(word)
+   local letters, vowels = 0, 0
+   for i = 1, #word do
+      local c = word:sub(i, i):lower()
+      if c:match("%a") then
+         letters = letters + 1
+         if c:match("[aeiouy]") then vowels = vowels + 1 end
+      end
+   end
+   if letters == 0 then return 1 end
+   return vowels / letters
+end
+
+local function fmtNumber(value)
+   local rounded = math.floor(value * 10 + 0.5) / 10
+   if math.abs(rounded - math.floor(rounded)) < 0.001 then
+      return tostring(math.floor(rounded))
+   end
+   return (("%.1f"):format(rounded):gsub("%.", "."))
+end
+
 function ruleCapitalize(text)
    local pre, first, rest = text:match("^([^" .. ALPHA .. "]*)([" .. ALPHA .. "])(.*)$")
    if not first then return text end
+   if pre:find("%d") then return text end
    return pre .. upper1251(first) .. rest
+end
+
+local function isWordByte(ch)
+   return ch ~= "" and ch:match("[%w\168\184\192-\255]") ~= nil
+end
+
+local fixVehicleWord
+
+local function looksLikeVehicle(word)
+   if VEHICLE_SET[lower1251(word)] then return true end
+   return fixVehicleWord(word) ~= nil
+end
+
+function fixVehicleWord(word)
+   local lw = lower1251(word)
+   if VEHICLE_CANON[lw] then
+      local canon = VEHICLE_CANON[lw]
+      if canon ~= word then return canon end
+      return nil
+   end
+   if VEHICLE_ALIASES[lw] then return VEHICLE_ALIASES[lw] end
+   if #word < 4 or not word:match("^%a+$") then return nil end
+
+   local maxDist = (#word <= 5) and 1 or 2
+   local best, bestDist = nil, maxDist + 1
+   for i = 1, #VEHICLE_NAMES do
+      local candidate = VEHICLE_NAMES[i]
+      if math.abs(#candidate - #word) <= maxDist then
+         local d = levenshtein(lw, candidate:lower(), maxDist)
+         if d < bestDist then
+            best, bestDist = candidate, d
+            if d == 0 then break end
+         end
+      end
+   end
+   if best and bestDist <= maxDist then return best end
+   return nil
 end
 
 AutoFix.rules = {
    {
+      id = 'contacts',
+      name = "Ссылки и контакты",
+      hint = "Вырезает ссылки, discord-теги и приглашения",
+      fn = function(text)
+         local t = text
+         t = t:gsub("https?://%S+", "")
+         t = t:gsub("www%.%S+", "")
+         t = t:gsub("%S*discord%.gg/%S*", "")
+         t = t:gsub("%S*t%.me/%S*", "")
+         t = t:gsub("%S*vk%.com/%S*", "")
+         t = t:gsub("%S+#%d%d%d%d", "")
+         t = t:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
+         return t
+      end
+   },
+   {
+      id = 'layout',
+      name = "Раскладка",
+      hint = "Ghjlfv -> Продам. Срабатывает, только если латиницей набрано всё объявление",
+      fn = function(text)
+         local latin, cyr, vowels = 0, 0, 0
+         for i = 1, #text do
+            local c = text:sub(i, i)
+            local b = c:byte()
+            if c:match("%a") then
+               latin = latin + 1
+               if c:lower():match("[aeiouy]") then vowels = vowels + 1 end
+            elseif b == 168 or b == 184 or (b >= 192 and b <= 255) then
+               cyr = cyr + 1
+            end
+         end
+         if latin < 6 then return text end
+         if cyr > latin * 0.30 then return text end
+         if (vowels / latin) >= 0.30 then return text end
+
+         return mapOutsideQuotes(text, function(chunk)
+            return (chunk:gsub("[%a%[%]%;%'%`]+", function(word)
+               if not word:match("%a") then return word end
+               local lw = lower1251(word)
+               if LATIN_KEEP[lw] then return word end
+               if looksLikeVehicle(word) then return word end
+               local converted = word:gsub(".", function(c) return LAYOUT_MAP[c] or c end)
+               if converted == word then return word end
+               if #word >= 3 and not hasCyrVowel(converted) then return word end
+               return converted
+            end))
+         end)
+      end
+   },
+   {
+      id = 'translit',
+      name = "Транслит",
+      hint = "Prodam dom -> Продам дом. Выключено по умолчанию: рискует испортить названия",
+      fn = function(text)
+         return mapOutsideQuotes(text, function(chunk)
+            return (chunk:gsub("%a+", function(word)
+               if #word < 3 then return word end
+               if LATIN_KEEP[lower1251(word)] then return word end
+               if looksLikeVehicle(word) then return word end
+               if word == upper1251(word) then return word end
+               local low = word:lower()
+               local out = low
+               for _, pair in ipairs(TRANSLIT_PAIRS) do
+                  out = out:gsub(pair[1], pair[2])
+               end
+               if out == low or not hasCyrVowel(out) then return word end
+               if word:sub(1, 1) == upper1251(word:sub(1, 1)) then
+                  return upper1251(out:sub(1, 1)) .. out:sub(2)
+               end
+               return out
+            end))
+         end)
+      end
+   },
+   {
       id = 'spaces',
       name = "Пробелы и знаки",
+      hint = "Двойные пробелы, пробел перед запятой, слэш в сокращениях",
       fn = function(text)
          local t = text:gsub("%s+", " ")
          t = t:gsub("%s+([,%.:;!%?])", "%1")
@@ -1268,6 +1845,7 @@ AutoFix.rules = {
    {
       id = 'repeats',
       name = "Повторы знаков",
+      hint = "!!!! -> !",
       fn = function(text)
          local t = text:gsub("%.%.%.%.+", "...")
          for _, ch in ipairs({ "!", "?", ")", "(", ",", ";", ":", "-" }) do
@@ -1279,6 +1857,7 @@ AutoFix.rules = {
    {
       id = 'dupWords',
       name = "Дубли слов",
+      hint = "продам продам дом -> продам дом",
       fn = function(text)
          local t = text
          for _ = 1, 2 do
@@ -1293,6 +1872,7 @@ AutoFix.rules = {
    {
       id = 'caps',
       name = "Снятие капса",
+      hint = "СРОЧНО ПРОДАМ -> Срочно продам. Аббревиатуры и марки не трогает",
       fn = function(text)
          local up, low = 0, 0
          for i = 1, #text do
@@ -1315,8 +1895,97 @@ AutoFix.rules = {
       end
    },
    {
+      id = 'slang',
+      name = "Сленг в числа",
+      hint = "5кк -> 5000000, 300 косарей -> 300000",
+      fn = function(text)
+         local out, pos = {}, 1
+         while true do
+            local ns, ne = text:find("%d+", pos)
+            if not ns then
+               out[#out + 1] = text:sub(pos)
+               break
+            end
+            out[#out + 1] = text:sub(pos, ns - 1)
+            local num = text:sub(ns, ne)
+            local rest = text:sub(ne + 1)
+            local sp = rest:match("^(%s*)") or ""
+            local afterSp = rest:sub(#sp + 1)
+            local matched = false
+            for _, unit in ipairs(SLANG_UNITS) do
+               local u = unit[1]
+               if lower1251(afterSp:sub(1, #u)) == u then
+                  local nextCh = afterSp:sub(#u + 1, #u + 1)
+                  if nextCh == "" or not nextCh:match("[%w\168\184\192-\255]") then
+                     out[#out + 1] = tostring(math.floor((tonumber(num) or 0) * unit[2]))
+                     pos = ne + 1 + #sp + #u
+                     matched = true
+                     break
+                  end
+               end
+            end
+            if not matched then
+               out[#out + 1] = num
+               pos = ne + 1
+            end
+         end
+         return table.concat(out)
+      end
+   },
+   {
+      id = 'money',
+      name = "Формат суммы",
+      hint = "5000000 -> 5 млн. Только круглые числа от 10.000",
+      fn = function(text)
+         local pos = 1
+         local out = {}
+         while true do
+            local ns, ne = text:find("%d[%d%.,]*", pos)
+            if not ns then
+               out[#out + 1] = text:sub(pos)
+               break
+            end
+            local raw = text:sub(ns, ne)
+            local trail = raw:match("[%.,]+$") or ""
+            if trail ~= "" then raw = raw:sub(1, #raw - #trail) end
+            local prev = (ns > 1) and text:sub(ns - 1, ns - 1) or " "
+            local tail = text:sub(ne + 1, ne + 6)
+            local clean = raw:gsub("[%.,]", "")
+            local n = tonumber(clean)
+
+            local skip = false
+            if prev:match("[%a%-]") then skip = true end
+            if lower1251(tail):match("^%s*тыс") or lower1251(tail):match("^%s*млн")
+               or lower1251(tail):match("^%s*млрд") then
+               skip = true
+            end
+            if not n or n < 10000 then skip = true end
+
+            out[#out + 1] = text:sub(pos, ns - 1)
+            if skip then
+               out[#out + 1] = raw .. trail
+            else
+               local unit, div
+               if n >= 1000000000 then unit, div = " млрд", 1000000000
+               elseif n >= 1000000 then unit, div = " млн", 1000000
+               else unit, div = " тыс", 1000 end
+               local value = n / div
+               local rounded = math.floor(value * 10 + 0.5) / 10
+               if math.abs(rounded - value) > 0.0001 then
+                  out[#out + 1] = raw .. trail
+               else
+                  out[#out + 1] = fmtNumber(value) .. unit .. trail
+               end
+            end
+            pos = ne + 1
+         end
+         return table.concat(out)
+      end
+   },
+   {
       id = 'currency',
       name = "Формат валюты",
+      hint = "500 долларов -> $500",
       fn = function(text)
          local t = text:gsub("([%d%.,]+)(%s*)([" .. ALPHA .. "%.]+)", function(num, sp, word)
             local core = word:gsub("%.+$", "")
@@ -1330,8 +1999,155 @@ AutoFix.rules = {
       end
    },
    {
+      id = 'abbrev',
+      name = "Сокращения",
+      hint = "автомобиль -> а/м, вертолёт -> в/т",
+      fn = function(text)
+         return (text:gsub("[" .. ALPHA .. "]+", function(word)
+            local short = ABBREV_MAP[lower1251(word)]
+            return short or word
+         end))
+      end
+   },
+   {
+      id = 'vehicles',
+      name = "Марки транспорта",
+      hint = "infernuss, инфернус -> Infernus по справочнику",
+      fn = function(text)
+         return (text:gsub("[%a" .. "\168\184\192-\255" .. "]+", function(word)
+            local fixed = fixVehicleWord(word)
+            return fixed or word
+         end))
+      end
+   },
+   {
+      id = 'places',
+      name = "Города и локации",
+      hint = "лос сантос -> г. Лос-Сантос. Двухбуквенные сокращения не трогает",
+      fn = function(text)
+         if #PLACE_KEYS == 0 then
+            for alias in pairs(PLACE_ALIASES) do PLACE_KEYS[#PLACE_KEYS + 1] = alias end
+            table.sort(PLACE_KEYS, function(a, b) return #a > #b end)
+         end
+
+         local low = lower1251(text)
+         local out, pos = {}, 1
+         while pos <= #text do
+            local matched = false
+            for _, alias in ipairs(PLACE_KEYS) do
+               if low:sub(pos, pos + #alias - 1) == alias then
+                  local before = (pos > 1) and low:sub(pos - 1, pos - 1) or ""
+                  local after = low:sub(pos + #alias, pos + #alias)
+                  if not isWordByte(before) and not isWordByte(after) then
+                     out[#out + 1] = PLACE_ALIASES[alias]
+                     pos = pos + #alias
+                     matched = true
+                     break
+                  end
+               end
+            end
+            if not matched then
+               out[#out + 1] = text:sub(pos, pos)
+               pos = pos + 1
+            end
+         end
+         return table.concat(out)
+      end
+   },
+   {
+      id = 'verb',
+      name = "Глагол действия",
+      hint = "продаю -> Продам (только первое слово)",
+      fn = function(text)
+         local pre, word, rest = text:match("^(%s*)([" .. ALPHA .. "]+)(.*)$")
+         if not word then return text end
+         local canonical = VERB_MAP[lower1251(word)]
+         if not canonical then return text end
+         return pre .. canonical .. rest
+      end
+   },
+   {
+      id = 'forms',
+      name = "Форма объявления",
+      hint = "Модель в кавычки после а/м, цена с подписью",
+      fn = function(text)
+         local t = text
+
+         t = t:gsub("(а/м%s+)([%a][%w%-%.]*)", function(head, model)
+            if VEHICLE_SET[lower1251(model)] then
+               return head .. '"' .. model .. '"'
+            end
+            return head .. model
+         end)
+         t = t:gsub("(т/с%s+)([%a][%w%-%.]*)", function(head, model)
+            if VEHICLE_SET[lower1251(model)] then
+               return head .. '"' .. model .. '"'
+            end
+            return head .. model
+         end)
+
+         local hasPriceWord = t:find("%$") ~= nil
+         if not hasPriceWord then
+            for word in lower1251(t):gmatch("[" .. ALPHA .. "]+") do
+               if PRICE_WORDS[word] then hasPriceWord = true break end
+            end
+         end
+
+         if not hasPriceWord then
+            local head, num = t:match("^(.-)%s*([%d][%d%.,]*%s*[" .. ALPHA .. "]*)%s*$")
+            if head and head ~= "" and num then
+               local digits = num:match("^([%d%.,]+)")
+               local value = tonumber(((digits or ""):gsub("[%.,]", ""))) or 0
+               local unitWord = lower1251(num:match("([" .. ALPHA .. "]+)%s*$") or "")
+               local isPrice = value >= 1000
+                  or unitWord == "тыс" or unitWord == "млн" or unitWord == "млрд"
+               if isPrice then
+                  local clean = head:gsub("[%s%.,;:%-]+$", "")
+                  if clean ~= "" then
+                     local sep = clean:match("[!%?]$") and " Цена: " or ". Цена: "
+                     t = clean .. sep .. num
+                  end
+               end
+            end
+         end
+         return t
+      end
+   },
+   {
+      id = 'learned',
+      name = "Выученные замены",
+      hint = "Замены, которые ты подтвердил во вкладке Шаблоны",
+      fn = function(text)
+         if not next(Data.learned) then return text end
+         return (text:gsub("[" .. ALPHA .. "]+", function(word)
+            local to = Data.learned[lower1251(word)]
+            if not to then return word end
+            if word:sub(1, 1) == upper1251(word:sub(1, 1)) then
+               return upper1251(to:sub(1, 1)) .. to:sub(2)
+            end
+            return to
+         end))
+      end
+   },
+   {
+      id = 'trim',
+      name = "Обрезка по лимиту",
+      hint = "Режет по границе слова, если текст длиннее лимита",
+      fn = function(text)
+         local limit = tonumber(cfg.settings.maxAdLength) or 180
+         if #text <= limit then return text end
+         local cut = text:sub(1, limit)
+         local lastSpace = cut:match("^.*()%s")
+         if lastSpace and lastSpace > limit * 0.6 then
+            cut = cut:sub(1, lastSpace - 1)
+         end
+         return (cut:gsub("[%s,;:%-]+$", ""))
+      end
+   },
+   {
       id = 'trailingDot',
       name = "Точка в конце",
+      hint = "Сервер ставит точку сам",
       fn = function(text)
          if text:sub(-3) == "..." then return text end
          return (text:gsub("%s*%.+%s*$", ""))
@@ -1340,43 +2156,101 @@ AutoFix.rules = {
    {
       id = 'capitalize',
       name = "Заглавная буква",
+      hint = "Первая буква объявления",
       fn = ruleCapitalize
    }
 }
 
-function AutoFix.enabled(id)
-   local v = cfg.autofix[id]
-   return v ~= false
+function AutoFix.flags(category)
+   if cfg.settings.useCategoryProfiles and category then
+      for _, prof in ipairs(AUTOFIX_PROFILES) do
+         if prof.cat == category and type(cfg[prof.key]) == 'table' then
+            return cfg[prof.key]
+         end
+      end
+   end
+   return cfg.autofix
 end
 
-function AutoFix.apply(text)
+function AutoFix.enabled(id, category)
+   return AutoFix.flags(category)[id] ~= false
+end
+
+function AutoFix.apply(text, category)
    if not text or text == "" then return text, {} end
+   local flags = AutoFix.flags(category)
    local out, applied = text, {}
    for _, rule in ipairs(AutoFix.rules) do
-      if AutoFix.enabled(rule.id) then
+      if flags[rule.id] ~= false then
          local ok, res = pcall(rule.fn, out)
          if ok and type(res) == 'string' and res ~= out then
             out = res
             applied[#applied + 1] = rule.name
+         elseif not ok then
+            logLine('WARN', 'Правило ' .. rule.id .. ': ' .. tostring(res))
          end
       end
    end
    return out, applied
 end
 
+function AutoFix.dryRun()
+   local changed, total, samples = 0, 0, {}
+   for key, data in pairs(state.templates) do
+      local orig = data.orig or key
+      total = total + 1
+      local fixed = AutoFix.apply(orig, detectCategory(orig))
+      if fixed ~= orig then
+         changed = changed + 1
+         if #samples < 5 then
+            samples[#samples + 1] = { from = orig, to = fixed }
+         end
+      end
+   end
+   return { total = total, changed = changed, samples = samples }
+end
+
 local Validate = {}
 
 function Validate.numbers(text)
-   local set = {}
-   for num in (text or ""):gmatch("%d[%d%.,]*") do
-      local clean = num:gsub("[%.,]", "")
-      clean = clean:gsub("^0+", "")
-      if clean ~= "" then set[clean] = (set[clean] or 0) + 1 end
+   local set, display = {}, {}
+   local source = text or ""
+   local pos = 1
+
+   while true do
+      local ns, ne = source:find("%d[%d%.,]*", pos)
+      if not ns then break end
+
+      local raw = source:sub(ns, ne)
+      local trail = raw:match("[%.,]+$") or ""
+      if trail ~= "" then
+         raw = raw:sub(1, #raw - #trail)
+         ne = ne - #trail
+      end
+
+      local shown = raw
+      local scale = 1
+      local tail = source:sub(ne + 1)
+      local sp, unit = tail:match("^(%s*)([" .. ALPHA .. "%.]+)")
+      if unit and UNIT_SCALE[lower1251(unit)] then
+         scale = UNIT_SCALE[lower1251(unit)]
+         shown = raw .. sp .. unit
+         ne = ne + #sp + #unit
+      end
+
+      local amount = parseAmount(raw)
+      if amount then
+         local key = ("%.4f"):format(amount * scale)
+         set[key] = (set[key] or 0) + 1
+         display[key] = display[key] or shown
+      end
+      pos = ne + 1
    end
-   return set
+
+   return set, display
 end
 
-function Validate.run(text, original)
+function Validate.run(text, original, senderKey, textKey)
    local issues, level = {}, 'ok'
 
    local function add(severity, message)
@@ -1415,18 +2289,32 @@ function Validate.run(text, original)
          add('warn', ("Категория изменилась: %s -> %s"):format(CAT_NAMES[co], CAT_NAMES[ce]))
       end
 
-      local origNums = Validate.numbers(original)
+      local origNums, origShown = Validate.numbers(original)
       local editNums = Validate.numbers(trimmed)
-      for num in pairs(origNums) do
-         if not editNums[num] then
-            add('warn', "Из текста пропало число: " .. num)
+      for key, count in pairs(origNums) do
+         if (editNums[key] or 0) < count then
+            add('warn', "Из текста пропало число: " .. (origShown[key] or key))
             break
          end
       end
    end
 
+   if senderKey and textKey then
+      local minutesAgo = Data.findDuplicate(senderKey, textKey, cfg.settings.dupWindowMin)
+      if minutesAgo then
+         add('warn', ("Такое же объявление публиковалось %d мин назад"):format(minutesAgo))
+      end
+   end
+
    return { level = level, issues = issues }
 end
+
+function Validate.levelText(level)
+   if level == 'bad' then return "Есть нарушение" end
+   if level == 'warn' then return "Требует внимания" end
+   return "Готово к отправке"
+end
+
 
 function getAccentVec4()
    if moonmonetColors then
@@ -2381,6 +3269,23 @@ function UI.CardEnd()
    mimgui.EndChild()
 end
 
+UI.SPACING = 7
+UI.CARD_PAD = 32
+
+function UI.mTitle() return FONT_SIZE.main + 15 end
+function UI.mKV()    return FONT_SIZE.main + 12 end
+function UI.mBar()   return FONT_SIZE.main + 20 end
+function UI.mDep()   return FONT_SIZE.main + 10 end
+function UI.mLine()  return FONT_SIZE.main end
+function UI.mSmall() return FONT_SIZE.small end
+function UI.mRing(radius, caps) return radius * 2 + 10 + (caps or 0) * (FONT_SIZE.small + 3) end
+
+function UI.cardH(items)
+   local sum = 0
+   for i = 1, #items do sum = sum + items[i] end
+   return math.floor(sum + math.max(0, #items - 1) * UI.SPACING + UI.CARD_PAD + 0.5)
+end
+
 function UI.StatTile(caption, value, valueColor, w, h, emoKey)
    h = h or 88
    local DL, pos = mimgui.GetWindowDrawList(), mimgui.GetCursorScreenPos()
@@ -2622,6 +3527,76 @@ function UI.TextHighlight(DL, x, y, text, filter, baseCol, maxX)
    DL:AddText(UI.v2(x, y), UI.u32(baseCol), shown)
 end
 
+function UI.WordChips(id, text, width)
+   local DL = mimgui.GetWindowDrawList()
+   local start = mimgui.GetCursorScreenPos()
+   local lh = mimgui.GetTextLineHeight()
+   local rowH = lh + 8
+   local x, y = start.x, start.y
+   local picked = nil
+   local index = 0
+
+   for word in tostring(text or ""):gmatch("%S+") do
+      index = index + 1
+      local shown = u8(word)
+      local w = mimgui.CalcTextSize(shown).x + 10
+      if x > start.x and (x - start.x) + w > width then
+         x = start.x
+         y = y + rowH
+      end
+
+      mimgui.SetCursorScreenPos(UI.v2(x, y))
+      mimgui.InvisibleButton(id .. "_w" .. index, UI.v2(w, rowH - 2))
+      local hovered = mimgui.IsItemHovered()
+      if hovered then
+         DL:AddRectFilled(UI.v2(x, y), UI.v2(x + w, y + rowH - 2),
+            UI.u32(UI.a(UI.C.ACCENT, 0.16)), 5.0)
+      end
+      if hovered and mimgui.IsMouseClicked(1) then picked = word end
+
+      DL:AddText(UI.v2(x + 5, y + 3), UI.u32(hovered and UI.C.TEXT or UI.C.DIM), shown)
+      x = x + w + 4
+   end
+
+   mimgui.SetCursorScreenPos(UI.v2(start.x, y + rowH + 2))
+   mimgui.Dummy(UI.v2(width, 0))
+   return picked
+end
+
+function UI.DiffText(before, after, width)
+   local diff = wordDiff(before, after)
+   local DL = mimgui.GetWindowDrawList()
+   local start = mimgui.GetCursorScreenPos()
+   local lh = mimgui.GetTextLineHeight()
+   local x, y = start.x, start.y
+   local rows = 1
+
+   for i = 1, #diff do
+      local item = diff[i]
+      local shown = u8(item.w)
+      local w = mimgui.CalcTextSize(shown).x
+      if x > start.x and (x - start.x) + w > width then
+         x = start.x
+         y = y + lh + 2
+         rows = rows + 1
+      end
+
+      local col = UI.C.DIM
+      if item.op == '-' then
+         col = UI.C.DANGER
+         DL:AddLine(UI.v2(x, y + lh / 2), UI.v2(x + w, y + lh / 2),
+            UI.u32(UI.a(UI.C.DANGER, 0.65)), 1.0)
+      elseif item.op == '+' then
+         col = UI.C.SUCCESS
+      end
+
+      DL:AddText(UI.v2(x, y), UI.u32(col), shown)
+      x = x + w + mimgui.CalcTextSize(" ").x
+   end
+
+   mimgui.Dummy(UI.v2(width, rows * (lh + 2)))
+end
+
 function UI.MiniChart(items, chartH)
    chartH = chartH or 72
    local DL, pos = mimgui.GetWindowDrawList(), mimgui.GetCursorScreenPos()
@@ -2656,6 +3631,42 @@ function UI.MiniChart(items, chartH)
    if fonts.small then mimgui.PopFont() end
 
    mimgui.Dummy(UI.v2(w, chartH + 28))
+end
+
+function UI.HourChart(hourly, chartH)
+   chartH = chartH or 84
+   local DL, pos = mimgui.GetWindowDrawList(), mimgui.GetCursorScreenPos()
+   local w = mimgui.GetContentRegionAvail().x
+   local maxV = 1
+   local values = {}
+   for h = 0, 23 do
+      local v = tonumber(hourly[tostring(h)]) or 0
+      values[h] = v
+      if v > maxV then maxV = v end
+   end
+
+   local gap = 3
+   local bw = (w - gap * 23) / 24
+   local nowHour = tonumber(os.date('%H')) or 0
+
+   if fonts.small then mimgui.PushFont(fonts.small) end
+   for h = 0, 23 do
+      local x = pos.x + h * (bw + gap)
+      local v = values[h]
+      local barH = math.max(2, (chartH - 18) * (v / maxV))
+      local top = pos.y + (chartH - 18 - barH)
+      local col = (h == nowHour) and UI.C.ACCENT or UI.a(UI.C.ACCENT, 0.45)
+      if v == 0 then col = mimgui.ImVec4(1, 1, 1, 0.08) end
+      DL:AddRectFilled(UI.v2(x, top), UI.v2(x + bw, pos.y + chartH - 18), UI.u32(col), 2.0)
+
+      if h % 6 == 0 then
+         local label = ("%02d"):format(h)
+         DL:AddText(UI.v2(x, pos.y + chartH - 15), UI.u32(UI.C.MUTE), label)
+      end
+   end
+   if fonts.small then mimgui.PopFont() end
+
+   mimgui.Dummy(UI.v2(w, chartH))
 end
 
 function UI.RowBegin(id, h, alt)
@@ -2748,13 +3759,17 @@ local imguiVars = {
    minAdLength = new.int(8),
    maxAdLength = new.int(180),
    queueWidgetRows = new.int(6),
-   queueAlertCount = new.int(10)
+   queueAlertCount = new.int(10),
+   uiScale = new.int(100),
+   useCategoryProfiles = new.bool(false),
+   autocomplete = new.bool(true),
+   paramTemplates = new.bool(true),
+   senderTemplates = new.bool(true),
+   showDiff = new.bool(true),
+   learnSuggest = new.bool(true),
+   learnThreshold = new.int(5),
+   dupWindowMin = new.int(15)
 }
-
-local autofixVars = {}
-for _, rule in ipairs(AutoFix.rules) do
-   autofixVars[rule.id] = new.bool(true)
-end
 
 local notificationAudio = nil
 
@@ -2795,6 +3810,10 @@ function resetProcessingState()
    state.validation = nil
    state.autoFixApplied = nil
    state.usedTemplate = false
+   state.undoStack = {}
+   state.redoStack = {}
+   editorData.senderKey = ""
+   editorData.textKey = ""
    editorData.openTime = 0
    state.newsredakMode = false
    state.isVipAd = false
@@ -3100,6 +4119,146 @@ end
 
 local Tpl = {}
 
+function Tpl.valueKey(value)
+   local core = value.core or ""
+   local head = core:match("^[%d%.,]+")
+   local amount = parseAmount(head)
+   if amount then
+      local unit = lower1251(core:match("([" .. ALPHA .. "%.]+)%s*$") or "")
+      local scale = UNIT_SCALE[unit] or 1
+      return ("n:%.4f"):format(amount * scale)
+   end
+   return "v:" .. lower1251(core)
+end
+
+function Tpl.mask(text)
+   local vals, out, pos = {}, {}, 1
+   local size = #text
+
+   while pos <= size do
+      local qs, qe = text:find('"[^"]*"', pos)
+      local ns, ne = text:find("%d[%d%.,]*", pos)
+
+      local ws, we = pos - 1, nil
+      while true do
+         ws, we = text:find("%a+", (we or pos - 1) + 1)
+         if not ws then break end
+         if VEHICLE_SET[lower1251(text:sub(ws, we))] then break end
+      end
+
+      local pick, from, to = nil, math.huge, nil
+      if qs and qs < from then pick, from, to = 'q', qs, qe end
+      if ns and ns < from then pick, from, to = 'n', ns, ne end
+      if ws and ws < from then pick, from, to = 'w', ws, we end
+
+      if not pick then
+         out[#out + 1] = text:sub(pos)
+         break
+      end
+
+      out[#out + 1] = text:sub(pos, from - 1)
+
+      if pick == 'q' then
+         local raw = text:sub(from, to)
+         vals[#vals + 1] = { raw = raw, core = raw:sub(2, -2), quoted = true }
+         pos = to + 1
+      elseif pick == 'w' then
+         local raw = text:sub(from, to)
+         vals[#vals + 1] = { raw = raw, core = raw, quoted = false }
+         pos = to + 1
+      else
+         local raw = text:sub(from, to)
+         local trail = raw:match("[%.,]+$") or ""
+         if trail ~= "" then
+            raw = raw:sub(1, #raw - #trail)
+            to = to - #trail
+         end
+         local tail = text:sub(to + 1)
+         local sp, unit = tail:match("^(%s*)([" .. ALPHA .. "%.]+)")
+         if unit and UNIT_SCALE[lower1251(unit)] then
+            raw = raw .. sp .. unit
+            to = to + #sp + #unit
+         end
+         vals[#vals + 1] = { raw = raw, core = raw, quoted = false }
+         pos = to + 1
+      end
+
+      out[#out + 1] = "{#" .. #vals .. "}"
+   end
+
+   return table.concat(out), vals
+end
+
+function Tpl.buildParam(orig, edited)
+   local maskO, valsO = Tpl.mask(orig)
+   if #valsO == 0 or #valsO > 8 then return nil end
+
+   local keyIndex = {}
+   for i, v in ipairs(valsO) do
+      local vk = Tpl.valueKey(v)
+      if keyIndex[vk] then return nil end
+      keyIndex[vk] = i
+   end
+
+   local maskE, valsE = Tpl.mask(edited)
+   local used = {}
+   local outMask = maskE:gsub("{#(%d+)}", function(idx)
+      local value = valsE[tonumber(idx)]
+      if not value then return "" end
+      local target = keyIndex[Tpl.valueKey(value)]
+      if not target then return value.raw end
+      used[target] = true
+      return "{#" .. (value.quoted and "q" or "") .. target .. "}"
+   end)
+
+   for i = 1, #valsO do
+      if not used[i] then return nil end
+   end
+
+   local maskKey = templateKey(maskO)
+   if maskKey == "" then return nil end
+   return maskKey, outMask, #valsO
+end
+
+function Tpl.applyParam(text)
+   if cfg.settings.paramTemplates == false then return nil end
+   if not Tpl.paramIndex then return nil end
+
+   local maskIn, valsIn = Tpl.mask(text)
+   if #valsIn == 0 then return nil end
+   local entry = Tpl.paramIndex[templateKey(maskIn)]
+   if not entry or entry.count ~= #valsIn then return nil end
+
+   local failed = false
+   local result = entry.maskEdited:gsub("{#q(%d+)}", function(idx)
+      local value = valsIn[tonumber(idx)]
+      if not value then
+         failed = true
+         return ""
+      end
+      return '"' .. value.core .. '"'
+   end)
+   result = result:gsub("{#(%d+)}", function(idx)
+      local value = valsIn[tonumber(idx)]
+      if not value then
+         failed = true
+         return ""
+      end
+      return value.raw
+   end)
+
+   if failed then return nil end
+
+   for _, rule in ipairs(AutoFix.rules) do
+      if (rule.id == 'money' or rule.id == 'currency') and AutoFix.enabled(rule.id) then
+         local ok, res = pcall(rule.fn, result)
+         if ok and type(res) == 'string' then result = res end
+      end
+   end
+
+   return result, entry.key
+end
+
 function Tpl.tokenize(text)
    local set, count = {}, 0
    for word in lower1251(text or ''):gmatch('%S+') do
@@ -3118,6 +4277,7 @@ end
 
 function Tpl.rebuild()
    Tpl.index = {}
+   Tpl.paramIndex = {}
    for key, data in pairs(state.templates) do
       local edited = data.edited or ""
       if edited ~= "" then
@@ -3132,8 +4292,26 @@ function Tpl.rebuild()
                nums = Validate.numbers(data.orig or key)
             }
          end
+
+         local maskKey, maskEdited, valCount = data.mask, data.maskEdited, data.maskCount
+         if not maskKey or not maskEdited or not valCount then
+            maskKey, maskEdited, valCount = Tpl.buildParam(data.orig or key, edited)
+         end
+         if maskKey and maskEdited and valCount and valCount > 0
+            and not Tpl.paramIndex[maskKey] then
+            Tpl.paramIndex[maskKey] = {
+               key = key, maskEdited = maskEdited, count = valCount
+            }
+         end
       end
    end
+end
+
+function Tpl.paramCount()
+   if not Tpl.paramIndex then Tpl.rebuild() end
+   local n = 0
+   for _ in pairs(Tpl.paramIndex) do n = n + 1 end
+   return n
 end
 
 function loadTemplates()
@@ -3164,11 +4342,15 @@ function loadTemplates()
                   if key ~= "" then
                      local prev = state.templates[key]
                      if not prev or uses >= (prev.uses or 0) then
+                        local maskKey, maskEdited, maskCount = Tpl.buildParam(orig, edited)
                         state.templates[key] = {
                            orig = orig,
                            edited = edited,
                            uses = math.max(uses, prev and prev.uses or 0),
-                           lastUsed = math.max(lastUsed, prev and prev.lastUsed or 0)
+                           lastUsed = math.max(lastUsed, prev and prev.lastUsed or 0),
+                           mask = maskKey,
+                           maskEdited = maskEdited,
+                           maskCount = maskCount
                         }
                      end
                   end
@@ -3264,17 +4446,50 @@ function numbersEqual(a, b)
    return true
 end
 
-function Tpl.find(text)
+function Tpl.findForSender(senderKey, text)
+   if cfg.settings.senderTemplates == false then return nil end
+   if not senderKey or senderKey == "" then return nil end
+   local rec = Data.senderTpl[senderKey]
+   if not rec or not rec.orig or not rec.edited then return nil end
+
+   local set, count = Tpl.tokenize(templateKey(text))
+   local rset, rcount = Tpl.tokenize(templateKey(rec.orig))
+   if count < 2 or rcount < 2 then return nil end
+
+   local common = 0
+   for word in pairs(set) do
+      if rset[word] then common = common + 1 end
+   end
+   local score = common / math.max(count, rcount)
+   if score >= 0.55 then
+      return rec.edited, math.floor(score * 100 + 0.5)
+   end
+   return nil
+end
+
+function Tpl.find(text, senderKey)
    local key = templateKey(text)
    if key == "" then return nil end
 
    local entry = state.templates[key]
    if entry and entry.edited ~= "" then
       entry.lastUsed = os.time()
-      return entry.edited, false, 100
+      return entry.edited, 'exact', 100
    end
 
    if not Tpl.index then Tpl.rebuild() end
+
+   local paramText, paramKey = Tpl.applyParam(text)
+   if paramText then
+      local data = state.templates[paramKey]
+      if data then data.lastUsed = os.time() end
+      return paramText, 'param', 100
+   end
+
+   local senderText, senderScore = Tpl.findForSender(senderKey, text)
+   if senderText then
+      return senderText, 'sender', senderScore
+   end
 
    local threshold = (tonumber(cfg.settings.fuzzyThreshold) or 70) / 100
    local set, count = Tpl.tokenize(key)
@@ -3291,9 +4506,16 @@ function Tpl.find(text)
          for word in pairs(set) do
             if t.set[word] then common = common + 1 end
          end
-         local score = common / math.max(count, t.count)
-         if score > bestScore then
-            bestScore, best = score, t
+         local jaccard = common / math.max(count, t.count)
+
+         if jaccard >= threshold * 0.8 then
+            local maxLen = math.max(#key, #t.key)
+            local dist = levenshtein(key, t.key, math.min(C.LEV_MAX_LEN, maxLen))
+            local similar = (maxLen > 0) and math.max(0, 1 - dist / maxLen) or 0
+            local score = jaccard * 0.65 + similar * 0.35
+            if score > bestScore then
+               bestScore, best = score, t
+            end
          end
       end
    end
@@ -3301,7 +4523,7 @@ function Tpl.find(text)
    if best and bestScore >= threshold then
       local data = state.templates[best.key]
       if data then data.lastUsed = os.time() end
-      return best.edited, true, math.floor(bestScore * 100 + 0.5)
+      return best.edited, 'fuzzy', math.floor(bestScore * 100 + 0.5)
    end
    return nil
 end
@@ -3310,12 +4532,19 @@ function addApprovedStat()
    cfg.stats.totalApproved = (cfg.stats.totalApproved or 0) + 1
    cfg.stats.sessionApproved = (cfg.stats.sessionApproved or 0) + 1
    cfg.stats.dailyApproved = (cfg.stats.dailyApproved or 0) + 1
+   if cfg.stats.shiftActive then
+      cfg.stats.shiftApproved = (cfg.stats.shiftApproved or 0) + 1
+   end
    state.doneTimes[#state.doneTimes + 1] = os.clock()
+   Data.addHour()
 end
 
 function addRejectedStat(reason)
    cfg.stats.totalRejected = cfg.stats.totalRejected + 1
    cfg.stats.sessionRejected = cfg.stats.sessionRejected + 1
+   if cfg.stats.shiftActive then
+      cfg.stats.shiftRejected = (cfg.stats.shiftRejected or 0) + 1
+   end
    Data.addReject(reason)
    Data.addSender(editorData.sender, normalizeSender(editorData.sender or ''), false)
    saveConfig()
@@ -3364,6 +4593,7 @@ end
 
 function insertTextAtCursor(chunk, noAutoSpace)
    if not chunk or chunk == "" then return end
+   pushUndo(getEditorInputText())
    markEditorActivity()
 
    local raw = ffi.string(editorData.inputBuffer)
@@ -3396,6 +4626,7 @@ function insertTextAtCursor(chunk, noAutoSpace)
 end
 
 function clearEditorInputText()
+   pushUndo(getEditorInputText())
    setEditorInputText("")
 end
 
@@ -3413,9 +4644,105 @@ function removeLastEditorWord()
    setEditorInputText(cut or "")
 end
 
+local AUTOCOMPLETE_DICT = nil
+
+local function buildAutocompleteDict()
+   if AUTOCOMPLETE_DICT then return AUTOCOMPLETE_DICT end
+   local seen, list = {}, {}
+
+   local function add(word)
+      if not word or word == "" then return end
+      local key = lower1251(word)
+      if seen[key] then return end
+      seen[key] = true
+      list[#list + 1] = { word = word, low = key }
+   end
+
+   for _, pickerKey in ipairs({ 'vehicles', 'locations', 'business', 'houses' }) do
+      local picker = QUICK_PICKERS[pickerKey]
+      if picker then
+         for _, item in ipairs(picker.items) do add(item) end
+      end
+   end
+   for _, section in ipairs(QUICK_EDIT_BUTTON_SECTIONS) do
+      if not section.picker then
+         for _, button in ipairs(section.buttons) do
+            if not button.raw then add((button.value:gsub("%s+$", ""))) end
+         end
+      end
+   end
+
+   AUTOCOMPLETE_DICT = list
+   return list
+end
+
+function autocompleteMatches(prefix)
+   if not prefix or #prefix < 2 then return {} end
+   local low = lower1251(prefix)
+   local out = {}
+   for _, rec in ipairs(buildAutocompleteDict()) do
+      if rec.low:sub(1, #low) == low and rec.low ~= low then
+         out[#out + 1] = rec.word
+         if #out >= C.AUTOCOMPLETE_MAX then break end
+      end
+   end
+   return out
+end
+
+function currentWordPrefix()
+   local text = getEditorInputText()
+   if text == "" or text:sub(-1):match("%s") then return "" end
+   return (text:match("([^%s]+)$") or "")
+end
+
+function replaceLastWord(word)
+   local text = getEditorInputText()
+   pushUndo(text)
+   local head = text:match("^(.-)[^%s]*$") or ""
+   setEditorInputText(head .. word .. " ")
+   runValidation()
+end
+
+function pushUndo(text)
+   state.undoStack = state.undoStack or {}
+   local top = state.undoStack[#state.undoStack]
+   if top == text then return end
+   state.undoStack[#state.undoStack + 1] = text
+   while #state.undoStack > 20 do table.remove(state.undoStack, 1) end
+   state.redoStack = {}
+end
+
 function runValidation()
-   state.validation = Validate.run(getEditorInputText(), editorData.message)
+   state.validation = Validate.run(getEditorInputText(), editorData.message,
+      editorData.senderKey, editorData.textKey)
    return state.validation
+end
+
+function undoEditor()
+   local stack = state.undoStack or {}
+   local prev = table.remove(stack)
+   if not prev then
+      Toast.push('info', 'Отменять нечего', nil, 1.6)
+      return false
+   end
+   state.redoStack = state.redoStack or {}
+   state.redoStack[#state.redoStack + 1] = getEditorInputText()
+   setEditorInputText(prev)
+   state.autoFixApplied = nil
+   runValidation()
+   return true
+end
+
+function redoEditor()
+   local stack = state.redoStack or {}
+   local nxt = table.remove(stack)
+   if not nxt then return false end
+   state.undoStack = state.undoStack or {}
+   state.undoStack[#state.undoStack + 1] = getEditorInputText()
+   setEditorInputText(nxt)
+   state.autoFixApplied = nil
+   runValidation()
+   return true
 end
 
 function applyAutoFix(fromHotkey)
@@ -3424,7 +4751,8 @@ function applyAutoFix(fromHotkey)
       return false
    end
    local before = getEditorInputText()
-   local after, applied = AutoFix.apply(before)
+   pushUndo(before)
+   local after, applied = AutoFix.apply(before, detectCategory(editorData.message))
    if after == before then
       state.autoFixApplied = {}
       if fromHotkey then Toast.push('info', 'Править нечего', nil, 1.6) end
@@ -3447,11 +4775,15 @@ function saveCurrentAsTemplate()
    local key = templateKey(orig)
    if key == "" then return end
    local prev = state.templates[key]
+   local maskKey, maskEdited, maskCount = Tpl.buildParam(orig, edited)
    state.templates[key] = {
       orig = orig,
       edited = edited,
       uses = (prev and prev.uses or 0),
-      lastUsed = os.time()
+      lastUsed = os.time(),
+      mask = maskKey,
+      maskEdited = maskEdited,
+      maskCount = maskCount
    }
    saveTemplates()
    Toast.push('ok', 'Шаблон сохранён', nil, 2.0)
@@ -3542,9 +4874,34 @@ function renderQuickPicker()
    end
 end
 
+function learnFromEdit(orig, edited)
+   if cfg.settings.learnSuggest == false then return end
+   if not orig or not edited or orig == "" or edited == "" then return end
+
+   local diff = wordDiff(orig, edited)
+   local subs = diffSubstitutions(diff)
+   local threshold = math.max(2, tonumber(cfg.settings.learnThreshold) or 5)
+
+   for _, sub in ipairs(subs) do
+      local from = lower1251(sub.from):gsub("^%p+", ""):gsub("%p+$", "")
+      local to = lower1251(sub.to):gsub("^%p+", ""):gsub("%p+$", "")
+      if #from >= 3 and #to >= 2 and from ~= to then
+         local n = Data.learnSub(from, to)
+         if n == threshold then
+            chat(CHAT.INFO .. "Замена " .. CHAT.HI .. from .. CHAT.INFO .. " -> " ..
+               CHAT.HI .. to .. CHAT.INFO .. " повторилась " .. threshold ..
+               " раз. Подтверди её во вкладке Шаблоны", 'BULB')
+            Toast.push('info', 'Новое правило на подтверждение',
+               from .. " -> " .. to, 6.0)
+         end
+      end
+   end
+end
+
 function storeApprovedTemplate(sentText)
    local originalText = editorData.message
    local editedText = sentText
+   local senderKey = normalizeSender(editorData.sender or '')
 
    if originalText ~= "" and editedText ~= "" then
       local orig = normalizeTemplateText(originalText)
@@ -3554,12 +4911,16 @@ function storeApprovedTemplate(sentText)
       if key ~= "" then
          local existing = state.templates[key]
          local currentUses = existing and ((existing.uses or 0) + 1) or 1
+         local maskKey, maskEdited, maskCount = Tpl.buildParam(orig, edited)
 
          state.templates[key] = {
             orig = orig,
             edited = edited,
             uses = currentUses,
-            lastUsed = os.time()
+            lastUsed = os.time(),
+            mask = maskKey,
+            maskEdited = maskEdited,
+            maskCount = maskCount
          }
          saveTemplates()
 
@@ -3567,10 +4928,14 @@ function storeApprovedTemplate(sentText)
             chat(CHAT.MUTED .. "Шаблон запомнен", 'TPL')
          end
       end
+
+      Data.setSenderTemplate(senderKey, orig, edited)
+      Data.rememberAd(senderKey, templateKey(orig))
+      learnFromEdit(orig, edited)
    end
 
    addSenderToIndex(editorData.sender)
-   Data.addSender(editorData.sender, normalizeSender(editorData.sender or ''), true)
+   Data.addSender(editorData.sender, senderKey, true)
 end
 
 function recordAdCategoryAndSpeed(sentText)
@@ -3607,6 +4972,7 @@ end
 
 function finalizeApprovedSend(sentText)
    state.sendRetryCount = 0
+   if state.isVipAd then state.lastVipPublishAt = os.clock() end
    Queue.remove(editorData.sender)
    recordAdCategoryAndSpeed(sentText)
    storeApprovedTemplate(sentText)
@@ -3671,7 +5037,8 @@ function startEditorSendAttempt(sendMode)
       return false
    end
 
-   local check = Validate.run(inputText, editorData.message)
+   local check = Validate.run(inputText, editorData.message,
+      editorData.senderKey, editorData.textKey)
    state.validation = check
    if check.level == 'bad' then
       local first = check.issues[1] and check.issues[1].message or "нарушение"
@@ -3727,7 +5094,20 @@ function triggerVipRecatch(secondsLeft)
    local savedInput = getEditorInputText()
    secondsLeft = math.max(1, tonumber(secondsLeft) or 1)
 
+   if (state.lastVipPublishAt or 0) > 0 then
+      local total = (os.clock() - state.lastVipPublishAt) + secondsLeft
+      if total > 0 and total < 600 then
+         local known = tonumber(cfg.settings.vipCooldownSec) or 0
+         if total > known then
+            cfg.settings.vipCooldownSec = math.floor(total + 0.5)
+            saveConfig()
+         end
+      end
+   end
+
+   local keepVipStamp = state.lastVipPublishAt
    resetProcessingState()
+   state.lastVipPublishAt = keepVipStamp
    state.releaseEditorUntil = os.clock() + 2
    state.cooldownUntil = os.clock() + secondsLeft
    state.expectedSender = targetSender
@@ -3769,6 +5149,8 @@ function processPendingSendState()
          state.waitingEditorUntil = os.clock() + C.EDITOR_WAIT_TIMEOUT
       elseif os.clock() >= state.waitingEditorUntil then
          state.waitingEditorUntil = 0
+         cfg.stats.lostToOthers = (cfg.stats.lostToOthers or 0) + 1
+         saveConfig()
          chat(CHAT.WARN .. "Объявление успел забрать другой редактор")
          Toast.push('warn', 'Объявление уже забрали', 'Возвращаюсь к очереди', 3.0)
          resetProcessingState()
@@ -3880,6 +5262,9 @@ function check_daily_reset()
             table.remove(hist, 1)
          end
          cfg.stats.history = encodeJson(hist)
+         Data.pushHistory(cfg.stats.lastDate:sub(1, 5),
+            cfg.stats.dailyApproved or 0, cfg.stats.dailyEarnings or 0)
+         Data.save()
 
          local goal = math.max(1, cfg.settings.dailyGoal or 50)
          if (cfg.stats.dailyApproved or 0) >= goal then
@@ -3945,9 +5330,15 @@ function syncImguiVars()
    imguiVars.maxAdLength[0] = tonumber(cfg.settings.maxAdLength) or 180
    imguiVars.queueWidgetRows[0] = tonumber(cfg.settings.queueWidgetRows) or 6
    imguiVars.queueAlertCount[0] = tonumber(cfg.settings.queueAlertCount) or 10
-   for _, rule in ipairs(AutoFix.rules) do
-      autofixVars[rule.id][0] = (cfg.autofix[rule.id] ~= false)
-   end
+   imguiVars.uiScale[0] = tonumber(cfg.settings.uiScale) or 100
+   imguiVars.useCategoryProfiles[0] = (cfg.settings.useCategoryProfiles == true)
+   imguiVars.autocomplete[0] = (cfg.settings.autocomplete ~= false)
+   imguiVars.paramTemplates[0] = (cfg.settings.paramTemplates ~= false)
+   imguiVars.senderTemplates[0] = (cfg.settings.senderTemplates ~= false)
+   imguiVars.showDiff[0] = (cfg.settings.showDiff ~= false)
+   imguiVars.learnSuggest[0] = (cfg.settings.learnSuggest ~= false)
+   imguiVars.learnThreshold[0] = tonumber(cfg.settings.learnThreshold) or 5
+   imguiVars.dupWindowMin[0] = tonumber(cfg.settings.dupWindowMin) or 15
 end
 
 function syncStateFromImgui()
@@ -3992,9 +5383,13 @@ function syncStateFromImgui()
    cfg.settings.autoFixOnOpen = imguiVars.autoFixOnOpen[0]
    cfg.settings.validateEnabled = imguiVars.validateEnabled[0]
 
-   for _, rule in ipairs(AutoFix.rules) do
-      cfg.autofix[rule.id] = autofixVars[rule.id][0]
-   end
+   cfg.settings.useCategoryProfiles = imguiVars.useCategoryProfiles[0]
+   cfg.settings.autocomplete = imguiVars.autocomplete[0]
+   cfg.settings.paramTemplates = imguiVars.paramTemplates[0]
+   cfg.settings.senderTemplates = imguiVars.senderTemplates[0]
+   cfg.settings.showDiff = imguiVars.showDiff[0]
+   cfg.settings.learnSuggest = imguiVars.learnSuggest[0]
+   Tpl.invalidate()
 
    cfg.settings.uiEmoji = imguiVars.uiEmoji[0]
    UI.emojiReady = (emoji ~= nil) and UI.emojiLoaded and (cfg.settings.uiEmoji ~= false)
@@ -4410,7 +5805,7 @@ mimgui.OnInitialize(function()
 end)
 
 function renderSidePanel()
-   UI.CardBegin("##ed_info", UI.v2(302, -1), "Информация", 'info-circle')
+   UI.CardBegin("##ed_info", UI.v2(SC(320), -1), "Информация", 'info-circle')
    local DL = mimgui.GetWindowDrawList()
 
    if fonts.small then mimgui.PushFont(fonts.small) end
@@ -4473,10 +5868,17 @@ function renderSidePanel()
    end
    if state.templateMatch then
       mimgui.SameLine(0, 6)
-      if state.templateMatch.fuzzy then
-         UI.Chip(("Похоже %d%%"):format(state.templateMatch.score), UI.C.WARNC, 0.18, ":u1f50d:")
-      else
+      local kind = state.templateMatch.kind
+      if kind == 'exact' then
          UI.Chip("Шаблон", UI.C.SUCCESS, 0.18, ":u1f4dd:")
+      elseif kind == 'param' then
+         UI.Chip("Шаблон по форме", UI.C.SUCCESS, 0.18, ":u1f4dd:")
+      elseif kind == 'sender' then
+         UI.Chip(("Правка автора %d%%"):format(state.templateMatch.score),
+            UI.C.WARNC, 0.18, ":u1f464:")
+      else
+         UI.Chip(("Похоже %d%%"):format(state.templateMatch.score),
+            UI.C.WARNC, 0.18, ":u1f50d:")
       end
    end
 
@@ -4491,15 +5893,62 @@ function renderSidePanel()
    mimgui.Dummy(UI.v2(0, 12))
 
    if fonts.small then mimgui.PushFont(fonts.small) end
-   mimgui.TextColored(UI.C.MUTE, "%s", u8"ИСХОДНЫЙ ТЕКСТ")
+   mimgui.TextColored(UI.C.MUTE, "%s", u8"ИСХОДНЫЙ ТЕКСТ  (ПКМ ПО СЛОВУ)")
    if fonts.small then mimgui.PopFont() end
    mimgui.Dummy(UI.v2(0, 4))
 
-   mimgui.PushTextWrapPos(0)
    local msg = editorData.message
-   if msg == "" then msg = "Не удалось получить текст" end
-   mimgui.TextColored(UI.C.DIM, "%s", u8(msg))
-   mimgui.PopTextWrapPos()
+   if msg == "" then
+      mimgui.TextColored(UI.C.MUTE, "%s", u8"Не удалось получить текст")
+   else
+      local picked = UI.WordChips("##orig", msg, mimgui.GetContentRegionAvail().x)
+      if picked then
+         state.ctxWord = picked
+         mimgui.OpenPopup("##word_ctx")
+      end
+   end
+
+   if mimgui.BeginPopup("##word_ctx") then
+      local word = state.ctxWord or ""
+      local clean = word:gsub("^%p+", ""):gsub("%p+$", "")
+      mimgui.TextColored(UI.C.MUTE, "%s", u8(clean))
+      mimgui.Dummy(UI.v2(0, 2))
+
+      if UI.Button("Вставить##ctx_ins", 230, 30) then
+         insertTextAtCursor(clean .. " ")
+         mimgui.CloseCurrentPopup()
+      end
+      if UI.Button("Вставить в кавычках##ctx_q", 230, 30) then
+         insertTextAtCursor('"' .. clean .. '" ')
+         mimgui.CloseCurrentPopup()
+      end
+
+      local short = ABBREV_MAP[lower1251(clean)]
+      if short and UI.Button("Сократить до " .. short .. "##ctx_ab", 230, 30) then
+         insertTextAtCursor(short .. " ")
+         mimgui.CloseCurrentPopup()
+      end
+
+      local model = fixVehicleWord(clean)
+      if model and UI.Button('Как марку: ' .. model .. '##ctx_veh', 230, 30) then
+         insertTextAtCursor('"' .. model .. '" ')
+         mimgui.CloseCurrentPopup()
+      end
+
+      mimgui.EndPopup()
+   end
+
+   if cfg.settings.showDiff ~= false and msg ~= "" then
+      mimgui.Dummy(UI.v2(0, 10))
+      local dp = mimgui.GetCursorScreenPos()
+      DL:AddLine(dp, UI.v2(dp.x + mimgui.GetContentRegionAvail().x, dp.y), UI.u32(UI.C.LINE), 1.0)
+      mimgui.Dummy(UI.v2(0, 8))
+      if fonts.small then mimgui.PushFont(fonts.small) end
+      mimgui.TextColored(UI.C.MUTE, "%s", u8"ЧТО ИЗМЕНИЛОСЬ")
+      mimgui.Dummy(UI.v2(0, 2))
+      UI.DiffText(msg, getEditorInputText(), mimgui.GetContentRegionAvail().x)
+      if fonts.small then mimgui.PopFont() end
+   end
 
    UI.CardEnd()
 end
@@ -4787,6 +6236,8 @@ function renderListView()
       if fallbackEntry then
          local who = fallbackEntry.columns[1] or '?'
          sampSendDialogResponse(listData.dialogId, 1, fallbackEntry.listIndex, "")
+         cfg.stats.lostToOthers = (cfg.stats.lostToOthers or 0) + 1
+         saveConfig()
          chat(CHAT.HI .. state.expectedSender .. CHAT.TEXT .. " уже занято, беру " .. CHAT.HI .. who)
          windowState.currentView = "waiting_for_editor"
          windowState.mainWindow[0] = false
@@ -4803,6 +6254,7 @@ function renderListView()
    if state.prioritySearching then
       state.prioritySearching = false
 
+      local strategy = cfg.settings.catchStrategy or 'smart'
       local chosen, chosenRank, chosenLabel = nil, 0, nil
 
       for _, entry in ipairs(listData.entries) do
@@ -4810,21 +6262,38 @@ function renderListView()
          if not entry.inEdit and nick ~= '' and not isRecentlySkipped(nick) then
             local vip         = Queue.isVip(entry)
             local hasTemplate = state.senderIndex[normalizeSender(nick)] and true or false
-            local rank = 1 + (vip and 2 or 0) + (hasTemplate and 1 or 0)
+
+            local rank, label
+            if strategy == 'age' then
+               rank = 1
+               label = CHAT.TEXT .. "[по очереди] беру "
+            elseif strategy == 'money' then
+               rank = 1 + (vip and 2 or 0)
+               label = vip and (CHAT.WARN .. "[VIP] " .. CHAT.TEXT .. "беру ")
+                  or (CHAT.TEXT .. "Беру ")
+            elseif strategy == 'speed' then
+               rank = 1 + (hasTemplate and 2 or 0)
+               label = hasTemplate and (CHAT.OK .. "[шаблон] " .. CHAT.TEXT .. "беру ")
+                  or (CHAT.TEXT .. "Беру ")
+            else
+               rank = 1 + (vip and 2 or 0) + (hasTemplate and 1 or 0)
+               if vip and hasTemplate then
+                  label = CHAT.WARN .. "[VIP + шаблон] " .. CHAT.TEXT .. "беру "
+               elseif vip then
+                  label = CHAT.WARN .. "[VIP] " .. CHAT.TEXT .. "беру "
+               elseif hasTemplate then
+                  label = CHAT.OK .. "[шаблон] " .. CHAT.TEXT .. "беру "
+               else
+                  label = CHAT.TEXT .. "Беру "
+               end
+            end
 
             if rank > chosenRank then
                chosenRank = rank
                chosen = entry
-               if vip and hasTemplate then
-                  chosenLabel = CHAT.WARN .. "[VIP + шаблон] " .. CHAT.TEXT .. "беру "
-               elseif vip then
-                  chosenLabel = CHAT.WARN .. "[VIP] " .. CHAT.TEXT .. "беру "
-               elseif hasTemplate then
-                  chosenLabel = CHAT.OK .. "[шаблон] " .. CHAT.TEXT .. "беру "
-               else
-                  chosenLabel = CHAT.TEXT .. "Беру "
-               end
-               if rank == 4 then break end
+               chosenLabel = label
+               if strategy == 'age' then break end
+               if rank >= 4 then break end
             end
          end
       end
@@ -4958,6 +6427,8 @@ function renderTemplatesTab()
 
    UI.Chip("Всего: " .. #templateEditorData.list, UI.C.ACCENT)
    mimgui.SameLine(0, 8)
+   UI.Chip("Форм: " .. Tpl.paramCount(), UI.C.SUCCESS, 0.18, ":u1f4d0:")
+   mimgui.SameLine(0, 8)
    UI.Chip("Срабатываний: " .. totalUses, UI.C.SUCCESS)
    mimgui.SameLine(0, 8)
    UI.Chip("Сэкономлено ~" .. savedMin .. " мин", UI.C.GOLD)
@@ -4972,9 +6443,90 @@ function renderTemplatesTab()
    end
    mimgui.SetCursorScreenPos(UI.v2(dgp.x, dgp.y + 34))
 
-   mimgui.Dummy(UI.v2(0, 4))
+   mimgui.Dummy(UI.v2(0, 6))
 
-   UI.PaneBegin("##tpl_list", UI.v2(-1, -52))
+   local threshold = math.max(2, tonumber(cfg.settings.learnThreshold) or 5)
+   local candidates = Data.learnCandidates(threshold)
+   local learnedCount = 0
+   for _ in pairs(Data.learned) do learnedCount = learnedCount + 1 end
+
+   if #candidates > 0 or learnedCount > 0 then
+      local rows = math.min(#candidates, 4) + math.min(learnedCount, 4)
+      UI.CardBegin("##tpl_learn",
+         UI.v2(-1, UI.cardH({ UI.mTitle(), UI.mSmall(), 4, rows * 44 })),
+         "Замены, которые ты делаешь постоянно", 'bulb')
+
+      if fonts.small then mimgui.PushFont(fonts.small) end
+      mimgui.TextColored(UI.C.MUTE, "%s",
+         u8(("Скрипт предлагает правило после %d одинаковых правок"):format(threshold)))
+      if fonts.small then mimgui.PopFont() end
+      mimgui.Dummy(UI.v2(0, 4))
+
+      local shownCand = 0
+      for _, cand in ipairs(candidates) do
+         if shownCand >= 4 then break end
+         shownCand = shownCand + 1
+         local rowY = mimgui.GetCursorPosY()
+         local avail = mimgui.GetContentRegionAvail().x
+         local textW = avail - 200
+
+         local DL2, pos2 = mimgui.GetWindowDrawList(), mimgui.GetCursorScreenPos()
+         DL2:PushClipRect(pos2, UI.v2(pos2.x + textW, pos2.y + 30), true)
+         DL2:AddText(UI.v2(pos2.x, pos2.y + 6), UI.u32(UI.C.TEXT),
+            u8(("%s  ->  %s   (%d раз)"):format(cand.from, cand.to, cand.count)))
+         DL2:PopClipRect()
+
+         mimgui.SetCursorPos(UI.v2(mimgui.GetCursorPosX() + textW, rowY))
+         if UI.Button("Добавить##lrn_add_" .. shownCand, 110, 28, 'accent') then
+            Data.learned[cand.from] = cand.to
+            Data.subs[cand.from .. "\t" .. cand.to] = nil
+            Data.save()
+            chat(CHAT.OK .. "Правило добавлено: " .. CHAT.HI .. cand.from ..
+               CHAT.OK .. " -> " .. CHAT.HI .. cand.to, 'BULB')
+         end
+         mimgui.SameLine(0, 6)
+         if UI.Button("Нет##lrn_no_" .. shownCand, 70, 28) then
+            Data.subs[cand.from .. "\t" .. cand.to] = nil
+            Data.save()
+         end
+         mimgui.Dummy(UI.v2(0, 2))
+      end
+
+      local shownLearned, killedRule = 0, nil
+      for from, to in pairs(Data.learned) do
+         if shownLearned >= 4 then break end
+         shownLearned = shownLearned + 1
+         local rowY = mimgui.GetCursorPosY()
+         local avail = mimgui.GetContentRegionAvail().x
+         local DL2, pos2 = mimgui.GetWindowDrawList(), mimgui.GetCursorScreenPos()
+         DL2:AddText(UI.v2(pos2.x, pos2.y + 6), UI.u32(UI.C.SUCCESS),
+            u8(("%s  ->  %s"):format(from, to)))
+         mimgui.SetCursorPos(UI.v2(mimgui.GetCursorPosX() + avail - 110, rowY))
+         if UI.Button("Убрать##lrn_del_" .. shownLearned, 110, 28) then
+            killedRule = from
+         end
+         mimgui.Dummy(UI.v2(0, 2))
+      end
+      if killedRule then
+         Data.learned[killedRule] = nil
+         Data.save()
+      end
+
+      UI.CardEnd()
+      mimgui.Dummy(UI.v2(0, 8))
+   end
+
+   local dryH = 0
+   if state.dryRun then
+      local items = { UI.mTitle(), UI.mSmall() }
+      for _ = 1, #state.dryRun.samples do
+         items[#items + 1] = UI.mSmall()
+         items[#items + 1] = UI.mSmall()
+      end
+      dryH = UI.cardH(items)
+   end
+
+   UI.PaneBegin("##tpl_list", UI.v2(-1, -(52 + (dryH > 0 and dryH + 12 or 0))))
 
    if #templateEditorData.list == 0 then
       UI.Empty('file-text', "Шаблонов пока нет",
@@ -5077,7 +6629,31 @@ function renderTemplatesTab()
 
    UI.PaneEnd()
 
-   if UI.Button("Удалить все шаблоны##tpl_wipe", 0, 38, 'danger') then
+   if state.dryRun then
+      mimgui.Dummy(UI.v2(0, 6))
+      UI.CardBegin("##tpl_dry", UI.v2(-1, dryH), "Прогон правил по базе", 'flask')
+      if fonts.small then mimgui.PushFont(fonts.small) end
+      mimgui.TextColored(UI.C.TEXT, "%s",
+         u8(("Изменится %d из %d шаблонов"):format(state.dryRun.changed, state.dryRun.total)))
+      for _, sample in ipairs(state.dryRun.samples) do
+         mimgui.TextColored(UI.C.MUTE, "%s", u8(sample.from))
+         mimgui.TextColored(UI.C.SUCCESS, "%s", u8("   -> " .. sample.to))
+      end
+      if fonts.small then mimgui.PopFont() end
+      UI.CardEnd()
+      mimgui.Dummy(UI.v2(0, 6))
+   end
+
+   local wipeW = (mimgui.GetContentRegionAvail().x - 10) / 2
+   if UI.Button("Прогнать правила по базе##tpl_dry_run", wipeW, 38) then
+      if state.dryRun then
+         state.dryRun = nil
+      else
+         state.dryRun = AutoFix.dryRun()
+      end
+   end
+   mimgui.SameLine(0, 10)
+   if UI.Button("Удалить все шаблоны##tpl_wipe", wipeW, 38, 'danger') then
       state.templates = {}
       saveTemplates()
       updateTemplateCache()
@@ -5117,9 +6693,18 @@ function renderEditorView()
    local limit = tonumber(cfg.settings.maxAdLength) or 180
    local used = #curText
 
-   mimgui.Dummy(UI.v2(0, 2))
-   if fonts.small then mimgui.PushFont(fonts.small) end
-   local cp = mimgui.GetCursorScreenPos()
+   mimgui.Dummy(UI.v2(0, 4))
+
+   local level = (state.validation and state.validation.level) or 'ok'
+   local levelCol = (level == 'bad') and UI.C.DANGER
+      or ((level == 'warn') and UI.C.WARNC or UI.C.SUCCESS)
+
+   local lp = mimgui.GetCursorScreenPos()
+   local availLine = mimgui.GetContentRegionAvail().x
+   DL:AddCircleFilled(UI.v2(lp.x + 7, lp.y + 10), 6.0, UI.u32(levelCol), 16)
+   DL:AddCircleFilled(UI.v2(lp.x + 7, lp.y + 10), 11.0, UI.u32(UI.a(levelCol, 0.20)), 20)
+   DL:AddText(UI.v2(lp.x + 24, lp.y + 2), UI.u32(levelCol), u8(Validate.levelText(level)))
+
    local counter = u8(("%d / %d"):format(used, limit))
    local ccol = UI.C.MUTE
    if used > limit then
@@ -5127,28 +6712,61 @@ function renderEditorView()
    elseif used > limit * 0.9 then
       ccol = UI.C.WARNC
    end
-   DL:AddText(UI.v2(cp.x + mimgui.GetContentRegionAvail().x - mimgui.CalcTextSize(counter).x, cp.y),
+   DL:AddText(UI.v2(lp.x + availLine - mimgui.CalcTextSize(counter).x, lp.y + 2),
       UI.u32(ccol), counter)
+   mimgui.Dummy(UI.v2(availLine, 24))
 
-   local statusText, statusCol = nil, UI.C.MUTE
+   if fonts.small then mimgui.PushFont(fonts.small) end
    if state.validation and #state.validation.issues > 0 then
-      statusText = state.validation.issues[1].message
-      statusCol = (state.validation.level == 'bad') and UI.C.DANGER or UI.C.WARNC
+      for _, issue in ipairs(state.validation.issues) do
+         local col = (issue.severity == 'bad') and UI.C.DANGER or UI.C.WARNC
+         mimgui.TextColored(col, "%s", u8("- " .. issue.message))
+      end
    elseif state.autoFixApplied and #state.autoFixApplied > 0 then
-      statusText = "Исправлено: " .. table.concat(state.autoFixApplied, ", ")
-      statusCol = UI.C.SUCCESS
+      mimgui.TextColored(UI.C.SUCCESS, "%s",
+         u8("Исправлено: " .. table.concat(state.autoFixApplied, ", ")))
    end
-   if statusText then
-      DL:AddText(UI.v2(cp.x, cp.y), UI.u32(statusCol), u8(statusText))
-   end
-   mimgui.Dummy(UI.v2(0, mimgui.GetTextLineHeight() + 2))
    if fonts.small then mimgui.PopFont() end
 
-   local fixW = (mimgui.GetContentRegionAvail().x - 12) / 2
-   if UI.Button("Исправить текст##qe_fix", fixW, 32, nil, nil, ":u1f527:") then
+   if cfg.settings.autocomplete ~= false then
+      local prefix = currentWordPrefix()
+      local matches = autocompleteMatches(prefix)
+      if #matches > 0 then
+         mimgui.Dummy(UI.v2(0, 2))
+         if fonts.small then mimgui.PushFont(fonts.small) end
+         local rowWidth = mimgui.GetContentRegionAvail().x
+         local usedWidth = 0
+         for i, word in ipairs(matches) do
+            local bw = mimgui.CalcTextSize(u8(word)).x + 22
+            if i > 1 then
+               if usedWidth + bw + 5 <= rowWidth then
+                  mimgui.SameLine(0, 5)
+                  usedWidth = usedWidth + bw + 5
+               else
+                  usedWidth = bw
+               end
+            else
+               usedWidth = bw
+            end
+            if UI.Button(word .. "##ac_" .. i, bw, 26) then
+               replaceLastWord(word)
+            end
+         end
+         if fonts.small then mimgui.PopFont() end
+         mimgui.Dummy(UI.v2(0, 2))
+      end
+   end
+
+   mimgui.Dummy(UI.v2(0, 4))
+   local fixW = (mimgui.GetContentRegionAvail().x - 16) / 3
+   if UI.Button("Исправить##qe_fix", fixW, 32, nil, nil, ":u1f527:") then
       applyAutoFix(false)
    end
-   mimgui.SameLine(0, 12)
+   mimgui.SameLine(0, 8)
+   if UI.Button("Отменить##qe_undo", fixW, 32) then
+      undoEditor()
+   end
+   mimgui.SameLine(0, 8)
    if UI.Button("Пропустить##qe_skip", fixW, 32) then
       skipCurrentAd()
       UI.PaneEnd()
@@ -5285,15 +6903,15 @@ mimgui.OnFrame(
          )
       end
 
-      local winWidth, winHeight = 470, 190
+      local winWidth, winHeight = SC(470), SC(190)
       if windowState.currentView == "editor" then
-         winWidth  = 1090
-         winHeight = state.quickEditButtons and 900 or 540
+         winWidth  = SC(1110)
+         winHeight = SC(state.quickEditButtons and 940 or 580)
       elseif windowState.currentView == "list" then
-         winWidth, winHeight = 980, 620
+         winWidth, winHeight = SC(980), SC(620)
       elseif windowState.currentView == "menu" then
-         winWidth  = 580
-         winHeight = math.min(620, 165 + #menuData.items * 52)
+         winWidth  = SC(580)
+         winHeight = SC(math.min(620, 165 + #menuData.items * 52))
       end
       winWidth  = math.min(winWidth,  screenW - 40)
       winHeight = math.min(winHeight, screenH - 50)
@@ -5343,6 +6961,21 @@ mimgui.OnFrame(
    end
 )
 
+function toggleShift()
+   if cfg.stats.shiftActive then
+      cfg.stats.shiftActive = false
+      chat(CHAT.MUTED .. "Смена закрыта", 'HALT')
+   else
+      cfg.stats.shiftActive = true
+      cfg.stats.shiftStartedAt = os.time()
+      cfg.stats.shiftApproved = 0
+      cfg.stats.shiftRejected = 0
+      cfg.stats.shiftEarned = 0
+      chat(CHAT.OK .. "Смена начата", 'PLAY')
+   end
+   saveConfig(true)
+end
+
 function renderStatsTab()
    check_daily_reset()
 
@@ -5376,7 +7009,7 @@ function renderStatsTab()
 
    UI.PaneBegin("##st_left", UI.v2(colW, -1))
 
-   UI.CardBegin("##st_cat", UI.v2(-1, 264), "Категории объявлений", 'category')
+   UI.CardBegin("##st_cat", UI.v2(-1, UI.cardH({ UI.mTitle(), UI.mBar(), UI.mBar(), UI.mBar(), UI.mBar() })), "Категории объявлений", 'category')
    local tot = math.max(1, (cfg.stats.catTransport or 0) + (cfg.stats.catRealty or 0)
       + (cfg.stats.catAccs or 0) + (cfg.stats.catOther or 0))
    local cats = {
@@ -5394,12 +7027,13 @@ function renderStatsTab()
 
    mimgui.Dummy(UI.v2(0, 10))
 
-   UI.CardBegin("##st_cnt", UI.v2(-1, 408), "Счётчики и скорость", 'list-numbers')
+   UI.CardBegin("##st_cnt", UI.v2(-1, UI.cardH({ UI.mTitle(), UI.mKV(), UI.mKV(), UI.mKV(), UI.mKV(), UI.mKV(), UI.mKV(), UI.mKV(), UI.mKV(), UI.mKV(), UI.mKV() })), "Счётчики и скорость", 'list-numbers')
    UI.KV("Сессия - одобрено",  anim_i("k1", cfg.stats.sessionApproved),  UI.C.SUCCESS)
    UI.KV("Сессия - отклонено", anim_i("k2", cfg.stats.sessionRejected),  UI.C.DANGER)
    UI.KV("Всего одобрено",     anim_i("k3", cfg.stats.totalApproved))
    UI.KV("Всего отклонено",    anim_i("k4", cfg.stats.totalRejected))
    UI.KV("Авто-пропусков",     anim_i("k5", cfg.stats.autoSkippedCount),  UI.C.MUTE)
+   UI.KV("Увели другие",       anim_i("k6", cfg.stats.lostToOthers),      UI.C.WARNC)
    UI.KV("Объявлений в час",   adsPerHour(), UI.C.ACCENT)
 
    local avgSpeed = avgEditSeconds()
@@ -5420,10 +7054,22 @@ function renderStatsTab()
 
    mimgui.Dummy(UI.v2(0, 10))
 
-   UI.CardBegin("##st_hist", UI.v2(-1, 176), "История за последние дни", 'calendar')
-   local hist = getHistoryTable()
+   UI.CardBegin("##st_hist", UI.v2(-1, UI.cardH({ UI.mTitle(), 62 + FONT_SIZE.small + 13, UI.mKV() })), "История за последние дни", 'calendar')
+   local hist = Data.history
+   if #hist == 0 then hist = getHistoryTable() end
    if #hist > 0 then
-      UI.MiniChart(hist, 62)
+      local shown = {}
+      local from = math.max(1, #hist - 13)
+      for i = from, #hist do shown[#shown + 1] = hist[i] end
+      UI.MiniChart(shown, 62)
+
+      local sumApproved, sumEarned = 0, 0
+      for _, rec in ipairs(hist) do
+         sumApproved = sumApproved + (rec.approved or 0)
+         sumEarned = sumEarned + (rec.earnings or 0)
+      end
+      UI.KV(("За %d дней"):format(#hist),
+         ("%d  /  $%s"):format(sumApproved, format_money(sumEarned)), UI.C.SUCCESS)
    else
       if fonts.small then mimgui.PushFont(fonts.small) end
       mimgui.TextColored(UI.C.MUTE, "%s", u8"История начнёт заполняться со следующего дня")
@@ -5433,7 +7079,36 @@ function renderStatsTab()
 
    mimgui.Dummy(UI.v2(0, 10))
 
-   UI.CardBegin("##st_top", UI.v2(-1, 256), "Топ отправителей", 'users')
+   UI.CardBegin("##st_hour", UI.v2(-1, UI.cardH({ UI.mTitle(), 84, UI.mSmall() })),
+      "Активность по часам", 'clock')
+   local anyHour = false
+   for _, v in pairs(Data.hourly) do
+      if (tonumber(v) or 0) > 0 then anyHour = true break end
+   end
+   if anyHour then
+      UI.HourChart(Data.hourly, 84)
+      if fonts.small then mimgui.PushFont(fonts.small) end
+      local bestHour, bestValue = nil, 0
+      for h = 0, 23 do
+         local v = tonumber(Data.hourly[tostring(h)]) or 0
+         if v > bestValue then bestHour, bestValue = h, v end
+      end
+      if bestHour then
+         mimgui.TextColored(UI.C.MUTE, "%s",
+            u8(("Пик: %02d:00 - %d объявлений"):format(bestHour, bestValue)))
+      end
+      if fonts.small then mimgui.PopFont() end
+   else
+      if fonts.small then mimgui.PushFont(fonts.small) end
+      mimgui.TextColored(UI.C.MUTE, "%s", u8"Данные появятся после первых объявлений")
+      mimgui.Dummy(UI.v2(0, 84))
+      if fonts.small then mimgui.PopFont() end
+   end
+   UI.CardEnd()
+
+   mimgui.Dummy(UI.v2(0, 10))
+
+   UI.CardBegin("##st_top", UI.v2(-1, UI.cardH({ UI.mTitle(), UI.mKV(), UI.mKV(), UI.mKV(), UI.mKV(), UI.mKV() })), "Топ отправителей", 'users')
    local top = Data.topSenders(5)
    if #top == 0 then
       if fonts.small then mimgui.PushFont(fonts.small) end
@@ -5464,7 +7139,29 @@ function renderStatsTab()
    local tplP = (cfg.stats.totalApproved or 0) > 0
       and math.min(100, (cfg.stats.tplApproved or 0) / cfg.stats.totalApproved * 100) or 0
 
-   UI.CardBegin("##st_eff", UI.v2(-1, 469), "Эффективность", 'target')
+   UI.CardBegin("##st_shift", UI.v2(-1, UI.cardH({ UI.mTitle(), UI.mKV(), UI.mKV(), UI.mKV(), UI.mKV(), 34 })),
+      "Смена", 'briefcase')
+   if cfg.stats.shiftActive then
+      local elapsed = math.max(0, os.time() - (cfg.stats.shiftStartedAt or os.time()))
+      local hours = elapsed / 3600
+      UI.KV("Идёт", ("%d ч %02d мин"):format(math.floor(hours), math.floor((elapsed % 3600) / 60)),
+         UI.C.SUCCESS)
+      UI.KV("Обработано", cfg.stats.shiftApproved or 0)
+      UI.KV("Отклонено", cfg.stats.shiftRejected or 0, UI.C.DANGER)
+      UI.KV("Заработано", "$" .. format_money(cfg.stats.shiftEarned or 0), UI.C.SUCCESS)
+      if UI.Button("Закончить смену##shift_stop", 0, 34, 'danger') then toggleShift() end
+   else
+      UI.KV("Статус", "смена не начата", UI.C.MUTE)
+      UI.KV("Прошлая - обработано", cfg.stats.shiftApproved or 0)
+      UI.KV("Прошлая - отклонено", cfg.stats.shiftRejected or 0, UI.C.DANGER)
+      UI.KV("Прошлая - заработано", "$" .. format_money(cfg.stats.shiftEarned or 0))
+      if UI.Button("Начать смену##shift_start", 0, 34, 'accent') then toggleShift() end
+   end
+   UI.CardEnd()
+
+   mimgui.Dummy(UI.v2(0, 10))
+
+   UI.CardBegin("##st_eff", UI.v2(-1, UI.cardH({ UI.mTitle(), UI.mRing(36, 2), 6, UI.mRing(36, 2), 6, math.max(UI.mRing(36, 2), FONT_SIZE.big + FONT_SIZE.small * 2 + 40) })), "Эффективность", 'target')
    local ringW = (mimgui.GetContentRegionAvail().x - 8) / 2
    UI.Ring("##r1", sEff, 36, 6, "Эффективность", "сессии", ringW)
    mimgui.SameLine(0, 8)
@@ -5496,7 +7193,7 @@ function renderStatsTab()
 
    mimgui.Dummy(UI.v2(0, 10))
 
-   UI.CardBegin("##st_rej", UI.v2(-1, 256), "Причины отклонений", 'file-x')
+   UI.CardBegin("##st_rej", UI.v2(-1, UI.cardH({ UI.mTitle(), UI.mKV(), UI.mKV(), UI.mKV(), UI.mKV(), UI.mKV() })), "Причины отклонений", 'file-x')
    local reasons = Data.topReasons(5)
    if #reasons == 0 then
       if fonts.small then mimgui.PushFont(fonts.small) end
@@ -5511,7 +7208,7 @@ function renderStatsTab()
 
    mimgui.Dummy(UI.v2(0, 10))
 
-   UI.CardBegin("##st_ach", UI.v2(-1, 491), "Достижения СМИ", 'trophy')
+   UI.CardBegin("##st_ach", UI.v2(-1, UI.cardH({ UI.mTitle(), 42, 42, 42, 42, 42, 42, 42, 42, 4, UI.mSmall() })), "Достижения СМИ", 'trophy')
 
    local function compact(num)
       if num >= 1000000 then
@@ -5615,6 +7312,9 @@ function renderStatsTab()
       }
       Data.rejectReasons = {}
       Data.senders = {}
+      Data.hourly = {}
+      Data.history = {}
+      Data.recentAds = {}
       Data.save()
       sessionStartTimestamp = os.time()
       state.doneTimes = {}
@@ -5661,15 +7361,18 @@ function renderInfoTab()
 
    UI.PaneBegin("##inf_left", UI.v2(colW, -1))
 
-   UI.CardBegin("##inf_cmd", UI.v2(-1, 180), "Команды управления", 'terminal-2')
+   UI.CardBegin("##inf_cmd",
+      UI.v2(-1, UI.cardH({ UI.mTitle(), UI.mKV(), UI.mKV(), UI.mKV(), UI.mKV() })),
+      "Команды управления", 'terminal-2')
    UI.KV("/smi", "меню настроек", UI.C.ACCENT)
    UI.KV("/newsredak", "очередь объявлений", UI.C.ACCENT)
    UI.KV("/smipause", "пауза автоматики", UI.C.ACCENT)
+   UI.KV("/smishift", "начать или закрыть смену", UI.C.ACCENT)
    UI.CardEnd()
 
    mimgui.Dummy(UI.v2(0, 10))
 
-   UI.CardBegin("##inf_dep", UI.v2(-1, 246), "Состояние компонентов", 'cpu')
+   UI.CardBegin("##inf_dep", UI.v2(-1, UI.cardH({ UI.mTitle(), UI.mDep(), UI.mDep(), UI.mDep(), UI.mDep(), UI.mDep() })), "Состояние компонентов", 'cpu')
    local function dep(name, okFlag, badText, warnOnly)
       local DL, pos = mimgui.GetWindowDrawList(), mimgui.GetCursorScreenPos()
       local w, lh = mimgui.GetContentRegionAvail().x, mimgui.GetTextLineHeight()
@@ -5743,7 +7446,7 @@ function renderInfoTab()
 
    mimgui.Dummy(UI.v2(0, 10))
 
-   UI.CardBegin("##inf_faq", UI.v2(-1, 249), "Частые вопросы", 'help-circle')
+   UI.CardBegin("##inf_faq", UI.v2(-1, UI.cardH({ UI.mTitle(), UI.mLine(), UI.mSmall(), 6, UI.mLine(), UI.mSmall(), 6, UI.mLine(), UI.mSmall(), 6 })), "Частые вопросы", 'help-circle')
    local function qa(q, a)
       mimgui.TextColored(UI.C.TEXT, "%s", u8(q))
       if fonts.small then mimgui.PushFont(fonts.small) end
@@ -5777,10 +7480,11 @@ mimgui.OnFrame(
 
       local sw, sh = getScreenResolution()
       local SETTINGS_H = {
-         settings = 880, stats = 880, templates = 880, blacklist = 880, info = 820
+         settings = SC(900), stats = SC(900), templates = SC(900),
+         blacklist = SC(900), info = SC(840)
       }
-      local setW = math.min(1120, sw - 40)
-      local setH = math.min(SETTINGS_H[windowState.activeSettingsTab] or 880, sh - 50)
+      local setW = math.min(SC(1120), sw - 40)
+      local setH = math.min(SETTINGS_H[windowState.activeSettingsTab] or SC(900), sh - 50)
       mimgui.SetNextWindowSize(UI.v2(setW, setH), mimgui.Cond.Always)
 
       if forceCenterSettings then
@@ -5805,7 +7509,7 @@ mimgui.OnFrame(
       cfg.settings.settingsPosX = setPos.x
       cfg.settings.settingsPosY = setPos.y
 
-      local SIDE = 224
+      local SIDE = SC(224)
       local dayP = (cfg.stats.dailyApproved or 0) / math.max(1, cfg.settings.dailyGoal or 50)
       if UI.WindowChrome(SETTINGS_TITLES[windowState.activeSettingsTab] or u8"Настройки",
          SIDE, math.min(1, dayP), SETTINGS_EMO[windowState.activeSettingsTab]) then
@@ -5928,14 +7632,42 @@ mimgui.OnFrame(
          if imguiVars.autoFixEnabled[0] then
             if UI.ToggleRow("Применять при открытии", imguiVars.autoFixOnOpen,
                "Править текст сразу, как только открылся редактор") then syncStateFromImgui() end
+            if UI.ToggleRow("Профили под категорию", imguiVars.useCategoryProfiles,
+               "Свой набор правил для транспорта, недвижимости и аксессуаров") then
+               syncStateFromImgui()
+            end
+
+            state.autofixProfile = state.autofixProfile or 1
+            if not imguiVars.useCategoryProfiles[0] then state.autofixProfile = 1 end
+            local profile = AUTOFIX_PROFILES[state.autofixProfile] or AUTOFIX_PROFILES[1]
+            local flags = cfg[profile.key]
+            if type(flags) ~= 'table' then
+               flags = copyFlags(AUTOFIX_DEFAULTS)
+               cfg[profile.key] = flags
+            end
+
+            if imguiVars.useCategoryProfiles[0] then
+               UI.SubBegin()
+               UI.SubRow("Профиль", 108, function()
+                  if UI.Button(profile.name .. "##af_prof", 190, 28, 'accent') then
+                     state.autofixProfile = (state.autofixProfile % #AUTOFIX_PROFILES) + 1
+                  end
+               end)
+               UI.SubEnd()
+            end
+
             UI.SubBegin()
             for _, rule in ipairs(AutoFix.rules) do
-               UI.SubRow(rule.name, 168, function()
-                  local label = autofixVars[rule.id][0] and "Вкл" or "Выкл"
-                  if UI.Button(label .. "##af_" .. rule.id, 84, 28,
-                     autofixVars[rule.id][0] and 'accent' or nil) then
-                     autofixVars[rule.id][0] = not autofixVars[rule.id][0]
-                     syncStateFromImgui()
+               UI.SubRow(rule.name, 190, function()
+                  local on = (flags[rule.id] ~= false)
+                  if UI.Button((on and "Вкл" or "Выкл") .. "##af_" .. rule.id, 84, 28,
+                     on and 'accent' or nil) then
+                     flags[rule.id] = not on
+                     Tpl.invalidate()
+                     saveConfig(true)
+                  end
+                  if rule.hint and mimgui.IsItemHovered() then
+                     mimgui.SetTooltip("%s", u8(rule.hint))
                   end
                end)
             end
@@ -5994,7 +7726,32 @@ mimgui.OnFrame(
             UI.SubEnd()
          end
 
-         UI.SectionTitle("Шаблоны")
+         UI.SectionTitle("Подсказки и шаблоны")
+         if UI.ToggleRow("Шаблоны по форме", imguiVars.paramTemplates,
+            "Числа и марки в шаблоне становятся подстановками, один шаблон закрывает похожие объявления") then
+            syncStateFromImgui()
+         end
+         if UI.ToggleRow("Помнить правки по отправителю", imguiVars.senderTemplates,
+            "Постоянные клиенты пишут одно и то же") then syncStateFromImgui() end
+         if UI.ToggleRow("Автодополнение при вводе", imguiVars.autocomplete,
+            "Подсказывает марки, локации и бизнесы по первым буквам") then syncStateFromImgui() end
+         if UI.ToggleRow("Показывать что изменилось", imguiVars.showDiff,
+            "Диф оригинала и твоей правки в боковой панели") then syncStateFromImgui() end
+         if UI.ToggleRow("Учиться на моих правках", imguiVars.learnSuggest,
+            "Повторяющиеся замены предлагаются как правило во вкладке Шаблоны") then
+            syncStateFromImgui()
+         end
+         if imguiVars.learnSuggest[0] then
+            UI.SubBegin()
+            UI.SubRow("Повторов", 108, function()
+               if UI.NumberBox("##learn_thr", imguiVars.learnThreshold, 2, 30, "") then
+                  cfg.settings.learnThreshold = imguiVars.learnThreshold[0]
+                  saveConfig(true)
+               end
+            end)
+            UI.SubEnd()
+         end
+
          local fz = mimgui.GetCursorScreenPos()
          mimgui.GetWindowDrawList():AddText(UI.v2(fz.x + 8, fz.y + 5),
             UI.u32(UI.C.DIM), u8"Порог схожести")
@@ -6006,7 +7763,50 @@ mimgui.OnFrame(
          end
          mimgui.SetCursorScreenPos(UI.v2(fz.x, fz.y + 34))
 
+         UI.SubBegin()
+         UI.SubRow("Дубликат в", 108, function()
+            if UI.NumberBox("##dup_win", imguiVars.dupWindowMin, 1, 240, u8" мин") then
+               cfg.settings.dupWindowMin = imguiVars.dupWindowMin[0]
+               saveConfig(true)
+            end
+         end)
+         UI.SubEnd()
+
+         UI.SectionTitle("Очередь")
+         local strategies = {
+            { 'smart', "Умный" }, { 'age', "По очереди" },
+            { 'money', "VIP вперёд" }, { 'speed', "Где есть шаблон" }
+         }
+         local current = cfg.settings.catchStrategy or 'smart'
+         local currentName, currentIdx = "Умный", 1
+         for i, item in ipairs(strategies) do
+            if item[1] == current then currentName, currentIdx = item[2], i end
+         end
+         local sp2 = mimgui.GetCursorScreenPos()
+         mimgui.GetWindowDrawList():AddText(UI.v2(sp2.x + 8, sp2.y + 6),
+            UI.u32(UI.C.DIM), u8"Что ловить первым")
+         mimgui.SetCursorScreenPos(UI.v2(sp2.x + 190, sp2.y))
+         if UI.Button(currentName .. "##catch_strategy", 180, 28, 'accent') then
+            cfg.settings.catchStrategy = strategies[(currentIdx % #strategies) + 1][1]
+            saveConfig(true)
+         end
+         mimgui.SetCursorScreenPos(UI.v2(sp2.x, sp2.y + 34))
+
          UI.SectionTitle("Оформление")
+         local scp = mimgui.GetCursorScreenPos()
+         mimgui.GetWindowDrawList():AddText(UI.v2(scp.x + 8, scp.y + 6),
+            UI.u32(UI.C.DIM), u8"Масштаб интерфейса")
+         mimgui.SetCursorScreenPos(UI.v2(scp.x + 190, scp.y))
+         if UI.NumberBox("##ui_scale", imguiVars.uiScale, 75, 150, "%") then
+            cfg.settings.uiScale = imguiVars.uiScale[0]
+            saveConfig(true)
+         end
+         mimgui.SetCursorScreenPos(UI.v2(scp.x, scp.y + 30))
+         if fonts.small then mimgui.PushFont(fonts.small) end
+         mimgui.TextColored(UI.C.MUTE, "%s", u8"Шрифты пересоберутся после перезапуска скрипта")
+         if fonts.small then mimgui.PopFont() end
+         mimgui.Dummy(UI.v2(0, 6))
+
          local activeColor = tonumber(cfg.settings.moonmonetBaseColor) or 0xFF00BABE
          for i, p in ipairs({ 0xFF00BABE, 0xFF8A2BE2, 0xFF007ACC,
                               0xFF2ECC71, 0xFFFFD700, 0xFFDC143C }) do
@@ -6516,6 +8316,9 @@ function main()
             cfg.stats.dailyEarnings = cfg.stats.dailyEarnings + amount
             cfg.stats.totalEarnings = (cfg.stats.totalEarnings or 0) + amount
             cfg.stats.sessionEarnings = (cfg.stats.sessionEarnings or 0) + amount
+            if cfg.stats.shiftActive then
+               cfg.stats.shiftEarned = (cfg.stats.shiftEarned or 0) + amount
+            end
             saveConfig()
          end
       end
@@ -6528,6 +8331,9 @@ function main()
             cfg.stats.dailyEarnings = cfg.stats.dailyEarnings + amount
             cfg.stats.totalEarnings = (cfg.stats.totalEarnings or 0) + amount
             cfg.stats.sessionEarnings = (cfg.stats.sessionEarnings or 0) + amount
+            if cfg.stats.shiftActive then
+               cfg.stats.shiftEarned = (cfg.stats.shiftEarned or 0) + amount
+            end
             saveConfig()
          end
       end
@@ -6757,10 +8563,13 @@ function main()
          editorData.sender = parsed.sender
          editorData.time = parsed.time
          editorData.message = parsed.message
-         local template, isFuzzy, fuzzyScore = Tpl.find(parsed.message)
+         local senderKey = normalizeSender(parsed.sender or '')
+         local template, matchKind, matchScore = Tpl.find(parsed.message, senderKey)
          editorData.dialogId = dialogId
          editorData.openTime = os.clock()
-         state.templateMatch = template and { fuzzy = isFuzzy, score = fuzzyScore } or nil
+         editorData.senderKey = senderKey
+         editorData.textKey = templateKey(parsed.message)
+         state.templateMatch = template and { kind = matchKind, score = matchScore } or nil
          state.usedTemplate = (template ~= nil)
          state.autoFixApplied = nil
 
@@ -6785,14 +8594,23 @@ function main()
             chat(CHAT.OK .. "Текст восстановлен")
          elseif template then
             textToInsert = template
-            if isFuzzy then
-               chat(CHAT.WARN .. "Похожий шаблон " .. CHAT.HI .. fuzzyScore .. "%" ..
-                  CHAT.WARN .. " - проверь текст перед отправкой")
-               Toast.push('warn', ('Похожий шаблон %d%%'):format(fuzzyScore),
-                  'Проверь текст перед отправкой', 5.0)
-            else
+            if matchKind == 'exact' then
                chat(CHAT.OK .. "Подставлен сохранённый шаблон", 'TPL')
                Toast.push('ok', 'Шаблон подставлен', nil, 2.5)
+            elseif matchKind == 'param' then
+               chat(CHAT.OK .. "Подставлен шаблон по форме " .. CHAT.MUTED ..
+                  "(числа и названия взяты из объявления)", 'TPL')
+               Toast.push('ok', 'Шаблон по форме', 'Значения подставлены из объявления', 3.0)
+            elseif matchKind == 'sender' then
+               chat(CHAT.WARN .. "Прошлая правка этого отправителя " .. CHAT.HI ..
+                  matchScore .. "%" .. CHAT.WARN .. " - проверь текст")
+               Toast.push('warn', ('Правка отправителя %d%%'):format(matchScore),
+                  'Проверь текст перед отправкой', 5.0)
+            else
+               chat(CHAT.WARN .. "Похожий шаблон " .. CHAT.HI .. matchScore .. "%" ..
+                  CHAT.WARN .. " - проверь текст перед отправкой")
+               Toast.push('warn', ('Похожий шаблон %d%%'):format(matchScore),
+                  'Проверь текст перед отправкой', 5.0)
             end
          else
             textToInsert = parsed.message
@@ -6804,15 +8622,27 @@ function main()
             and not restored and not template then
             applyAutoFix(false)
          end
+         state.undoStack, state.redoStack = {}, {}
          runValidation()
 
          windowState.currentView = "editor"
          anim.main = os.clock()
          windowState.mainWindow[0] = true
 
-         local safeForAuto = (state.validation == nil) or (state.validation.level ~= 'bad')
+         local vipCd = tonumber(cfg.settings.vipCooldownSec) or 0
+         if state.isVipAd and vipCd > 0 and (state.lastVipPublishAt or 0) > 0 then
+            local readyAt = state.lastVipPublishAt + vipCd
+            if readyAt > os.clock() then
+               state.cooldownUntil = readyAt
+               chat(CHAT.MUTED .. "VIP-кулдаун ещё идёт, отправка будет доступна через " ..
+                  CHAT.HI .. math.ceil(readyAt - os.clock()) .. CHAT.MUTED .. " сек", 'CD')
+            end
+         end
 
-         if state.autoApprove and template and not isFuzzy and safeForAuto then
+         local safeForAuto = (state.validation == nil) or (state.validation.level ~= 'bad')
+         local autoKind = (matchKind == 'exact') or (matchKind == 'param')
+
+         if state.autoApprove and template and autoKind and safeForAuto then
             local delay = cfg.settings.autoApproveDelay or 0
             if delay > 0 then
                state.autoApproveAt = os.clock() + delay
@@ -6823,7 +8653,7 @@ function main()
             end
          else
             state.autoApproveAt = 0
-            if state.autoApprove and template and not isFuzzy and not safeForAuto then
+            if state.autoApprove and template and autoKind and not safeForAuto then
                chat(CHAT.WARN .. "Автопилот пропущен: текст не прошёл проверку", 'STOP')
             end
          end
@@ -6878,10 +8708,15 @@ function main()
       toggleQueuePause()
    end)
 
+   sampRegisterChatCommand('smishift', function()
+      toggleShift()
+   end)
+
    chat(CHAT.OK .. "SMI Helper " .. CHAT.HI .. "v" .. SCRIPT_VERSION .. CHAT.OK .. " загружен", 'ARZ', true)
    chat(CHAT.MUTED .. "Настройки " .. CHAT.HI .. "/smi" .. CHAT.MUTED ..
       "     Очередь " .. CHAT.HI .. "/newsredak" .. CHAT.MUTED ..
-      "     Пауза " .. CHAT.HI .. "/smipause", 'GEAR', true)
+      "     Пауза " .. CHAT.HI .. "/smipause" .. CHAT.MUTED ..
+      "     Смена " .. CHAT.HI .. "/smishift", 'GEAR', true)
    showChangelog()
 
    while true do
@@ -6894,7 +8729,7 @@ function main()
       check_daily_reset()
       flushConfig()
 
-      if Data.dirty then Data.save() end
+      Data.flush(false)
 
       if hotkeyAssigning then
          if hotkeyDebounce then
