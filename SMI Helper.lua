@@ -1615,7 +1615,7 @@ end
 function UI.NeonBorder(o, w, h, r)
    if not UI.fx then return end
    local DL  = mimgui.GetWindowDrawList()
-   local N   = 132
+   local N   = math.max(180, math.min(720, math.floor((w + h) / 3)))
    local ins = 2
    local p   = UI.roundPath(math.floor(w - ins * 2), math.floor(h - ins * 2),
                             math.max(2, r - ins), N)
@@ -1696,6 +1696,8 @@ function UI.refresh()
 end
 
 UI.emojiReady = false
+UI.emojiLoaded = false
+UI.emojiError = nil
 UI._emoCache  = {}
 
 local EMO_WHITE = mimgui.ImVec4(1, 1, 1, 1)
@@ -3995,7 +3997,7 @@ function syncStateFromImgui()
    end
 
    cfg.settings.uiEmoji = imguiVars.uiEmoji[0]
-   UI.emojiReady = (emoji ~= nil) and emoji.loaded and cfg.settings.uiEmoji
+   UI.emojiReady = (emoji ~= nil) and UI.emojiLoaded and (cfg.settings.uiEmoji ~= false)
    UI._emoCache = {}
 
    UI.fx = imguiVars.fxAnimations[0]
@@ -4395,7 +4397,9 @@ mimgui.OnInitialize(function()
 
    if emoji then
       local okLoad, errLoad = emoji.load()
-      UI.emojiReady = okLoad and (cfg.settings.uiEmoji ~= false) or false
+      UI.emojiLoaded = okLoad and true or false
+      UI.emojiError = (not okLoad) and tostring(errLoad) or nil
+      UI.emojiReady = UI.emojiLoaded and (cfg.settings.uiEmoji ~= false)
       if not okLoad then
          logLine('WARN', 'Атлас эмодзи не загрузился: ' .. tostring(errLoad))
       end
@@ -5390,7 +5394,7 @@ function renderStatsTab()
 
    mimgui.Dummy(UI.v2(0, 10))
 
-   UI.CardBegin("##st_cnt", UI.v2(-1, 380), "Счётчики и скорость", 'list-numbers')
+   UI.CardBegin("##st_cnt", UI.v2(-1, 408), "Счётчики и скорость", 'list-numbers')
    UI.KV("Сессия - одобрено",  anim_i("k1", cfg.stats.sessionApproved),  UI.C.SUCCESS)
    UI.KV("Сессия - отклонено", anim_i("k2", cfg.stats.sessionRejected),  UI.C.DANGER)
    UI.KV("Всего одобрено",     anim_i("k3", cfg.stats.totalApproved))
@@ -5429,7 +5433,7 @@ function renderStatsTab()
 
    mimgui.Dummy(UI.v2(0, 10))
 
-   UI.CardBegin("##st_top", UI.v2(-1, 240), "Топ отправителей", 'users')
+   UI.CardBegin("##st_top", UI.v2(-1, 256), "Топ отправителей", 'users')
    local top = Data.topSenders(5)
    if #top == 0 then
       if fonts.small then mimgui.PushFont(fonts.small) end
@@ -5460,7 +5464,7 @@ function renderStatsTab()
    local tplP = (cfg.stats.totalApproved or 0) > 0
       and math.min(100, (cfg.stats.tplApproved or 0) / cfg.stats.totalApproved * 100) or 0
 
-   UI.CardBegin("##st_eff", UI.v2(-1, 452), "Эффективность", 'target')
+   UI.CardBegin("##st_eff", UI.v2(-1, 469), "Эффективность", 'target')
    local ringW = (mimgui.GetContentRegionAvail().x - 8) / 2
    UI.Ring("##r1", sEff, 36, 6, "Эффективность", "сессии", ringW)
    mimgui.SameLine(0, 8)
@@ -5492,7 +5496,7 @@ function renderStatsTab()
 
    mimgui.Dummy(UI.v2(0, 10))
 
-   UI.CardBegin("##st_rej", UI.v2(-1, 220), "Причины отклонений", 'file-x')
+   UI.CardBegin("##st_rej", UI.v2(-1, 256), "Причины отклонений", 'file-x')
    local reasons = Data.topReasons(5)
    if #reasons == 0 then
       if fonts.small then mimgui.PushFont(fonts.small) end
@@ -5507,7 +5511,7 @@ function renderStatsTab()
 
    mimgui.Dummy(UI.v2(0, 10))
 
-   UI.CardBegin("##st_ach", UI.v2(-1, 396), "Достижения СМИ", 'trophy')
+   UI.CardBegin("##st_ach", UI.v2(-1, 491), "Достижения СМИ", 'trophy')
 
    local function compact(num)
       if num >= 1000000 then
@@ -5657,7 +5661,7 @@ function renderInfoTab()
 
    UI.PaneBegin("##inf_left", UI.v2(colW, -1))
 
-   UI.CardBegin("##inf_cmd", UI.v2(-1, 176), "Команды управления", 'terminal-2')
+   UI.CardBegin("##inf_cmd", UI.v2(-1, 180), "Команды управления", 'terminal-2')
    UI.KV("/smi", "меню настроек", UI.C.ACCENT)
    UI.KV("/newsredak", "очередь объявлений", UI.C.ACCENT)
    UI.KV("/smipause", "пауза автоматики", UI.C.ACCENT)
@@ -5665,14 +5669,14 @@ function renderInfoTab()
 
    mimgui.Dummy(UI.v2(0, 10))
 
-   UI.CardBegin("##inf_dep", UI.v2(-1, 222), "Состояние компонентов", 'cpu')
-   local function dep(name, okFlag)
+   UI.CardBegin("##inf_dep", UI.v2(-1, 246), "Состояние компонентов", 'cpu')
+   local function dep(name, okFlag, badText, warnOnly)
       local DL, pos = mimgui.GetWindowDrawList(), mimgui.GetCursorScreenPos()
       local w, lh = mimgui.GetContentRegionAvail().x, mimgui.GetTextLineHeight()
-      local col = okFlag and UI.C.SUCCESS or UI.C.DANGER
+      local col = okFlag and UI.C.SUCCESS or (warnOnly and UI.C.WARNC or UI.C.DANGER)
       DL:AddCircleFilled(UI.v2(pos.x + 4, pos.y + lh / 2), 4.0, UI.u32(col), 12)
       DL:AddText(UI.v2(pos.x + 15, pos.y), UI.u32(UI.C.DIM), u8(name))
-      local t = u8(okFlag and "загружен" or "не найден")
+      local t = u8(okFlag and "загружен" or (badText or "не найден"))
       DL:AddText(UI.v2(pos.x + w - mimgui.CalcTextSize(t).x, pos.y), UI.u32(col), t)
       mimgui.Dummy(UI.v2(w, lh + 10))
    end
@@ -5680,7 +5684,15 @@ function renderInfoTab()
    dep("MoonMonet (палитра)", ok_moonmonet)
    dep("mimgui_blur (размытие)", ok_blur)
    dep("Tabler Icons (иконки)", ok_ti)
-   dep("chat_emoji (иконки Arizona)", ok_emoji and UI.emojiReady)
+   local emoBad, emoWarn
+   if not ok_emoji then
+      emoBad, emoWarn = "нет библиотеки", false
+   elseif not UI.emojiLoaded then
+      emoBad, emoWarn = "атлас не загружен", false
+   else
+      emoBad, emoWarn = "выключено в настройках", true
+   end
+   dep("chat_emoji (иконки Arizona)", UI.emojiReady, emoBad, emoWarn)
    UI.CardEnd()
 
    mimgui.Dummy(UI.v2(0, 10))
@@ -5704,13 +5716,19 @@ function renderInfoTab()
    mimgui.SetCursorPos(UI.v2(bx + colW + gap, by))
    UI.PaneBegin("##inf_right", UI.v2(colW, -1))
 
-   UI.CardBegin("##inf_warn", UI.v2(-1, 240), "Об автоматике", 'alert-triangle')
+   local warnA = u8"Авто-одобрение, авто-ловля и авто-пропуск действуют от имени твоего персонажа. Скрипт отправляет ровно то, что видно в поле ввода, но ответственность за опубликованный текст остаётся на редакторе."
+   local warnB = u8"Если не уверен - держи авто-одобрение выключенным и оставь только подсказки: шаблоны, автокоррекцию и проверки. Красная проверка всегда останавливает автопилот."
+   local warnWrap = mimgui.GetContentRegionAvail().x - 36
+   local warnH = 34 + 7
+      + mimgui.CalcTextSize(warnA, nil, false, warnWrap).y + 7
+      + 8 + 7
+      + mimgui.CalcTextSize(warnB, nil, false, warnWrap).y + 32
+
+   UI.CardBegin("##inf_warn", UI.v2(-1, warnH), "Об автоматике", 'alert-triangle')
    mimgui.PushTextWrapPos(0)
-   mimgui.TextColored(UI.C.WARNC, "%s",
-      u8"Авто-одобрение, авто-ловля и авто-пропуск действуют от имени твоего персонажа. Скрипт отправляет ровно то, что видно в поле ввода, но ответственность за опубликованный текст остаётся на редакторе.")
+   mimgui.TextColored(UI.C.WARNC, "%s", warnA)
    mimgui.Dummy(UI.v2(0, 8))
-   mimgui.TextColored(UI.C.DIM, "%s",
-      u8"Если не уверен - держи авто-одобрение выключенным и оставь только подсказки: шаблоны, автокоррекцию и проверки. Красная проверка всегда останавливает автопилот.")
+   mimgui.TextColored(UI.C.DIM, "%s", warnB)
    mimgui.PopTextWrapPos()
    UI.CardEnd()
 
@@ -5725,7 +5743,7 @@ function renderInfoTab()
 
    mimgui.Dummy(UI.v2(0, 10))
 
-   UI.CardBegin("##inf_faq", UI.v2(-1, 222), "Частые вопросы", 'help-circle')
+   UI.CardBegin("##inf_faq", UI.v2(-1, 249), "Частые вопросы", 'help-circle')
    local function qa(q, a)
       mimgui.TextColored(UI.C.TEXT, "%s", u8(q))
       if fonts.small then mimgui.PushFont(fonts.small) end
