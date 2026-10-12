@@ -1,17 +1,3 @@
---[[
-    MoonDoctor
-    Кидаешь в папку moonloader, и он подсказывает, что творится с остальными скриптами:
-      - почему упал скрипт (по-человечески, а не "attempt to index a nil value")
-      - кто из скриптов ест FPS
-      - у кого одинаковые команды и клавиши, кому не хватает библиотек
-
-    Открыть: /doctor (если команда занята кем-то ещё, будет /mdoctor)
-    Нужен mimgui для нормального окна. Без него тоже работает, но через обычные диалоги.
-    Файл в UTF-8. Не пересохраняй его в Windows-1251, иначе в окне поедут буквы.
-
-    Автор: Levushkins
-]]
-
 script_name('MoonDoctor')
 script_author('Levushkins')
 script_version('1.0')
@@ -28,7 +14,6 @@ local encoding = require 'encoding'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
--- без mimgui не падаем, просто показываем всё диалогами
 local imgui
 do
     local ok, lib = pcall(require, 'mimgui')
@@ -43,13 +28,9 @@ local SETTINGS_FILE = CFG_DIR .. '\\settings.json'
 local CRASHES_FILE = CFG_DIR .. '\\crashes.json'
 local FPS_FILE = CFG_DIR .. '\\fps.json'
 
-local MSG_ERROR = 3     -- "(error)" в moonloader.log, так приходит в onSystemMessage
-local MAX_CRASHES = 60  -- больше в истории не держим
+local MSG_ERROR = 3
+local MAX_CRASHES = 60
 local CHAT_COLOR = 0x2EC4A0
-
-------------------------------------------------------------------------
--- мелочи
-------------------------------------------------------------------------
 
 local function clamp(v, lo, hi)
     return math.max(lo, math.min(hi, v))
@@ -59,7 +40,6 @@ local function round(v)
     return math.floor(v + 0.5)
 end
 
--- 1 раз, 2 раза, 5 раз
 local function plural(n, one, few, many)
     n = math.abs(n) % 100
     local last = n % 10
@@ -88,8 +68,6 @@ local function isUtf8(s)
     return true
 end
 
--- пути и ошибки от игры приходят в cp1251, а mimgui хочет utf-8.
--- внутри скрипта всё храним в utf-8, обратно переводим только для чата, диалогов и файлов
 local function toU8(s)
     if s == nil then return '' end
     s = tostring(s)
@@ -112,7 +90,6 @@ local function utf8Chars(s)
     return list
 end
 
--- обрезает строку по символам, а не по байтам, чтобы не порвать кириллицу
 local function cutText(s, maxChars)
     local chars = utf8Chars(s)
     if #chars <= maxChars then return s end
@@ -123,7 +100,6 @@ local function capitalize(s)
     local b1, b2 = s:byte(1, 2)
     if not b1 then return s end
     if b1 < 0x80 then return s:sub(1, 1):upper() .. s:sub(2) end
-    -- кириллица в utf-8: а-п = D0 B0..BF, р-я = D1 80..8F, ё = D1 91
     if b1 == 0xD0 and b2 and b2 >= 0xB0 then return string.char(0xD0, b2 - 0x20) .. s:sub(3) end
     if b1 == 0xD1 and b2 and b2 >= 0x80 and b2 <= 0x8F then return string.char(0xD0, b2 + 0x20) .. s:sub(3) end
     if b1 == 0xD1 and b2 == 0x91 then return string.char(0xD0, 0x81) .. s:sub(3) end
@@ -167,7 +143,6 @@ local function loadJson(path)
     if not data or data == '' then return nil end
     local ok, res = pcall(decodeJson, data)
     if ok and type(res) == 'table' then return res end
-    -- битый файл не удаляем, а откладываем, мало ли
     os.remove(path .. '.broken')
     os.rename(path, path .. '.broken')
     return nil
@@ -190,17 +165,13 @@ local function whenText(t)
     return os.date('%d.%m', t) .. ' в ' .. hm
 end
 
-------------------------------------------------------------------------
--- настройки
-------------------------------------------------------------------------
-
 local settings = {
-    chat = true,          -- писать в чат, когда что-то упало
-    toast = true,         -- плашка в углу экрана
-    autoOpen = false,     -- сразу открывать окно с объяснением
-    hotkey = 0,           -- клавиша открытия, 0 = не назначена
-    scanOnStart = true,   -- искать конфликты при запуске игры
-    measureSec = 2,       -- сколько секунд мерить каждый скрипт
+    chat = true,
+    toast = true,
+    autoOpen = false,
+    hotkey = 0,
+    scanOnStart = true,
+    measureSec = 2,
 }
 
 local function loadSettings()
@@ -216,11 +187,6 @@ local function saveSettings()
     saveJson(SETTINGS_FILE, settings)
 end
 
-------------------------------------------------------------------------
--- что за игра, сампфункс, версия сампа и т.д.
-------------------------------------------------------------------------
-
--- точка входа samp.dll отличается у каждой версии, по ней и узнаём
 local SAMP_VERSIONS = {
     [0x31DF13] = '0.3.7-R1',
     [0x3195DD] = '0.3.7-R2',
@@ -279,10 +245,6 @@ local function serverInfo()
     return res
 end
 
-------------------------------------------------------------------------
--- другие скрипты
-------------------------------------------------------------------------
-
 local function scriptField(s, key)
     if not s then return nil end
     local ok, v = pcall(function() return s[key] end)
@@ -297,7 +259,6 @@ local function isSelf(s)
     return id ~= nil and id == scriptField(me, 'id')
 end
 
--- копируем данные сразу: объект упавшего скрипта скоро станет мёртвым
 local function snapshot(s)
     if not s then return nil end
     local info = {}
@@ -318,7 +279,6 @@ end
 
 local runningCache = { map = {}, time = -1 }
 
--- живые скрипты по имени файла (в нижнем регистре)
 local function getRunning(force)
     local now = localClock()
     if not force and now - runningCache.time < 1 then return runningCache.map end
@@ -342,11 +302,6 @@ local function runningScript(file)
     return getRunning()[file:lower()]
 end
 
-------------------------------------------------------------------------
--- буфер обмена и открытие папок
-------------------------------------------------------------------------
-
--- по одной декларации: если какую-то уже объявила другая библиотека (mimgui, например), остальные не пропадут
 for _, decl in ipairs({
     'int __stdcall OpenClipboard(void* hWndNewOwner);',
     'int __stdcall CloseClipboard(void);',
@@ -362,7 +317,6 @@ for _, decl in ipairs({
     pcall(ffi.cdef, decl)
 end
 
--- кладём как юникод, иначе кириллица в телеге/дискорде может прийти кракозябрами
 local function copyText(textU8)
     local C = ffi.C
     local mem
@@ -370,14 +324,13 @@ local function copyText(textU8)
         local len = C.MultiByteToWideChar(65001, 0, textU8, #textU8, nil, 0)
         mem = C.GlobalAlloc(0x0002, (len + 1) * 2)
         if mem == nil then error('GlobalAlloc') end
-        -- буфер передаём как void*: mimgui объявляет эту функцию с wchar_t*, и uint16_t* туда не пролезет
         local buf = C.GlobalLock(mem)
         C.MultiByteToWideChar(65001, 0, textU8, #textU8, buf, len)
         ffi.cast('uint16_t*', buf)[len] = 0
         C.GlobalUnlock(mem)
         if C.OpenClipboard(nil) == 0 then error('clipboard busy') end
         C.EmptyClipboard()
-        if C.SetClipboardData(13, mem) ~= nil then mem = nil end -- теперь память принадлежит буферу обмена
+        if C.SetClipboardData(13, mem) ~= nil then mem = nil end
         C.CloseClipboard()
         if mem ~= nil then error('SetClipboardData') end
     end)
@@ -393,11 +346,7 @@ local function shellOpen(target, params)
     end)
 end
 
-------------------------------------------------------------------------
--- краши: разбор текста ошибки и история
-------------------------------------------------------------------------
-
-local crashes = {}          -- свежие сверху
+local crashes = {}
 local crashById = {}
 local nextCrashId = 1
 local crashesDirty = false
@@ -407,11 +356,9 @@ local function isLibPath(path)
     return path:lower():find('[\\/]lib[\\/]') ~= nil or path:lower():find('^lib[\\/]') ~= nil
 end
 
--- все места вида "C:\...\script.lua:42:" в тексте ошибки и в стеке вызовов
 local function findLocations(text)
     local list = {}
     for pos, path, line in text:gmatch('()([^\n\t:<>"]-%.luac?):(%d+):') do
-        -- путь с буквой диска режется на двоеточии, приклеиваем её обратно
         if pos > 2 and text:sub(pos - 2, pos - 1):match('^%a:$') then
             path = text:sub(pos - 2, pos - 1) .. path
         end
@@ -421,7 +368,6 @@ local function findLocations(text)
     return list
 end
 
--- "C:\...\x.lua:42: attempt to ..." -> "attempt to ...", стек отдельно
 local function splitError(text)
     local head, tb = text:match('^(.-)\nstack traceback:\n(.*)$')
     if not head then head = text end
@@ -458,7 +404,6 @@ local function buildCrash(rawText, info)
         end
     end
     if not main then
-        -- ошибка вылезла в другом файле (например, в импортированном скрипте)
         for _, l in ipairs(locs) do
             if not isLibPath(l.path) then main = l break end
         end
@@ -485,7 +430,6 @@ local function buildCrash(rawText, info)
         c.libFile, c.libLine, c.libPath = lib.file, lib.line, lib.path
     end
 
-    -- полный путь нужен, чтобы показать строку кода. в тексте ошибки он часто обрезан ("...\moonloader\x.lua")
     local path
     if info and info.path ~= '' and fileName(info.path):lower() == c.file:lower() then path = info.path end
     if not path and main and main.path:find('^%a:') then path = main.path end
@@ -509,8 +453,6 @@ end
 local explainCache = setmetatable({}, { __mode = 'k' })
 local sourceCache = {}
 
--- возвращает запись и true, если это что-то новое (или повтор старого краша).
--- fromLog: краш достали из moonloader.log, он мог уже прийти событием, тогда это не повтор
 local function addCrash(c, fromLog)
     local old, idx = findCrash(c.sig)
     if old then
@@ -598,10 +540,6 @@ local function loadCrashes()
     nextCrashId = math.max(nextCrashId, tonumber(data.nextId) or 1, maxId + 1)
 end
 
-------------------------------------------------------------------------
--- объяснения ошибок
-------------------------------------------------------------------------
-
 local function sourceLines(path)
     if not path or path == '' then return nil end
     local cached = sourceCache[path]
@@ -619,7 +557,6 @@ local function sourceLines(path)
     return lines
 end
 
--- подсказки по известным библиотекам: что это и что качать
 local LIB_INFO = {
     ['mimgui'] = { 'mimgui', 'библиотека для окон и меню' },
     ['imgui'] = { 'Moon ImGui', 'старая библиотека для окон и меню' },
@@ -643,7 +580,6 @@ local LIB_INFO = {
     ['dkjson'] = { 'dkjson', 'чтение json' },
 }
 
--- стандартные библиотеки, которые ставятся вместе с MoonLoader
 local STD_LIBS = {
     ['vkeys'] = true, ['inicfg'] = true, ['encoding'] = true, ['moonloader'] = true, ['memory'] = true,
     ['sampfuncs'] = true, ['game.keys'] = true, ['game.models'] = true, ['game.weapons'] = true, ['game.globals'] = true,
@@ -659,7 +595,6 @@ local explain
 
 do
 
--- откуда скрипт берёт значение, по коду справа от "="
 local ORIGINS = {
     { 'match', { ':match%(', 'string%.match%(', ':gmatch%(', 'string%.gmatch%(', ':find%(', 'string%.find%(' } },
     { 'dialog', { 'sampGetDialog', 'sampGetCurrentDialog', 'sampGetListboxItem' } },
@@ -680,7 +615,6 @@ local function classifyOrigin(code)
     end
 end
 
--- "a, b = x" -> "a, b ", " x". сравнения (==, ~=, <=, >=) пропускаем
 local function splitAssign(line)
     local pos = 1
     while true do
@@ -697,7 +631,6 @@ local function splitAssign(line)
     end
 end
 
--- ищем вверх по коду, где переменной присвоили значение
 local function findOrigin(lines, lineNo, name)
     if not lines or not lineNo or not name or name == '?' then return nil end
     local word = '%f[%w_]' .. name:gsub('%p', '%%%0') .. '%f[^%w_]'
@@ -721,7 +654,6 @@ local TYPE_ACC = {
     string = 'текст', table = 'таблицу', ['function'] = 'функцию', userdata = 'объект', cdata = 'FFI-объект', thread = 'поток',
 }
 
--- "с чем": сравнивал число с пустым значением
 local TYPE_INS = {
     ['nil'] = 'пустым значением (nil)', ['no value'] = 'ничем', boolean = 'true/false', number = 'числом',
     string = 'текстом', table = 'таблицей', ['function'] = 'функцией', userdata = 'объектом', cdata = 'FFI-объектом', thread = 'потоком',
@@ -791,14 +723,12 @@ explain = function(c)
 
     local function todo(s) ex.todo[#ex.todo + 1] = s end
 
-    -- бывает, что ошибка всплыла из обработчика пакетов сервера
     local packetNote = isServerPacketLib(c) and 'Упало, пока скрипт разбирал данные от сервера (через SAMP.Lua). ' or ''
 
     local kind, name, vtype = msg:match("attempt to index (%a+) '([^']*)' %(a (%a+) value%)")
     if not kind then vtype = msg:match('attempt to index a (%a+) value') end
 
     if vtype then
-        -- обращение к полю того, чего нет
         ex.kind = 'index'
         if name == '?' then name = nil end
         if vtype == 'nil' then
@@ -1175,13 +1105,9 @@ explain = function(c)
     return ex
 end
 
-end -- объяснения
+end
 
-------------------------------------------------------------------------
--- отчёт для автора
-------------------------------------------------------------------------
-
-local scan  -- ниже, это проверка конфликтов
+local scan
 
 local function prepCode(line, maxChars)
     return cutText(toU8(line or ''):gsub('\t', '    '), maxChars or 160)
@@ -1231,7 +1157,6 @@ local function buildReport(c, forForum)
     add('')
     add('Полный текст ошибки:')
     if forForum then add('[code]') end
-    -- список "no file ..." у ненайденного модуля длинный и бесполезный, режем
     local raw, cut = {}, 0
     for l in (c.raw .. '\n'):gmatch('([^\n]*)\n') do
         if l:find('^%s*no file ') or l:find('^%s*no field package') then
@@ -1251,7 +1176,6 @@ local function buildReport(c, forForum)
     local sw, sh = getScreenResolution()
     add(string.format('Разрешение: %dx%d', sw, sh))
 
-    -- конфликты, в которых участвует этот файл
     if scan and scan.done then
         local related = {}
         for _, issue in ipairs(scan.issues) do
@@ -1280,21 +1204,14 @@ local function saveReport(c)
     local base = c.file:gsub('%.luac?$', ''):gsub('[\\/:%*%?"<>|%s]', '_')
     local name = string.format('%s_%s.txt', base, os.date('%Y-%m-%d_%H-%M-%S'))
     local path = REPORTS_DIR .. '\\' .. fromU8(name)
-    -- BOM, чтобы старый блокнот не показал кракозябры
     local ok = writeFile(path, '\239\187\191' .. buildReport(c, false))
     return ok, toU8(path)
 end
-
-------------------------------------------------------------------------
--- конфликты: смотрим исходники всех скриптов в папке
-------------------------------------------------------------------------
 
 local MODIFIERS, keyName, listMoonloaderDir, runScan
 
 do
 
--- вырезаем комментарии, но оставляем переносы строк, чтобы номера строк не съехали.
--- строки в кавычках не трогаем, из них потом достаём имена команд
 local function stripComments(src)
     local out = {}
     local i, n = 1, #src
@@ -1352,14 +1269,12 @@ local function stripComments(src)
     return table.concat(out)
 end
 
--- модификаторы и кнопки мыши считаем частью сочетания, но не самой клавишей
 MODIFIERS = {
     [0x10] = 'Shift', [0xA0] = 'Shift', [0xA1] = 'Shift',
     [0x11] = 'Ctrl', [0xA2] = 'Ctrl', [0xA3] = 'Ctrl',
     [0x12] = 'Alt', [0xA4] = 'Alt', [0xA5] = 'Alt',
     [0x01] = 'ЛКМ', [0x02] = 'ПКМ', [0x04] = 'СКМ',
 }
--- это почти всегда управление или навигация по меню, а не горячие клавиши
 local NOT_HOTKEYS = {
     [0x05] = true, [0x06] = true, [0x08] = true, [0x09] = true, [0x0D] = true, [0x1B] = true, [0x20] = true,
     [0x25] = true, [0x26] = true, [0x27] = true, [0x28] = true,
@@ -1448,7 +1363,6 @@ local function scanSource(src)
         scanKeys(line, n, res.keys)
     end
 
-    -- если хоть где-то подключение обёрнуто в pcall, считаем его необязательным
     local optional = {}
     for _, r in ipairs(res.requires) do
         if r.optional then optional[r.mod] = true end
@@ -1459,7 +1373,6 @@ local function scanSource(src)
     return res
 end
 
--- всё, что лежит в корне moonloader
 function listMoonloaderDir()
     local files, dirs, others = {}, {}, {}
     local handle, name = findFirstFile(ML_DIR .. '\\*')
@@ -1507,7 +1420,6 @@ local function moduleExists(mod)
     else
         for _, name in ipairs({ mod, (mod:gsub('^lib%.', '')) }) do
             if searchPath(name, package.path) or searchPath(name, package.cpath) then found = true break end
-            -- socket.core лежит в socket\core.dll, а бывает всё в одной socket.dll
             local root = name:match('^([^%.]+)%.')
             if root and searchPath(root, package.cpath) then found = true break end
         end
@@ -1516,7 +1428,6 @@ local function moduleExists(mod)
     return found
 end
 
--- библиотеки, которые по ошибке кидают прямо в moonloader
 local ROOT_LIB_FILES = {
     ['vkeys.lua'] = true, ['inicfg.lua'] = true, ['encoding.lua'] = true, ['imgui.lua'] = true, ['moonloader.lua'] = true,
     ['sampfuncs.lua'] = true, ['memory.lua'] = true, ['requests.lua'] = true, ['effil.lua'] = true, ['fawesome5.lua'] = true,
@@ -1553,7 +1464,6 @@ local function fileRef(f, line)
     return s
 end
 
--- копии одного и того же скрипта считаем за один скрипт, про копии будет отдельное предупреждение
 local function scriptIdentity(f)
     if f.name and f.name ~= '' then return 'n:' .. f.name:lower() end
     return 'f:' .. baseKey(f.file)
@@ -1578,7 +1488,6 @@ local function collectIssues(results, dirs, others)
         issues[#issues + 1] = issue
     end
 
-    -- одинаковые команды
     local cmds = {}
     for _, f in ipairs(results) do
         local seen = {}
@@ -1610,7 +1519,6 @@ local function collectIssues(results, dirs, others)
         end
     end
 
-    -- одинаковые клавиши
     local keys = {}
     for _, f in ipairs(results) do
         local seen = {}
@@ -1642,7 +1550,6 @@ local function collectIssues(results, dirs, others)
         end
     end
 
-    -- библиотеки
     local missing = {}
     for _, f in ipairs(results) do
         local seen = {}
@@ -1690,7 +1597,6 @@ local function collectIssues(results, dirs, others)
         })
     end
 
-    -- import 'другой_скрипт.lua'
     for _, f in ipairs(results) do
         for _, imp in ipairs(f.imports or {}) do
             local name = imp.file
@@ -1713,7 +1619,6 @@ local function collectIssues(results, dirs, others)
         end
     end
 
-    -- версия MoonLoader и зависимости
     local mlNow = mlVersionNumber()
     local sf, sampLoaded, cleo = sfLoaded(), isSampLoaded(), isCleoLoaded()
     local missingDeps = {}
@@ -1763,7 +1668,6 @@ local function collectIssues(results, dirs, others)
         })
     end
 
-    -- дубли: один скрипт лежит два раза
     local groups, byName = {}, {}
     for _, f in ipairs(results) do
         local k = baseKey(f.file)
@@ -1799,7 +1703,6 @@ local function collectIssues(results, dirs, others)
     for _, list in pairs(groups) do reportDupes(list) end
     for _, list in pairs(byName) do reportDupes(list) end
 
-    -- файлы не на своём месте
     for _, f in ipairs(results) do
         if ROOT_LIB_FILES[f.file:lower()] then
             add({
@@ -1880,14 +1783,12 @@ local function collectIssues(results, dirs, others)
     return issues
 end
 
--- синхронная версия, вызывать только из потока: внутри есть wait()
 local function doScan()
     moduleCache = {}
     local files, dirs, others = listMoonloaderDir()
     local running = getRunning(true)
     local seen, results, compiled, unreadable = {}, {}, {}, {}
 
-    -- скрипты, загруженные не из корня (через script.load), тоже смотрим
     for key, s in pairs(running) do
         local found = false
         for _, f in ipairs(files) do
@@ -1909,7 +1810,6 @@ local function doScan()
             local info = { file = f.name, path = toU8(f.path), running = running[key] ~= nil, compiled = f.compiled }
             local data = readFile(f.path)
             if data and #data > 3 * 1024 * 1024 then
-                -- обычно это обфусцированный скрипт в одну строку, смотреть там нечего, а время уйдёт
                 data = nil
                 unreadable[#unreadable + 1] = f.name .. ' (слишком большой)'
             elseif not data then
@@ -1962,11 +1862,7 @@ function runScan()
     end)
 end
 
-end -- проверка конфликтов
-
-------------------------------------------------------------------------
--- нагрузка: по очереди ставим скрипты на паузу и смотрим на FPS
-------------------------------------------------------------------------
+end
 
 local fps = {
     running = false,
@@ -2003,7 +1899,6 @@ local function gameActive()
     return isGameWindowForeground() and not isGamePaused() and not isPauseMenuActive()
 end
 
--- средний FPS за seconds секунд. если игру свернули или открыли меню, мерим заново
 local function measureFps(seconds)
     for _ = 1, 5 do
         while not gameActive() do
@@ -2029,7 +1924,6 @@ local function measureFps(seconds)
         end
         if not broken and #times >= 10 then
             table.sort(times)
-            -- редкие подвисания (подгрузка текстур и т.п.) выкидываем, иначе они шумят сильнее самих скриптов
             local from = math.floor(#times * 0.03) + 1
             local to = math.max(from, math.floor(#times * 0.92))
             local sum = 0
@@ -2124,7 +2018,6 @@ local function runFpsTest()
         fps.error = 'Не получилось замерить FPS. Проверь, что игра не свёрнута, и запусти ещё раз.'
         return
     end
-    -- погрешность считаем по тому, как плавает FPS между замерами без пауз
     local diffs = {}
     for i = 2, #targets + 1 do
         if bases[i] and bases[i - 1] then diffs[#diffs + 1] = math.abs(bases[i] - bases[i - 1]) end
@@ -2220,14 +2113,10 @@ local function fpsResultsText()
     return (table.concat(out, '\n'):gsub('\n', '\r\n'))
 end
 
-------------------------------------------------------------------------
--- уведомления
-------------------------------------------------------------------------
-
 local toasts = {}
 local toastId = 0
-local commandName       -- какую команду удалось занять
-local missedOnStart = 0 -- сколько упало, пока самп ещё не загрузился
+local commandName
+local missedOnStart = 0
 
 local ui = {
     page = 'crashes',
@@ -2288,7 +2177,6 @@ local function notifyCrash(c, isRepeat)
     local ex = explain(c)
     print(string.format('[MoonDoctor] %s: %s', fromU8(c.file), fromU8(ex.what)))
 
-    -- если скрипт падает по кругу (его перезапускают, а он снова падает), не заваливаем чат
     local now = localClock()
     if isRepeat and c.notifiedAt and now - c.notifiedAt < 10 then return end
     c.notifiedAt = now
@@ -2311,10 +2199,6 @@ local function notifyCrash(c, isRepeat)
     end
 end
 
-------------------------------------------------------------------------
--- ловим ошибки
-------------------------------------------------------------------------
-
 local function handleError(msg, s)
     if s and isSelf(s) then return end
     local text = tostring(msg or '')
@@ -2322,8 +2206,6 @@ local function handleError(msg, s)
     local info = snapshot(s)
 
     if text:find('Script died due to an error', 1, true) then
-        -- это второе сообщение после самой ошибки. отдельный краш из него не делаем,
-        -- но если первое почему-то не пришло, то хоть так запишем
         local file = info and info.file or ''
         for _, c in ipairs(crashes) do
             if c.file:lower() == file:lower() and os.time() - (c.last or 0) <= 3 then return end
@@ -2338,13 +2220,11 @@ local function handleError(msg, s)
 end
 
 function onSystemMessage(msg, msgType, s)
-    -- нативные исключения иногда приходят другим типом, их тоже берём
     if msgType ~= MSG_ERROR and not (s and tostring(msg):find('[Ee]xception 0x%x+')) then return end
     local ok, err = pcall(handleError, msg, s)
     if not ok then print('[MoonDoctor] не смог разобрать ошибку: ' .. tostring(err)) end
 end
 
--- то, что упало до нас, достаём из moonloader.log
 local function parseLogTime(stamp)
     local h, m, s = stamp:match('^(%d+):(%d+):(%d+)')
     if not h then return os.time() end
@@ -2399,7 +2279,6 @@ local function scanStartupLog()
 
     for line in (data .. '\n'):gmatch('([^\n]*)\n') do
         line = line:gsub('\r$', '')
-        -- обычно "[12:34:56.789012] (error)\tscript.lua: текст", но бывает и "[ML] (error) ..."
         local stamp, tag, rest = line:match('^%[([^%]]*)%]%s*%((%a+)%)%s*(.*)$')
         if stamp then
             flush()
@@ -2415,7 +2294,6 @@ local function scanStartupLog()
     return found
 end
 
--- демо, чтобы посмотреть, как выглядит разбор краша. на самом деле ничего не падало
 local DEMO_LINES = {
     [38] = '-- ник игрока из диалога статистики',
     [39] = 'function sampev.onShowDialog(id, style, title, b1, b2, text)',
@@ -2443,18 +2321,10 @@ local function addDemoCrash()
     return c
 end
 
-------------------------------------------------------------------------
--- окно (mimgui). функции объявлены всегда, но вызываются только если mimgui есть
-------------------------------------------------------------------------
-
 local toggleWindow
 
--- всё окно в своём блоке: у Lua лимит в 200 локальных переменных на файл
 do
 
-
--- счётчики открытых push/child. если страница упадёт посреди кадра, по ним всё закроем,
--- иначе imgui собьётся, а это уже может уронить игру
 local stacks = { color = 0, var = 0, font = 0, child = 0, width = 0 }
 
 local function pushColor(idx, col) imgui.PushStyleColor(idx, col) stacks.color = stacks.color + 1 end
@@ -2472,7 +2342,6 @@ local function openMark()
     return { color = stacks.color, var = stacks.var, font = stacks.font, child = stacks.child, width = stacks.width }
 end
 
--- сначала стили и шрифты, потом child-окна: imgui проверяет, что окно закрывается без лишних push внутри
 local function unwindTo(mark)
     while stacks.width > mark.width do imgui.PopItemWidth() stacks.width = stacks.width - 1 end
     while stacks.font > mark.font do imgui.PopFont() stacks.font = stacks.font - 1 end
@@ -2516,14 +2385,13 @@ local function levelColor(level)
     return C.accent
 end
 
--- цвет для drawlist. учитываем общую прозрачность, иначе при плавном появлении страницы рисунки не гаснут
 local function u32(col, alpha)
     local a = col.w * (alpha or 1) * imgui.GetStyle().Alpha
     return imgui.ColorConvertFloat4ToU32(imgui.ImVec4(col.x, col.y, col.z, a))
 end
 
 local function winFont(...)
-    local dir = getFolderPath(0x14) -- C:\Windows\Fonts
+    local dir = getFolderPath(0x14)
     if not dir then return nil end
     for _, name in ipairs({ ... }) do
         local p = dir .. '\\' .. name
@@ -2531,7 +2399,6 @@ local function winFont(...)
     end
 end
 
--- кириллица плюс типографские символы, которые бывают в текстах ошибок и в коде (…, —, № и т.п.)
 local function glyphRanges(atlas)
     local ok, ranges = pcall(function()
         local builder = imgui.ImFontGlyphRangesBuilder()
@@ -2547,7 +2414,7 @@ end
 local function loadFonts()
     local atlas = imgui.GetIO().Fonts
     local regular = winFont('segoeui.ttf', 'tahoma.ttf', 'arial.ttf')
-    if not regular then return end -- останется стандартный шрифт, кириллицы не будет, но окно откроется
+    if not regular then return end
     local bold = winFont('segoeuib.ttf', 'tahomabd.ttf', 'arialbd.ttf') or regular
     local mono = winFont('consola.ttf', 'cour.ttf', 'lucon.ttf') or regular
     local ranges = glyphRanges(atlas)
@@ -2618,7 +2485,6 @@ local function applyTheme()
     col[K.TextSelectedBg] = rgba(46, 196, 160, 0.3)
 end
 
--- шрифты: если шрифт не загрузился, просто ничего не делаем
 local function pushFont(name)
     local f = ui.fonts[name]
     if f then
@@ -2635,7 +2501,6 @@ local function popFont(pushed)
     end
 end
 
--- обычный Text в mimgui это printf, и любой % в тексте ошибки его ломает. поэтому только TextUnformatted
 local function text(s, col)
     if col then pushColor(imgui.Col.Text, col) end
     imgui.TextUnformatted(s)
@@ -2725,7 +2590,6 @@ local function button(label, w, kind, h)
     return clicked
 end
 
--- кнопка, которую нельзя нажать (в imgui 1.72 нет BeginDisabled)
 local function buttonOff(label, w, h, tip)
     pushVarFloat(imgui.StyleVar.Alpha, imgui.GetStyle().Alpha * 0.45)
     imgui.Button(label, vec(w or 0, h or px(30)))
@@ -2733,7 +2597,6 @@ local function buttonOff(label, w, h, tip)
     tooltip(tip)
 end
 
--- ряд кнопок, который сам переносится на новую строку, если не влезает
 local row = {}
 local function rowBegin()
     row.limit = imgui.GetContentRegionAvail().x
@@ -2787,7 +2650,6 @@ local function checkMark(cx, cy, r, col)
     dl:AddLine(vec(cx - 1.2 * s, cy + 3.4 * s), vec(cx + 4.8 * s, cy - 3.2 * s), u32(col), 2.2 * s)
 end
 
--- карточка: фон рисуем по высоте с прошлого кадра (в 1.72 нет авто-высоты для child)
 local cardStack = {}
 
 local function beginCard(id, accent, bg)
@@ -2825,7 +2687,6 @@ local function endCard()
     ui.cardH[top.id] = imgui.GetCursorScreenPos().y - spacing - top.y
 end
 
--- раскрывашка со стрелочкой
 local function foldout(id, s)
     local open = ui.folds[id]
     local p = imgui.GetCursorScreenPos()
@@ -2848,7 +2709,6 @@ local function foldout(id, s)
     return open
 end
 
--- нумерованный пункт с отступом под текст
 local function numbered(i, s)
     local ind = px(22)
     imgui.Indent(ind)
@@ -2886,7 +2746,6 @@ local function backLink(s)
     return clicked
 end
 
--- заголовок страницы с кнопками справа
 local function pageHeader(title, sub, actions)
     local startX, startY = imgui.GetCursorPosX(), imgui.GetCursorPosY()
     local availW = imgui.GetContentRegionAvail().x
@@ -2958,10 +2817,6 @@ local function drawIcon(kind, dl, cx, cy, col)
     end
 end
 
-------------------------------------------------------------------------
--- шапка и меню слева
-------------------------------------------------------------------------
-
 local NAV = {
     { id = 'crashes', label = 'Краши', icon = 'crash' },
     { id = 'fps', label = 'Нагрузка', icon = 'fps' },
@@ -3030,7 +2885,6 @@ local function drawHeader(w)
     end
     popFont(sm)
 
-    -- крестик
     local bs = px(30)
     local bx, by = p.x + w - px(14) - bs, cy - bs / 2
     imgui.SetCursorScreenPos(vec(bx, by))
@@ -3057,7 +2911,6 @@ local function navItem(item, y, w)
     local active = ui.page == item.id
     local dl = imgui.GetWindowDrawList()
 
-    -- плавная подсветка при наведении
     local t = ui.navAnim[item.id] or 0
     local target = active and 1 or (hovered and 1 or 0)
     t = t + (target - t) * math.min(1, imgui.GetIO().DeltaTime * 14)
@@ -3126,10 +2979,6 @@ end
 
 local PAGES = {}
 
-------------------------------------------------------------------------
--- страница: краши
-------------------------------------------------------------------------
-
 do
 
 local function emptyState(title, sub, buttonLabel, fn)
@@ -3175,7 +3024,6 @@ local function crashItem(c)
     local x, right = p.x + px(20), p.x + w - px(16)
     local y1, y2 = p.y + px(10), p.y + px(34)
 
-    -- первая строка: точка, файл, время
     local sm = pushFont('small')
     local when = whenText(c.last)
     local whenW = imgui.CalcTextSize(when).x
@@ -3189,7 +3037,6 @@ local function crashItem(c)
     dl:AddText(vec(x + px(16), y1), u32(C.text), ellipsize(c.file, right - whenW - x - px(40)))
     popFont(b)
 
-    -- вторая строка: коротко что случилось, справа статус и сколько раз
     sm = pushFont('small')
     local status = c.demo and 'пример' or (alive and 'работает' or 'не работает')
     if (c.count or 1) > 1 then status = 'x' .. c.count .. '   ' .. status end
@@ -3417,7 +3264,6 @@ local function crashDetail(c)
     if foldout('raw' .. c.id, 'Полный текст ошибки') then
         beginCard('raw' .. c.id, nil, C.code)
         local m = pushFont('mono')
-        -- огромный текст imgui за один кадр не переварит (лимит вершин), полный вариант есть в отчёте
         local shown = #c.raw > 3000 and (cutText(c.raw, 3000) .. '\n\n(дальше обрезано, целиком текст есть в отчёте)') or c.raw
         wrapped(shown, C.muted)
         popFont(m)
@@ -3438,7 +3284,6 @@ local function crashDetail(c)
     imgui.Dummy(vec(0, px(4)))
     endChild()
 
-    -- кнопки внизу всегда на виду
     local p = imgui.GetCursorScreenPos()
     imgui.GetWindowDrawList():AddLine(vec(p.x, p.y), vec(p.x + avail.x, p.y), u32(C.line), 1)
     imgui.SetCursorPosY(imgui.GetCursorPosY() + px(9))
@@ -3459,10 +3304,6 @@ PAGES.crashes = function()
 end
 
 end
-
-------------------------------------------------------------------------
--- страница: нагрузка
-------------------------------------------------------------------------
 
 do
 
@@ -3642,10 +3483,6 @@ end
 
 end
 
-------------------------------------------------------------------------
--- страница: конфликты
-------------------------------------------------------------------------
-
 do
 
 local GROUP_TITLE = { commands = 'КОМАНДЫ', keys = 'КЛАВИШИ', libs = 'БИБЛИОТЕКИ', files = 'ФАЙЛЫ И ВЕРСИИ' }
@@ -3732,10 +3569,6 @@ PAGES.conflicts = function()
 end
 
 end
-
-------------------------------------------------------------------------
--- страница: скрипты
-------------------------------------------------------------------------
 
 do
 
@@ -3890,10 +3723,6 @@ end
 
 end
 
-------------------------------------------------------------------------
--- страница: настройки
-------------------------------------------------------------------------
-
 do
 
 local function check(labelText, key, tip)
@@ -3976,10 +3805,6 @@ end
 
 end
 
-------------------------------------------------------------------------
--- страница: справка
-------------------------------------------------------------------------
-
 do
 
 PAGES.help = function()
@@ -4020,12 +3845,7 @@ PAGES.help = function()
     small('MoonDoctor ' .. VERSION .. ' by Levushkins', C.faint)
 end
 
-
 end
-
-------------------------------------------------------------------------
--- окна
-------------------------------------------------------------------------
 
 local function drawMain(player)
     player.LockPlayer = fps.running
@@ -4113,7 +3933,6 @@ local function drawToasts(player)
             imgui.Begin('##toast' .. t.id, nil, TOAST_FLAGS)
             local wp = imgui.GetWindowPos()
             local wh = imgui.GetWindowHeight()
-            -- imgui режет рисование по половине отступа окна, поэтому полоска не у самого края
             imgui.GetWindowDrawList():AddRectFilled(vec(wp.x + px(12), wp.y + px(12)), vec(wp.x + px(15), wp.y + wh - px(12)), u32(levelColor(t.color)), px(2))
             local b = pushFont('bold')
             wrapped(t.title)
@@ -4134,7 +3953,6 @@ function toggleWindow()
     if ui.show[0] then
         ui.show[0] = false
     else
-        -- один свежий краш открываем сразу, если их несколько, показываем список
         local fresh, unread = nil, 0
         for _, c in ipairs(crashes) do
             if c.unread then
@@ -4163,8 +3981,6 @@ if imgui then
         for _, key in ipairs({ 'chat', 'toast', 'autoOpen', 'scanOnStart' }) do
             ui.bools[key] = imgui.new.bool(settings[key])
         end
-        -- mimgui сам подгоняет окна под масштаб Windows (125%, 150%): размеры стиля домножает после нас,
-        -- а в некоторых режимах и шрифты. учитываем это, чтобы ничего не увеличилось дважды
         local dpi, mode = 1, 0
         pcall(function() dpi = imgui.GetDpiScale() or 1 end)
         pcall(function() mode = imgui.GetDpiScalingMode() or 0 end)
@@ -4182,23 +3998,17 @@ if imgui then
 
     imgui.OnFrame(function() return ui.show[0] end, drawMain)
 
-    -- курсор mimgui решает до первой отрисовки, поэтому HideCursor ставим сразу, иначе он мигнёт
     local toastFrame = imgui.OnFrame(function()
         return (#toasts > 0 or fps.running) and not ui.show[0] and not isPauseMenuActive()
     end, drawToasts)
     toastFrame.HideCursor = true
 end
 
-end -- окно
-
-------------------------------------------------------------------------
--- запасной вариант без mimgui: обычные диалоги SA-MP
-------------------------------------------------------------------------
+end
 
 local DLG_LIST, DLG_INFO = 27311, 27312
 local fallback = { list = {}, current = nil }
 
--- диалог SA-MP сам строки не переносит, режем по словам
 local function wrapForDialog(s, width)
     local out = {}
     for line in (s .. '\n'):gmatch('([^\n]*)\n') do
@@ -4277,10 +4087,6 @@ function fallback.poll()
     end
 end
 
-------------------------------------------------------------------------
--- команда, клавиши, события
-------------------------------------------------------------------------
-
 local function onCommand(arg)
     arg = trim((arg or ''):lower())
     if not imgui then
@@ -4342,7 +4148,7 @@ function onWindowMessage(msg, wparam, lparam)
         return
     end
 
-    if bit.band(lparam, 0x40000000) ~= 0 then return end -- зажатая клавиша, автоповтор
+    if bit.band(lparam, 0x40000000) ~= 0 then return end
 
     if wparam == 0x1B and ui.show[0] then
         ui.show[0] = false
@@ -4354,24 +4160,17 @@ function onWindowMessage(msg, wparam, lparam)
     if settings.hotkey ~= 0 and wparam == settings.hotkey then
         toggleWindow()
     elseif not commandName and wparam == 0x44 and isKeyDown(0x11) and isKeyDown(0x10) then
-        -- Ctrl + Shift + D, если команду зарегистрировать нечем (нет SAMPFUNCS)
         toggleWindow()
     end
 end
 
 function onScriptTerminate(s, quitGame)
     if isSelf(s) then
-        -- если нас выгрузили посреди замера, скрипты не должны остаться на паузе
         resumePaused()
         if crashesDirty then pcall(saveCrashes) end
     end
 end
 
-------------------------------------------------------------------------
--- старт
-------------------------------------------------------------------------
-
--- грузим сохранённое сразу, а не в main: ошибки других скриптов могут прийти раньше
 ensureDir(ML_DIR .. '\\config')
 ensureDir(CFG_DIR)
 loadSettings()
@@ -4410,7 +4209,6 @@ function main()
             wait(8000)
             runScan()
             while scan.running do wait(200) end
-            -- в чат пишем только про серьёзное, предупреждения можно посмотреть и потом
             local red = scan.done and scan.counts.red or 0
             if red > 0 and settings.chat then
                 local how = commandName and ('/' .. commandName .. ' scan') or openText()
