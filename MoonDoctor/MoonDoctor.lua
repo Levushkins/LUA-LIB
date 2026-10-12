@@ -1348,16 +1348,22 @@ local function scanSource(src)
             end
         end
         if line:find('require', 1, true) then
-            for mod in line:gmatch('%f[%w_]require%s*%(?%s*["\']([^"\']+)["\']') do
-                res.requires[#res.requires + 1] = { mod = mod, line = n }
+            for pos, mod in line:gmatch('()%f[%w_]require%s*%(?%s*["\']([^"\']+)["\']') do
+                local before = pos > 1 and line:sub(pos - 1, pos - 1) or ''
+                if before ~= '.' and before ~= ':' then
+                    res.requires[#res.requires + 1] = { mod = mod, line = n }
+                end
             end
             for mod in line:gmatch('pcall%s*%(%s*require%s*,%s*["\']([^"\']+)["\']') do
                 res.requires[#res.requires + 1] = { mod = mod, line = n, optional = true }
             end
         end
         if line:find('import', 1, true) then
-            for f in line:gmatch('%f[%w_]import%s*%(?%s*["\']([^"\']+)["\']') do
-                res.imports[#res.imports + 1] = { file = f, line = n }
+            for pos, f in line:gmatch('()%f[%w_]import%s*%(?%s*["\']([^"\']+)["\']') do
+                local before = pos > 1 and line:sub(pos - 1, pos - 1) or ''
+                if before ~= '.' and before ~= ':' then
+                    res.imports[#res.imports + 1] = { file = f, line = n }
+                end
             end
         end
         scanKeys(line, n, res.keys)
