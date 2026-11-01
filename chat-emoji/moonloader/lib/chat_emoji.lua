@@ -325,6 +325,11 @@ function emoji.build(atlas)
             -- баннера («ВИП ЧАТ», ленты) до 8. Рисуем с этим соотношением,
             -- иначе широкие иконки сплющивались бы в полоску.
             cells = cells,
+            -- Arizona выкинула часть иконок из шрифтов плагина. Артворк для
+            -- них у нас свой, в атласе, поэтому в окне mimgui они рисуются
+            -- как обычно. А вот в чате и в диалоге их уже некому нарисовать -
+            -- вот это и означает legacy.
+            legacy = row.legacy == true,
             token = (':u%x:'):format(cp),
             -- Числами UV лежат всегда, а ImVec2 собираем только когда mimgui
             -- действительно есть: без него модуль остаётся пригодным для
@@ -473,18 +478,34 @@ end
 --- Убирает токены из текста: строка станет читаемой там, где их некому
 --- отрисовать. Вместе с токеном съедается один пробел за ним, иначе на
 --- месте смайла оставались бы двойные пробелы.
-function emoji.strip(text)
+-- @param onlyLegacy если true, убираются только иконки, выкинутые из
+--        плагина: остальные плагин нарисует и трогать их незачем
+function emoji.strip(text, onlyLegacy)
     if type(text) ~= 'string' then return text end
-    local out = text:gsub(emoji.TOKEN .. ' ?', '')
-    out = out:gsub(' +\n', '\n'):gsub(' +$', '')
+    local out, n
+    if onlyLegacy then
+        out, n = text:gsub(emoji.PATTERN .. ' ?', function(hex)
+            local e = emoji.byCp[tonumber(hex, 16)]
+            if e and e.legacy then return '' end
+            return nil          -- nil оставляет токен на месте
+        end)
+    else
+        out, n = text:gsub(emoji.TOKEN .. ' ?', '')
+    end
+    if n > 0 then
+        out = out:gsub(' +\n', '\n'):gsub(' +$', '')
+    end
     return out
 end
 
---- Текст под текущий сервер: как есть, если плагин чата на месте,
---- и без токенов, если его нет.
+--- Текст под текущий сервер и текущую версию плагина:
+---   плагина нет          - убираем все токены;
+---   плагин есть          - убираем только те иконки, которые Arizona
+---                          выкинула из шрифтов: их он всё равно не нарисует,
+---                          а в строке они останутся мусором ":uf240:".
 function emoji.fit(text)
-    if emoji.detect() then return text end
-    return emoji.strip(text)
+    if not emoji.detect() then return emoji.strip(text) end
+    return emoji.strip(text, true)
 end
 
 --- Приводит именные токены к каноническому виду: ':trophy:' -> ':u1f3c6:'.

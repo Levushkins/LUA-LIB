@@ -189,6 +189,39 @@ check(m.tokenBytes == #':u1f603:' + #':u1fc08:', 'measure посчитал ба�
 check(m.bytes == #'a :u1f603: b :u1fc08:', 'measure посчитал длину строки')
 check(m.visible == m.bytes - m.tokenBytes + m.tokens, 'measure: visible')
 
+-- --------------------------------------------------------------------------
+-- legacy: иконки, выкинутые Arizona из шрифтов плагина. В атласе они есть
+-- (артворк наш), но в чат и в диалог их слать бессмысленно.
+local legacyCount = 0
+for _, e in ipairs(emoji.list) do
+    if e.legacy then legacyCount = legacyCount + 1 end
+end
+check(legacyCount > 0, 'ни одной записи legacy: флаг не доехал из атласа')
+print('помечено legacy: ' .. legacyCount)
+
+local crown = emoji.get(0xF240)
+check(crown ~= nil, 'VIP-корона U+F240 пропала из атласа')
+check(crown and crown.legacy == true, 'корона U+F240 должна быть legacy')
+local cash = emoji.get('cash')
+check(cash ~= nil and cash.legacy == false,
+      'cash живой в новом плагине, legacy стоять не должен')
+
+-- strip с onlyLegacy убирает только мёртвые токены
+local mixed = 'a ' .. emoji.tok('cash') .. ' b ' .. emoji.encode(0xF240) .. ' c'
+check(emoji.strip(mixed, true) == 'a ' .. emoji.tok('cash') .. ' b c',
+      'strip(onlyLegacy) убрал не то: ' .. emoji.strip(mixed, true))
+check(emoji.strip(mixed) == 'a b c', 'обычный strip должен убрать оба токена')
+check(emoji.strip('без токенов', true) == 'без токенов',
+      'strip(onlyLegacy) тронул чистый текст')
+
+-- fit: с плагином режет только legacy, без плагина - всё
+emoji.plugin = true
+check(emoji.fit(mixed) == 'a ' .. emoji.tok('cash') .. ' b c',
+      'fit с плагином обязан убрать только мёртвые токены')
+emoji.plugin = false
+check(emoji.fit(mixed) == 'a b c', 'fit без плагина обязан убрать все токены')
+emoji.plugin = nil
+
 -- detect() без winapi обязан честно сказать «нет», а не упасть
 emoji.plugin = nil
 local detected = emoji.detect()
